@@ -1,4 +1,5 @@
 from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.auth.decorators import login_required
 from django.contrib.auth import authenticate, login as auth_login, logout as auth_logout
 from django.contrib import messages
 from ..models import Usuario, Rol
@@ -27,7 +28,7 @@ def logout_view(request):
     auth_logout(request)
     return redirect('login')
 
-
+@login_required
 def dashboard(request):
     if request.user.id_rol_id == 1:
         return redirect('dashboard_admin')
