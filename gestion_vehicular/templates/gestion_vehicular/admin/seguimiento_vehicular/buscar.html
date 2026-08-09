@@ -1,0 +1,62 @@
+{% extends 'gestion_vehicular/admin/base_admin.html' %}
+{% block title %}Buscar Vehículo{% endblock %}
+
+{% block content %}
+
+<h2 style="color:#1a252f; margin-bottom:15px;">Buscar Vehículo</h2>
+
+<div class="card" style="padding:20px;">
+    <form method="GET" action="{% url 'buscar_vehiculo' %}" style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+        <input type="text" name="placa" placeholder="Ingrese placa..." value="{{ placa }}" style="flex:1; min-width:200px;">
+        <button type="submit" class="btn btn-primary">Buscar</button>
+    </form>
+</div>
+
+{% if vehiculo %}
+<div class="card" style="padding:20px;">
+    <h3 style="margin:0 0 15px 0; color:#e67e22;">Datos del Vehículo</h3>
+    <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px;">
+        <div><strong>Placa:</strong> {{ vehiculo.placa }}</div>
+        <div><strong>Cliente:</strong> {{ vehiculo.id_cliente.nombre|default:"-" }}</div>
+        <div><strong>Teléfono:</strong> {{ vehiculo.id_cliente.telefono|default:"-" }}</div>
+    </div>
+    
+    <div style="margin-top:15px; display:flex; gap:10px; flex-wrap:wrap;">
+        <a href="{% url 'crear_orden' %}?vehiculo_id={{ vehiculo.id }}" class="btn btn-success">+ Nueva Orden</a>
+        <a href="{% url 'historial_vehiculo' vehiculo.placa %}" class="btn btn-info">Ver Historial</a>
+    </div>
+</div>
+
+{% if ordenes %}
+<div class="card" style="padding:20px;">
+    <h3 style="margin:0 0 15px 0; color:#2c3e50;">Últimas Órdenes</h3>
+    <table style="font-size:0.85rem;">
+        <thead>
+            <tr>
+                <th>Orden</th>
+                <th>Fecha Ingreso</th>
+                <th>Estado</th>
+                <th>Total</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for orden in ordenes %}
+            <tr>
+                <td><strong>{{ orden.id }}</strong></td>
+                <td>{{ orden.fecha_ingreso|date:"d/m/Y H:i" }}</td>
+                <td><span class="badge {% if orden.estado_orden == 'COBRADA' %}badge-success{% elif orden.estado_orden == 'EN_PROCESO' %}badge-info{% else %}badge-warning{% endif %}">{{ orden.estado_orden }}</span></td>
+                <td>Bs. {{ orden.total_orden|floatformat:2|default:"0.00" }}</td>
+                <td><a href="{% url 'detalle_orden' orden.id %}" class="btn btn-primary" style="padding:2px 10px; font-size:0.7rem;">Ver</a></td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endif %}
+
+{% elif placa %}
+<p style="color:#e74c3c;">No se encontró el vehículo "{{ placa }}"</p>
+{% endif %}
+
+{% endblock %}

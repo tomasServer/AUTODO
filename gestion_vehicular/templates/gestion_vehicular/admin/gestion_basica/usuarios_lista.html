@@ -1,0 +1,43 @@
+{% extends 'gestion_vehicular/admin/base_admin.html' %}
+{% block title %}Personal{% endblock %}
+
+
+{% block content %}
+<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+    <h1 style="color:#1a252f;">Gestion de Personal</h1>
+    <a href="{% url 'crear_usuario' %}" class="btn btn-success">Agregar Usuario</a>
+</div>
+
+<div class="card">
+    <h2>Usuarios del Sistema ({{ usuarios.count }})</h2>
+    {% if usuarios %}
+    <table>
+        <thead>
+            <tr><th>Usuario</th><th>Nombre</th><th>Rol</th><th>Telefono</th><th>Activo</th><th>Acciones</th></tr>
+        </thead>
+        <tbody>
+            {% for u in usuarios %}
+            <tr>
+                <td><strong>{{ u.usuario_login }}</strong></td>
+                <td>{{ u.nombre }} {{ u.apellido|default:"" }}</td>
+                <td><span class="badge badge-info">{{ u.id_rol.nombre }}</span></td>
+                <td>{{ u.telefono|default:"-" }}</td>
+                <td>
+                    {% if u.activo %}
+                    <span class="badge badge-success">Activo</span>
+                    {% else %}
+                    <span class="badge badge-danger">Inactivo</span>
+                    {% endif %}
+                </td>
+                <td>
+                    <a href="{% url 'editar_usuario' u.id %}" class="btn btn-info" style="padding:4px 10px; font-size:0.8rem;">Editar</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p style="color:#7f8c8d;">No hay usuarios registrados.</p>
+    {% endif %}
+</div>
+{% endblock %}

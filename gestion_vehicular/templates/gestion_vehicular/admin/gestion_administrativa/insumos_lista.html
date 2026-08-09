@@ -1,0 +1,56 @@
+{% extends 'gestion_vehicular/admin/base_admin.html' %}
+{% block title %}Inventario - Insumos{% endblock %}
+
+
+{% block content %}
+<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+    <h1 style="color:#1a252f;">Inventario de Insumos</h1>
+    <a href="{% url 'crear_insumo' %}" class="btn btn-success">Agregar Producto</a>
+</div>
+
+{% if stock_bajo %}
+<div class="card" style="background:#c1aaa2; border-left:0px solid #7d6608;">
+    <h2 style="color:#7d6608;">Productos con Stock Bajo</h2>
+    <table>
+        <thead><tr><th>Producto</th><th>Stock</th><th>Accion</th></tr></thead>
+        <tbody>
+            {% for p in stock_bajo %}
+            <tr>
+                <td>{{ p.nombre }}</td>
+                <td><strong style="color:#c0392b;">{{ p.stock_actual }}</strong></td>
+                <td><a href="{% url 'editar_insumo' p.id %}" class="btn btn-primary" style="padding:4px 10px; font-size:0.8rem;">Reponer</a></td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endif %}
+
+<div class="card">
+    <h2>Todos los Productos ({{ productos.count }})</h2>
+    {% if productos %}
+    <table>
+        <thead>
+            <tr><th>Codigo</th><th>Nombre</th><th>Costo</th><th>Venta</th><th>Stock</th><th>Acciones</th></tr>
+        </thead>
+        <tbody>
+            {% for p in productos %}
+            <tr>
+                <td>{{ p.codigo|default:"-" }}</td>
+                <td>{{ p.nombre }}</td>
+                <td>Bs. {{ p.costo_unitario }}</td>
+                <td>Bs. {{ p.precio_venta }}</td>
+                <td><strong {% if p.stock_actual <= 5 %}style="color:#c0392b;"{% endif %}>{{ p.stock_actual }}</strong></td>
+                <td>
+                    <a href="{% url 'editar_insumo' p.id %}" class="btn btn-info" style="padding:4px 10px; font-size:0.8rem;">Editar</a>
+                    <a href="{% url 'desactivar_insumo' p.id %}" class="btn btn-warning" style="padding:4px 10px; font-size:0.8rem;" onclick="return confirm('¿Desactivar este producto?')">Desactivar</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p style="color:#7f8c8d;">No hay productos en el inventario.</p>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,136 @@
+{% extends 'gestion_vehicular/admin/base_admin.html' %}
+{% block title %}Modo Taller{% endblock %}
+
+{% block content %}
+
+<h2 style="color:#1a252f; margin-bottom:15px;">Modo Taller</h2>
+
+<!-- SECCION: ORDENES PARA TRABAJAR -->
+<div style="background:#f8f9fa; padding:15px; border-radius:6px; margin-bottom:20px;">
+    <h3 style="margin:0 0 12px 0; color:#2c3e50; font-size:16px;">Ordenes para Trabajar</h3>
+    {% if ordenes_trabajo %}
+    <div style="overflow-x:auto;">
+        <table style="width:100%; border-collapse:collapse; background:white; border-radius:6px; overflow:hidden; box-shadow:0 1px 4px rgba(0,0,0,0.06);">
+            <thead>
+                <tr style="background:#1a252f; color:white;">
+                    <th style="padding:10px 12px; text-align:left;">Orden</th>
+                    <th style="padding:10px 12px; text-align:left;">Placa</th>
+                    <th style="padding:10px 12px; text-align:left;">Vehículo</th>
+                    <th style="padding:10px 12px; text-align:left;">Cliente</th>
+                    <th style="padding:10px 12px; text-align:left;">Mecánico</th>
+                    <th style="padding:10px 12px; text-align:left;">Estado</th>
+                    <th style="padding:10px 12px; text-align:center;">Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for orden in ordenes_trabajo %}
+                <tr style="border-bottom:1px solid #ecf0f1;">
+                    <td style="padding:10px 12px; font-weight:600;">{{ orden.id }}</td>
+                    <td style="padding:10px 12px;">{{ orden.id_vehiculo.placa }}</td>
+                    <td style="padding:10px 12px;">
+                        {% if orden.id_vehiculo.marca or orden.id_vehiculo.modelo %}
+                            {{ orden.id_vehiculo.marca|default:"" }} {{ orden.id_vehiculo.modelo|default:"" }}
+                        {% else %}
+                            <span style="color:#7f8c8d;">Sin datos</span>
+                        {% endif %}
+                    </td>
+                    <td style="padding:10px 12px;">
+                        {% if orden.id_vehiculo.id_cliente %}
+                            {{ orden.id_vehiculo.id_cliente.nombre }}
+                        {% else %}
+                            <span style="color:#7f8c8d;">Sin cliente</span>
+                        {% endif %}
+                    </td>
+                    <td style="padding:10px 12px; font-size:13px;">
+                        {% with mecanico=orden.detalles_servicio.first.id_mecanico %}
+                            {% if mecanico %}
+                                {{ mecanico.nombre_completo }}
+                            {% else %}
+                                <span style="color:#7f8c8d;">Sin asignar</span>
+                            {% endif %}
+                        {% endwith %}
+                    </td>
+                    <td style="padding:10px 12px;">
+                        <span style="background:{% if orden.estado_orden == 'EN_PROCESO' %}#f39c12{% else %}#e74c3c{% endif %}; color:white; padding:2px 12px; border-radius:12px; font-size:12px;">
+                            {{ orden.estado_orden }}
+                        </span>
+                    </td>
+                    <td style="padding:10px 12px; text-align:center;">
+                        <a href="{% url 'detalle_orden' orden.id %}" style="background:#95a5a6; color:white; padding:4px 12px; border-radius:4px; text-decoration:none; font-size:12px; display:inline-block;">Detalle</a>
+                        <a href="{% url 'taller_detalle' orden.id %}" style="background:#e67e22; color:white; padding:4px 15px; border-radius:4px; text-decoration:none; font-size:12px; display:inline-block; margin-left:5px;">Trabajar</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p style="color:#27ae60;">No hay ordenes para trabajar</p>
+    {% endif %}
+</div>
+
+<!-- SECCION: ORDENES PARA COBRAR -->
+<div style="background:#f8f9fa; padding:15px; border-radius:6px; margin-bottom:20px;">
+    <h3 style="margin:0 0 12px 0; color:#2c3e50; font-size:16px;">Ordenes para Cobrar</h3>
+    {% if ordenes_cobrar %}
+    <div style="overflow-x:auto;">
+        <table style="width:100%; border-collapse:collapse; background:white; border-radius:6px; overflow:hidden; box-shadow:0 1px 4px rgba(0,0,0,0.06);">
+            <thead>
+                <tr style="background:#1a252f; color:white;">
+                    <th style="padding:10px 12px; text-align:left;">Orden</th>
+                    <th style="padding:10px 12px; text-align:left;">Placa</th>
+                    <th style="padding:10px 12px; text-align:left;">Vehículo</th>
+                    <th style="padding:10px 12px; text-align:left;">Cliente</th>
+                    <th style="padding:10px 12px; text-align:left;">Mecánico</th>
+                    <th style="padding:10px 12px; text-align:left;">Estado</th>
+                    <th style="padding:10px 12px; text-align:center;">Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for orden in ordenes_cobrar %}
+                <tr style="border-bottom:1px solid #ecf0f1;">
+                    <td style="padding:10px 12px; font-weight:600;">{{ orden.id }}</td>
+                    <td style="padding:10px 12px;">{{ orden.id_vehiculo.placa }}</td>
+                    <td style="padding:10px 12px;">
+                        {% if orden.id_vehiculo.marca or orden.id_vehiculo.modelo %}
+                            {{ orden.id_vehiculo.marca|default:"" }} {{ orden.id_vehiculo.modelo|default:"" }}
+                        {% else %}
+                            <span style="color:#7f8c8d;">Sin datos</span>
+                        {% endif %}
+                    </td>
+                    <td style="padding:10px 12px;">
+                        {% if orden.id_vehiculo.id_cliente %}
+                            {{ orden.id_vehiculo.id_cliente.nombre }}
+                        {% else %}
+                            <span style="color:#7f8c8d;">Sin cliente</span>
+                        {% endif %}
+                    </td>
+                    <td style="padding:10px 12px; font-size:13px;">
+                        {% with mecanico=orden.detalles_servicio.first.id_mecanico %}
+                            {% if mecanico %}
+                                {{ mecanico.nombre_completo }}
+                            {% else %}
+                                <span style="color:#7f8c8d;">Sin asignar</span>
+                            {% endif %}
+                        {% endwith %}
+                    </td>
+                    <td style="padding:10px 12px;">
+                        <span style="background:#27ae60; color:white; padding:2px 12px; border-radius:12px; font-size:12px;">POR COBRAR</span>
+                    </td>
+                    <td style="padding:10px 12px; text-align:center;">
+                        <a href="{% url 'detalle_orden' orden.id %}" style="background:#95a5a6; color:white; padding:4px 12px; border-radius:4px; text-decoration:none; font-size:12px; display:inline-block;">Detalle</a>
+                        <a href="{% url 'registrar_pago' orden.id %}" style="background:#27ae60; color:white; padding:4px 15px; border-radius:4px; text-decoration:none; font-size:12px; display:inline-block; margin-left:5px;">Cobrar</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p style="color:#7f8c8d;">No hay ordenes para cobrar</p>
+    {% endif %}
+</div>
+
+<a href="{% url 'dashboard_admin' %}" class="btn btn-gray">Volver</a>
+
+{% endblock %}

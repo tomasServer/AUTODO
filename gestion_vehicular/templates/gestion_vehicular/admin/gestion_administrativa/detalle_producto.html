@@ -1,0 +1,30 @@
+{% extends 'gestion_vehicular/admin/base_admin.html' %}
+{% block title %}Producto: {{ producto.nombre }}{% endblock %}
+
+{% block content %}
+<h1 style="color:#1a252f; margin-bottom:5px;">{{ producto.nombre }}</h1>
+<p style="color:#7f8c8d; margin-bottom:20px;">Ventas realizadas de este producto</p>
+
+<div class="card" style="padding:15px 20px;">
+    {% if ventas %}
+    <table style="font-size:0.85rem;">
+        <thead><tr><th>Orden</th><th>Placa</th><th>Fecha</th><th>Cantidad</th><th>Precio Unit.</th><th>Subtotal</th></tr></thead>
+        <tbody>
+            {% for v in ventas %}
+            <tr>
+                <td><a href="{% url 'detalle_orden' v.id_orden.id %}">#{{ v.id_orden.id }}</a></td>
+                <td>{{ v.id_orden.id_vehiculo.placa }}</td>
+                <td>{{ v.id_orden.fecha_ingreso|date:"d/m/Y" }}</td>
+                <td>{{ v.cantidad }}</td>
+                <td>Bs. {{ v.precio_unitario }}</td>
+                <td><strong>Bs. {{ v.subtotal_precio|default:"0.00" }}</strong></td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p style="color:#7f8c8d;">No hay ventas registradas.</p>
+    {% endif %}
+</div>
+<a href="{% url 'reportes' %}" class="btn btn-gray" style="margin-top:15px;">Volver a Reportes</a>
+{% endblock %}

@@ -1,0 +1,123 @@
+{% extends 'gestion_vehicular/admin/base_admin.html' %}
+{% block title %}Reportes{% endblock %}
+
+{% block content %}
+
+<h1 style="color:#1a252f; margin-bottom:15px; font-size:1.3rem;">Reportes</h1>
+
+<!-- FILTRO POR FECHAS -->
+<div class="card" style="padding:15px 20px; margin-bottom:20px;">
+    <form method="GET" style="display:flex; gap:10px; align-items:end; flex-wrap:wrap;">
+        <div>
+            <label style="font-size:0.8rem;">Desde</label>
+            <input type="date" name="fecha_inicio" value="{{ fecha_inicio }}" style="padding:8px; font-size:0.85rem;">
+        </div>
+        <div>
+            <label style="font-size:0.8rem;">Hasta</label>
+            <input type="date" name="fecha_fin" value="{{ fecha_fin }}" style="padding:8px; font-size:0.85rem;">
+        </div>
+        <button type="submit" class="btn btn-primary" style="padding:8px 16px;">Filtrar</button>
+        <a href="{% url 'reportes' %}" class="btn btn-gray" style="padding:8px 16px;">Limpiar</a>
+    </form>
+</div>
+
+<!-- TOTALES -->
+<div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:12px; margin-bottom:20px;">
+    <div style="background:#27ae60; padding:15px; border-radius:4px; color:white; text-align:center;">
+        <div style="font-size:1.5rem; font-weight:700;">Bs. {{ total_servicios_bs|floatformat:2 }}</div>
+        <div style="font-size:0.75rem; opacity:0.9;">Total en Servicios</div>
+    </div>
+    <div style="background:#2980b9; padding:15px; border-radius:4px; color:white; text-align:center;">
+        <div style="font-size:1.5rem; font-weight:700;">Bs. {{ total_productos_bs|floatformat:2 }}</div>
+        <div style="font-size:0.75rem; opacity:0.9;">Total en Productos</div>
+    </div>
+    <div style="background:#8e44ad; padding:15px; border-radius:4px; color:white; text-align:center;">
+        <div style="font-size:1.5rem; font-weight:700;">Bs. {{ total_pagado|floatformat:2 }}</div>
+        <div style="font-size:0.75rem; opacity:0.9;">Total Cobrado</div>
+    </div>
+</div>
+
+<!-- PRODUCTOS VENDIDOS + SERVICIOS POR MECÁNICO -->
+<div style="display:grid; grid-template-columns:1fr 1fr; gap:15px; margin-bottom:20px;">
+
+    <!-- PRODUCTOS VENDIDOS -->
+    <div class="card" style="padding:15px 20px;">
+        <h2 style="font-size:1rem; margin-bottom:10px;">Productos Vendidos</h2>
+        {% if productos_vendidos %}
+        <table style="font-size:0.85rem;">
+            <thead>
+                <tr><th>Producto</th><th>Cantidad</th><th>Total</th></tr>
+            </thead>
+            <tbody>
+                {% for p in productos_vendidos %}
+                <tr>
+                    <td>
+                        <a href="{% url 'detalle_producto_vendido' p.id_producto__id %}" style="color:#2980b9; text-decoration:none; font-weight:600;">
+                            {{ p.id_producto__nombre }}
+                        </a>
+                    </td>
+                    <td>{{ p.total_vendido }}</td>
+                    <td><strong>Bs. {{ p.total_bs|floatformat:2 }}</strong></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p style="color:#7f8c8d; font-size:0.85rem;">No hay productos vendidos.</p>
+        {% endif %}
+    </div>
+
+    <!-- SERVICIOS POR MECÁNICO -->
+    <div class="card" style="padding:15px 20px;">
+        <h2 style="font-size:1rem; margin-bottom:10px;">Servicios por Mecanico</h2>
+        {% if servicios_por_mecanico %}
+        <table style="font-size:0.85rem;">
+            <thead>
+                <tr><th>Mecanico</th><th>Realizados</th></tr>
+            </thead>
+            <tbody>
+                {% for m in servicios_por_mecanico %}
+                <tr>
+                    <td>
+                        {% if m.id_mecanico__id %}
+                        <a href="{% url 'detalle_mecanico' m.id_mecanico__id %}" style="color:#2980b9; text-decoration:none; font-weight:600;">
+                        {{ m.id_mecanico__nombre|default:"No asignado" }} {{ m.id_mecanico__apellido|default:"" }}
+                        </a>
+                        {% else %}
+                    No asignado
+                {% endif %}
+            </td>
+    <td><strong>{{ m.total }}</strong></td>
+</tr>
+{% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p style="color:#7f8c8d; font-size:0.85rem;">No hay servicios registrados.</p>
+        {% endif %}
+    </div>
+</div>
+
+<!-- SERVICIOS MÁS REALIZADOS -->
+<div class="card" style="padding:15px 20px;">
+    <h2 style="font-size:1rem; margin-bottom:10px;">Servicios Mas Realizados</h2>
+    {% if servicios_mas_realizados %}
+    <table style="font-size:0.85rem;">
+        <thead>
+            <tr><th>Servicio</th><th>Cantidad</th></tr>
+        </thead>
+        <tbody>
+            {% for s in servicios_mas_realizados %}
+            <tr>
+                <td>{{ s.id_servicio__nombre }}</td>
+                <td><strong>{{ s.total }}</strong></td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p style="color:#7f8c8d; font-size:0.85rem;">No hay servicios registrados.</p>
+    {% endif %}
+</div>
+
+{% endblock %}

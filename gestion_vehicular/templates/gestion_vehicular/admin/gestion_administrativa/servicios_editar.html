@@ -1,0 +1,61 @@
+{% extends 'gestion_vehicular/base.html' %}
+{% block title %}Editar Servicio{% endblock %}
+
+{% block navbar %}
+    <a href="{% url 'dashboard_admin' %}">Inicio</a>
+    <a href="{% url 'lista_servicios' %}">Servicios</a>
+{% endblock %}
+
+{% block sidebar %}
+    <h3>Acciones</h3>
+    <a href="{% url 'lista_servicios' %}">Ver Servicios</a>
+    <a href="{% url 'crear_servicio' %}">Agregar Servicio</a>
+{% endblock %}
+
+{% block content %}
+<h1 style="color:#1a252f; margin-bottom:20px;">Editar: {{ servicio.nombre }}</h1>
+
+<div class="card">
+    <form method="POST">
+        {% csrf_token %}
+        
+        <div class="grid grid-2">
+            <div>
+                <label>Tipo de Servicio</label>
+                <select name="tipo_servicio" required>
+                    {% for tipo in tipos %}
+                    <option value="{{ tipo.id }}" {% if tipo.id == servicio.id_tipo_servicio_id %}selected{% endif %}>{{ tipo.nombre }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label>Nombre del Servicio</label>
+                <input type="text" name="nombre" value="{{ servicio.nombre }}" required>
+            </div>
+        </div>
+        
+        <label style="margin-top:15px;">Descripcion</label>
+        <textarea name="descripcion" rows="2">{{ servicio.descripcion|default:'' }}</textarea>
+        
+        <div class="grid grid-3" style="margin-top:15px;">
+            <div>
+                <label>Costo Mano de Obra (Bs.)</label>
+                <input type="number" name="costo_mano_obra" step="0.01" value="{{ servicio.costo_mano_obra }}" required>
+            </div>
+            <div>
+                <label>Precio de Venta (Bs.)</label>
+                <input type="number" name="precio_mano_obra" step="0.01" value="{{ servicio.precio_mano_obra }}" required>
+            </div>
+            <div>
+                <label>Tiempo Estimado (minutos)</label>
+                <input type="number" name="tiempo_estimado_minutos" value="{{ servicio.tiempo_estimado_minutos }}">
+            </div>
+        </div>
+        
+        <div style="text-align:right; margin-top:20px;">
+            <a href="{% url 'lista_servicios' %}" class="btn btn-gray">Cancelar</a>
+            <button type="submit" class="btn btn-success">Actualizar Servicio</button>
+        </div>
+    </form>
+</div>
+{% endblock %}

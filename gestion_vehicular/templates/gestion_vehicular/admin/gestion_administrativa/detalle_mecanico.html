@@ -1,0 +1,29 @@
+{% extends 'gestion_vehicular/admin/base_admin.html' %}
+{% block title %}Mecanico: {{ mecanico.nombre }}{% endblock %}
+
+{% block content %}
+<h1 style="color:#1a252f; margin-bottom:5px;">{{ mecanico.nombre }} {{ mecanico.apellido|default:"" }}</h1>
+<p style="color:#7f8c8d; margin-bottom:20px;">Servicios realizados: {{ servicios.count }}</p>
+
+<div class="card" style="padding:15px 20px;">
+    {% if servicios %}
+    <table style="font-size:0.85rem;">
+        <thead><tr><th>Orden</th><th>Placa</th><th>Servicio</th><th>Fecha</th><th>Precio</th></tr></thead>
+        <tbody>
+            {% for s in servicios %}
+            <tr>
+                <td><a href="{% url 'detalle_orden' s.id_orden.id %}">#{{ s.id_orden.id }}</a></td>
+                <td>{{ s.id_orden.id_vehiculo.placa }}</td>
+                <td>{{ s.id_servicio.nombre }}</td>
+                <td>{{ s.fecha_fin|date:"d/m/Y H:i" }}</td>
+                <td><strong>Bs. {{ s.precio_cobrado|default:"0.00" }}</strong></td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p style="color:#7f8c8d;">No hay servicios registrados.</p>
+    {% endif %}
+</div>
+<a href="{% url 'reportes' %}" class="btn btn-gray" style="margin-top:15px;">Volver a Reportes</a>
+{% endblock %}

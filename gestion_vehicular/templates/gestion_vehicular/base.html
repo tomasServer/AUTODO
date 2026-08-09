@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AUTODO | {% block title %}Taller Automotriz{% endblock %}</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body { 
+            font-family: 'Segoe UI', system-ui, sans-serif; 
+            background: #d5d8dc;
+            min-height: 100vh;
+            color: #1a1a1a;
+        }
+        
+        .navbar { 
+            background: #f47b0b;
+            color: #ffffff;
+            padding: 0 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            height: 55px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+        }
+        
+        .navbar .logo { 
+            font-size: 1.3rem;
+            font-weight: 700;
+            letter-spacing: 1px;
+            color: #c0392b;
+        }
+        
+        .navbar a { 
+            color: #248bd0;
+            text-decoration: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            font-size: 0.9rem;
+        }
+        
+        .navbar a:hover { 
+            background: #2c3e50;
+            color: #ffffff;
+        }
+        
+        .main-layout { 
+            display: flex;
+            min-height: calc(100vh - 55px);
+        }
+        
+        .sidebar { 
+            width: 220px;
+            background: #1a252f;
+            color: #bdc3c7;
+            padding: 1.5rem 1rem;
+        }
+        
+        .sidebar h3 { 
+            color: #c0392b;
+            margin-bottom: 1rem;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .sidebar a { 
+            display: block;
+            color: #bdc3c7;
+            text-decoration: none;
+            padding: 8px 12px;
+            border-radius: 4px;
+            margin-bottom: 4px;
+            font-size: 0.9rem;
+        }
+        
+        .sidebar a:hover { 
+            background: #2c3e50;
+            color: #ffffff;
+        }
+        
+        .sidebar .user-info { 
+            margin-top: 2rem;
+            padding-top: 1rem;
+            border-top: 1px solid #2c3e50;
+            font-size: 0.8rem;
+        }
+        
+        .sidebar .user-info strong { 
+            color: #ffffff;
+            display: block;
+        }
+        
+        .sidebar .btn-salir { 
+            display: block;
+            text-align: center;
+            margin-top: 1rem;
+            padding: 8px;
+            background: #c0392b;
+            color: #ffffff;
+            border-radius: 4px;
+            text-decoration: none;
+        }
+        
+        .sidebar .btn-salir:hover { 
+            background: #e74c3c;
+        }
+        
+        .content { 
+            flex: 1;
+            padding: 1.5rem;
+        }
+        
+        .messages { 
+            list-style: none;
+            margin-bottom: 1rem;
+        }
+        
+        .messages li { 
+            padding: 12px 18px;
+            margin: 5px 0;
+            border-radius: 4px;
+            font-weight: 500;
+        }
+        
+        .success { 
+            background: #ea750e;
+            color: #000000;
+
+        }
+        
+        .error { 
+            background: #fadbd8;
+            color: #922b21;
+
+        }
+        
+        .card { 
+            background: #ffffff;
+            padding: 22px;
+            border-radius: 6px;
+            box-shadow: 0 1px 6px rgba(0,0,0,0.08);
+            margin-bottom: 18px;
+            border: 1px solid #bdc3c7;
+        }
+        
+        .card h2 { 
+            margin-bottom: 14px;
+            color: #1a252f;
+            font-size: 1.2rem;
+            border-bottom: 2px solid #d5d8dc;
+            padding-bottom: 10px;
+        }
+        
+        .btn { 
+            display: inline-block;
+            padding: 9px 18px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            text-decoration: none;
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+        
+        .btn-primary { background: #1a252f; color: #ffffff; }
+        .btn-success { background: #03b49c; color: #ffffff; }
+        .btn-warning { background: #941305; color: #ffffff; }
+        .btn-info { background: #2c3e50; color: #ffffff; }
+        .btn-gray { background: #b2c8ca; color: #ffffff; }
+        
+        table { 
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 0.8rem;
+        }
+        
+        th, td { 
+            padding: 10px 14px;
+            text-align: left;
+            border-bottom: 1px solid #bdc3c7;
+        }
+        
+        th { 
+            background: #1a252f;
+            color: #ffffff;
+            font-weight: 600;
+        }
+        
+        tr:hover { 
+            background: #eaeded;
+        }
+        
+        .grid { 
+            display: grid;
+            gap: 18px;
+        }
+        
+        .grid-2 { grid-template-columns: 1fr 1fr; }
+        .grid-3 { grid-template-columns: 1fr 1fr 1fr; }
+        .grid-4 { grid-template-columns: 1fr 1fr 1fr 1fr; }
+        
+        .stat-card { 
+            padding: 22px;
+            border-radius: 6px;
+            color: #ffffff;
+            text-align: center;
+        }
+        
+        .stat-card .number { 
+            font-size: 2rem;
+            font-weight: 700;
+            display: block;
+        }
+        
+        .stat-card .label { 
+            font-size: 0.8rem;
+            opacity: 0.9;
+        }
+        
+        .bg-dark { background: #1a252f; }
+        .bg-red { background: #c0392b; }
+        .bg-gray { background: #2c3e50; }
+        .bg-green { background: #1e8449; }
+        
+        input, select, textarea { 
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #bdc3c7;
+            border-radius: 4px;
+            font-size: 0.95rem;
+            background: #fafbfc;
+        }
+        
+        input:focus, select:focus, textarea:focus { 
+            border-color: #c0392b;
+            outline: none;
+        }
+        
+        label { 
+            display: block;
+            margin-bottom: 4px;
+            font-weight: 600;
+            color: #1a252f;
+            font-size: 0.9rem;
+        }
+        
+        fieldset { 
+            border: 1px solid #bdc3c7;
+            border-radius: 6px;
+            padding: 18px;
+            margin-bottom: 15px;
+        }
+        
+        legend { 
+            font-weight: 700;
+            color: #1a252f;
+            padding: 0 8px;
+        }
+        
+        .badge { 
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 3px;
+            font-weight: 600;
+            font-size: 0.8rem;
+        }
+        
+        .badge-success { background: #d5f5e3; color: #1e8449; }
+        .badge-warning { background: #fcf3cf; color: #7d6608; }
+        .badge-danger { background: #fadbd8; color: #922b21; }
+        .badge-info { background: #d6eaf8; color: #1a5276; }
+        
+        @media (max-width: 768px) {
+            .main-layout { flex-direction: column; }
+            .sidebar { width: 100%; }
+            .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div><span class="logo">AUTODO</span></div>
+        <div>{% block navbar %}{% endblock %}</div>
+    </nav>
+
+    <div class="main-layout">
+        <div class="sidebar">
+            {% block sidebar %}{% endblock %}
+            <div class="user-info">
+                <strong>{{ user.nombre|default:user.usuario_login }}</strong>
+                {{ user.id_rol.nombre }}
+            </div>
+        </div>
+
+        <div class="content">
+            <!-- SOLO MUESTRA MENSAJES SI EXISTEN -->
+            {% if messages %}
+            <ul class="messages">
+                {% for message in messages %}
+                <li class="{{ message.tags }}">{{ message }}</li>
+                {% endfor %}
+            </ul>
+            {% endif %}
+            
+            {% block content %}
+            {% endblock %}
+        </div>
+    </div>
+</body>
+</html>

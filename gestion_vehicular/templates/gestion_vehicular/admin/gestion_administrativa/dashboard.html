@@ -1,0 +1,106 @@
+{% extends 'gestion_vehicular/admin/base_admin.html' %}
+{% block title %}Administracion{% endblock %}
+
+{% block content %}
+
+<h1 style="color:#1a252f; margin-bottom:4px; font-size:1.3rem;">Panel de Administracion</h1>
+<p style="color:#7f8c8d; margin-bottom:15px; font-size:0.85rem;">{{ hoy|date:"l d \d\e F \d\e Y" }}</p>
+
+<!-- ESTRUCTURA PRINCIPAL: IZQUIERDA (Hallazgos + Stock) | DERECHA (4 tarjetas) -->
+<div style="display:grid; grid-template-columns:1fr 1fr; gap:15px; margin-bottom:15px;">
+
+    <!-- COLUMNA IZQUIERDA -->
+    <div style="display:flex; flex-direction:column; gap:15px;">
+
+        <!-- HALLAZGOS PENDIENTES -->
+        <div class="card" style="padding:15px 20px; border-left:4px solid #d35400;">
+            <h2 style="font-size:1rem; margin-bottom:10px; color:#d35400;">Hallazgos Pendientes</h2>
+            {% if hallazgos_pendientes %}
+            <div style="display:flex; flex-direction:column; gap:8px;">
+                {% for h in hallazgos_pendientes %}
+                <div style="background:#fef9e7; padding:10px 12px; border-radius:4px; font-size:0.85rem;">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <div>
+                            <strong>#{{ h.id_orden.id }}</strong> - {{ h.id_orden.id_vehiculo.placa }}
+                            <span style="color:#7f8c8d;">| {{ h.descripcion|truncatechars:40 }}</span>
+                        </div>
+                        <div style="display:flex; gap:5px; align-items:center;">
+                            <span style="font-weight:700; color:#d35400;">Bs. {{ h.costo_estimado|default:"0" }}</span>
+                            <a href="{% url 'autorizar_hallazgo' h.id %}" style="background:#27ae60; color:white; padding:3px 8px; border-radius:3px; font-size:0.7rem; text-decoration:none;">Aceptar</a>
+                            <a href="{% url 'rechazar_hallazgo' h.id %}" style="background:#c0392b; color:white; padding:3px 8px; border-radius:3px; font-size:0.7rem; text-decoration:none;">Rechazar</a>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p style="color:#27ae60; font-size:0.85rem;">No hay hallazgos pendientes.</p>
+            {% endif %}
+        </div>
+
+        <!-- STOCK BAJO -->
+        <div class="card" style="padding:15px 20px; border-left:4px solid #e67e22;">
+            <h2 style="font-size:1rem; margin-bottom:10px; color:#e67e22;">Stock Bajo</h2>
+            {% if stock_bajo %}
+            <div style="display:flex; flex-direction:column; gap:6px;">
+                {% for p in stock_bajo %}
+                <div style="display:flex; justify-content:space-between; align-items:center; background:#fdf2e9; padding:8px 12px; border-radius:4px; font-size:0.85rem;">
+                    <span>{{ p.nombre }}</span>
+                    <span style="font-weight:700; color:{% if p.stock_actual <= 2 %}#c0392b{% else %}#d35400{% endif %};">{{ p.stock_actual }} und.</span>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p style="color:#27ae60; font-size:0.85rem;">Stock suficiente.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- COLUMNA DERECHA: 4 TARJETAS EN CUADRÍCULA -->
+    <div style="display:grid; grid-template-columns:1fr 1fr; grid-template-rows:1fr 1fr; gap:12px;">
+        <div style="background:#d35400; padding:18px; border-radius:4px; color:white; display:flex; flex-direction:column; justify-content:center;">
+            <div style="font-size:2rem; font-weight:700;">{{ pendientes_count }}</div>
+            <div style="font-size:0.8rem; opacity:0.9;">Vehículos Pendientes</div>
+        </div>
+        <div style="background:#27ae60; padding:18px; border-radius:4px; color:white; display:flex; flex-direction:column; justify-content:center;">
+            <div style="font-size:2rem; font-weight:700;">{{ vehiculos_pagados }}</div>
+            <div style="font-size:0.8rem; opacity:0.9;">Pagados Hoy</div>
+        </div>
+        <div style="background:#2980b9; padding:18px; border-radius:4px; color:white; display:flex; flex-direction:column; justify-content:center;">
+            <div style="font-size:2rem; font-weight:700;">Bs. {{ total_facturado|floatformat:2 }}</div>
+            <div style="font-size:0.8rem; opacity:0.9;">Facturado Hoy</div>
+        </div>
+        <div style="background:#8e44ad; padding:18px; border-radius:4px; color:white; display:flex; flex-direction:column; justify-content:center;">
+            <div style="font-size:2rem; font-weight:700;">Bs. {{ total_mes|floatformat:2 }}</div>
+            <div style="font-size:0.8rem; opacity:0.9;">Facturado del Mes</div>
+        </div>
+    </div>
+</div>
+
+<!-- ÓRDENES DE TRABAJO RECIENTES (ANCHO COMPLETO) -->
+<div class="card" style="padding:15px 20px;">
+    <h2 style="font-size:1rem; margin-bottom:10px;">Órdenes de Trabajo Recientes</h2>
+    {% if ultimas_ordenes %}
+    <table style="font-size:0.85rem;">
+        <thead>
+            <tr><th>Orden</th><th>Placa</th><th>Vehículo</th><th>Servicio</th><th>Estado</th><th>Total</th></tr>
+        </thead>
+        <tbody>
+            {% for o in ultimas_ordenes %}
+            <tr>
+                <td><strong>#{{ o.id }}</strong></td>
+                <td>{{ o.id_vehiculo.placa }}</td>
+                <td>{{ o.id_vehiculo.marca|default:"" }} {{ o.id_vehiculo.modelo|default:"" }}</td>
+                <td>{{ o.id_servicio.nombre|default:"-" }}</td>
+                <td><span class="badge {% if o.estado_orden == 'COBRADA' %}badge-success{% elif o.estado_orden == 'EN_PROCESO' %}badge-info{% else %}badge-warning{% endif %}" style="font-size:0.7rem;">{{ o.estado_orden }}</span></td>
+                <td><strong>{% if o.pago %}Bs. {{ o.pago.monto_total }}{% else %}-{% endif %}</strong></td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p style="color:#7f8c8d; font-size:0.85rem;">No hay órdenes registradas.</p>
+    {% endif %}
+</div>
+
+{% endblock %}

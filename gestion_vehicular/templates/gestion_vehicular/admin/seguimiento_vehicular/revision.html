@@ -1,0 +1,92 @@
+{% extends 'gestion_vehicular/admin/base_admin.html' %}
+{% block title %}Revision Tecnica - Orden #{{ orden.id }}{% endblock %}
+
+
+
+{% block content %}
+<h1 style="color:#1a252f;">Revision Tecnica</h1>
+<p style="margin-bottom:20px;"><strong>Orden #{{ orden.id }}</strong> | {{ orden.id_vehiculo.placa }} - {{ orden.id_vehiculo.marca|default:"" }} {{ orden.id_vehiculo.modelo|default:"" }}</p>
+
+<div class="card" style="background:#d6eaf8; border-left:0px solid #1a5276; margin-bottom:20px;">
+    <p style="margin:0;"><strong>Como se calcula el ISV:</strong> OK = 100% | REGULAR = 50% | CRITICO = 0%</p>
+</div>
+
+<form method="POST">
+    {% csrf_token %}
+    
+    <div style="margin-bottom:20px; display:flex; gap:10px;">
+    <a href="?tipo=RAPIDA" class="btn {% if tipo == 'RAPIDA' %}btn-warning{% else %}btn-gray{% endif %}">Revision Rapida (5 componentes)</a>
+    <a href="?tipo=COMPLETA" class="btn {% if tipo == 'COMPLETA' %}btn-primary{% else %}btn-gray{% endif %}">Revision Completa (9 componentes)</a>
+    </div>
+
+    {% for componente in componentes %}
+    <div class="card">
+        <h2>{{ componente.orden }}. {{ componente.nombre }}</h2>
+        
+        <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+            <button type="button" class="btn btn-success" onclick="seleccionarEstado(this, 'OK', {{ componente.id }})">OK</button>
+            <button type="button" class="btn" style="background:#7d6608; color:#fff;" onclick="seleccionarEstado(this, 'REGULAR', {{ componente.id }})">REGULAR</button>
+            <button type="button" class="btn btn-warning" onclick="seleccionarEstado(this, 'CRITICO', {{ componente.id }})">CRITICO</button>
+            <input type="hidden" name="comp_{{ componente.id }}" id="comp_{{ componente.id }}" value="OK">
+        </div>
+        
+        <!-- Notas predefinidas -->
+        <div id="notas_{{ componente.id }}" style="display:none; margin-top:10px;">
+            <label>Nota:</label>
+            <select name="nota_{{ componente.id }}" style="margin-bottom:5px;">
+                <option value="">Seleccione una nota...</option>
+                {% for nota in notas_predefinidas %}
+                    {% if nota.id_componente_id == componente.id %}
+                    <option value="{{ nota.texto }}" data-estado="{{ nota.estado }}">{{ nota.texto }}</option>
+                    {% endif %}
+                {% endfor %}
+                <option value="personalizada">Otra (escribir manual)</option>
+            </select>
+            <input type="text" id="nota_manual_{{ componente.id }}" placeholder="Escriba su nota..." style="display:none;">
+        </div>
+    </div>
+    {% endfor %}
+    
+    <div style="text-align:right; margin-top:20px;">
+        <a href="{% url 'detalle_orden' orden.id %}" class="btn btn-gray">Cancelar</a>
+        <button type="submit" class="btn btn-success">Guardar Revision</button>
+    </div>
+</form>
+
+<script>
+function seleccionarEstado(boton, estado, componenteId) {
+    // Guardar estado
+    document.getElementById('comp_' + componenteId).value = estado;
+    
+    // Mostrar notas si es REGULAR o CRITICO
+    var notasDiv = document.getElementById('notas_' + componenteId);
+    if (estado === 'REGULAR' || estado === 'CRITICO') {
+        notasDiv.style.display = 'block';
+    } else {
+        notasDiv.style.display = 'none';
+    }
+    
+    // Colorear botones
+    var botones = boton.parentElement.querySelectorAll('button');
+    botones.forEach(function(b) { b.style.opacity = '0.5'; });
+    boton.style.opacity = '1';
+}
+
+// Mostrar campo manual si selecciona "Otra"
+document.querySelectorAll('select[name^="nota_"]').forEach(function(select) {
+    select.addEventListener('change', function() {
+        var compId = this.name.replace('nota_comp_', '').replace('nota_', '');
+        var manual = document.getElementById('nota_manual_' + compId);
+        if (this.value === 'personalizada') {
+            manual.style.display = 'block';
+            manual.name = this.name;
+            this.name = '';
+        } else {
+            manual.style.display = 'none';
+            this.name = 'nota_' + compId;
+            manual.name = '';
+        }
+    });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,33 @@
+{% extends 'gestion_vehicular/admin/base_admin.html' %}
+{% block title %}Reportar Hallazgo - Orden #{{ orden.id }}{% endblock %}
+
+{% block sidebar %}
+    <h3>Acciones</h3>
+    <a href="{% url 'detalle_orden' orden.id %}">Volver a la Orden</a>
+{% endblock %}
+
+{% block content %}
+<h1 style="color:#1a252f;">Reportar Hallazgo</h1>
+<p style="margin-bottom:20px;"><strong>Orden #{{ orden.id }}</strong> | {{ orden.id_vehiculo.placa }}</p>
+
+<div class="card">
+    <form method="POST">
+        {% csrf_token %}
+        
+        <label>Descripcion del problema encontrado</label>
+        <textarea name="descripcion" required rows="4" placeholder="Describa lo que encontro durante el trabajo..."></textarea>
+        
+        <label style="margin-top:15px;">Costo estimado de la reparacion adicional (Bs.)</label>
+        <input type="number" name="costo_estimado" step="0.01" value="0" style="width:250px;">
+        
+        <div style="margin-top:15px; padding:14px; background:#fcf3cf; border-radius:4px; border-left:0px solid #7d6608;">
+            <p style="margin:0;">El administrador debera contactar al cliente para autorizar esta reparacion adicional.</p>
+        </div>
+        
+        <div style="text-align:right; margin-top:20px;">
+            <a href="{% url 'detalle_orden' orden.id %}" class="btn btn-gray">Cancelar</a>
+            <button type="submit" class="btn btn-warning">Reportar Hallazgo</button>
+        </div>
+    </form>
+</div>
+{% endblock %}

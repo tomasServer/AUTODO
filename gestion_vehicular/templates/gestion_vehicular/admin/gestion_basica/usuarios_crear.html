@@ -1,0 +1,56 @@
+{% extends 'gestion_vehicular/admin/base_admin.html' %}
+{% block title %}Nuevo Usuario{% endblock %}
+
+
+{% block content %}
+<h1 style="color:#1a252f; margin-bottom:20px;">Agregar Usuario</h1>
+
+<div class="card">
+    <form method="POST">
+        {% csrf_token %}
+        
+        <div class="grid grid-2">
+            <div>
+                <label>Nombre</label>
+                <input type="text" name="nombre" required>
+            </div>
+            <div>
+                <label>Apellido</label>
+                <input type="text" name="apellido">
+            </div>
+        </div>
+        
+        <div class="grid grid-2" style="margin-top:15px;">
+            <div>
+                <label>Usuario (login)</label>
+                <input type="text" name="usuario_login" required>
+            </div>
+            <div>
+                <label>Contraseña</label>
+                <input type="password" name="password" required>
+            </div>
+        </div>
+        
+        <div class="grid grid-2" style="margin-top:15px;">
+            <div>
+                <label>Rol</label>
+                <select name="rol_id" required>
+                    <option value="">Seleccione...</option>
+                    {% for rol in roles %}
+                    <option value="{{ rol.id }}">{{ rol.nombre }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label>Telefono</label>
+                <input type="text" name="telefono">
+            </div>
+        </div>
+        
+        <div style="text-align:right; margin-top:20px;">
+            <a href="{% url 'lista_usuarios' %}" class="btn btn-gray">Cancelar</a>
+            <button type="submit" class="btn btn-success">Crear Usuario</button>
+        </div>
+    </form>
+</div>
+{% endblock %}

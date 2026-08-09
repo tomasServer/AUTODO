@@ -1,0 +1,198 @@
+{% extends 'gestion_vehicular/admin/base_admin.html' %}
+{% block title %}Taller - Orden {{ orden.id }}{% endblock %}
+
+{% block content %}
+
+<h2 style="color:#1a252f;">Taller - Orden {{ orden.id }}</h2>
+
+<!-- INFORMACION -->
+<div style="display:grid; grid-template-columns:repeat(4,1fr); gap:10px; background:#f8f9fa; padding:12px; border-radius:6px; margin-bottom:15px;">
+    <div><strong>Placa:</strong> {{ orden.id_vehiculo.placa }}</div>
+    <div><strong>Vehículo:</strong> {{ orden.id_vehiculo.marca }} {{ orden.id_vehiculo.modelo }}</div>
+    <div><strong>Cliente:</strong> {{ orden.id_vehiculo.id_cliente.nombre }}</div>
+    <div>
+        <strong>Estado:</strong> 
+        <span class="badge {% if orden.estado_orden == 'POR_COBRAR' %}badge-success{% elif orden.estado_orden == 'EN_PROCESO' %}badge-info{% else %}badge-warning{% endif %}">
+            {{ orden.estado_orden }}
+        </span>
+    </div>
+</div>
+
+<!-- BOTONES DE REVISION -->
+<div style="display:flex; gap:10px; margin-bottom:15px; flex-wrap:wrap;">
+    <a href="{% url 'revision_tecnica' orden.id %}?tipo=RAPIDA" class="btn btn-warning">Revisión Rápida</a>
+    <a href="{% url 'revision_tecnica' orden.id %}?tipo=COMPLETA" class="btn btn-primary">Revisión Completa</a>
+</div>
+
+<!-- SERVICIOS -->
+<div class="card" style="padding:15px 20px; margin-bottom:15px;">
+    <h3 style="margin:0 0 10px 0; font-size:15px;">Servicios</h3>
+    
+    {% for detalle in servicios_detalle %}
+    <div style="background:#f8f9fa; padding:12px 15px; border-radius:4px; margin-bottom:8px; border-left:3px solid #e67e22;">
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+            <div>
+                <strong>{{ detalle.id_servicio.nombre }}</strong>
+                <span style="color:#7f8c8d; font-size:13px; margin-left:10px;">Bs. {{ detalle.precio_cobrado }}</span>
+                {% if detalle.id_mecanico %}
+                <span style="font-size:12px; color:#2c3e50; margin-left:10px;">{{ detalle.id_mecanico.nombre_completo }}</span>
+                {% endif %}
+            </div>
+            <div>
+                <span class="badge {% if detalle.estado == 'PENDIENTE' %}badge-warning{% elif detalle.estado == 'EN_PROCESO' %}badge-info{% else %}badge-success{% endif %}">
+                    {{ detalle.estado }}
+                </span>
+                <button onclick="editarPrecio({{ detalle.id }})" style="background:#95a5a6; color:white; border:none; padding:3px 10px; border-radius:4px; cursor:pointer; font-size:11px;">Editar</button>
+            </div>
+        </div>
+        
+        <!-- FORMULARIO PARA EDITAR PRECIO -->
+        <div id="editarPrecio-{{ detalle.id }}" style="display:none; margin-top:8px; padding:8px; background:white; border-radius:4px;">
+            <form method="POST" action="{% url 'editar_precio_servicio' detalle.id %}" style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+                {% csrf_token %}
+                <label style="font-weight:600; font-size:13px; margin:0;">Nuevo Precio:</label>
+                <input type="number" name="nuevo_precio" step="0.01" value="{{ detalle.precio_cobrado }}" style="width:120px; padding:5px 10px; border:1px solid #dce1e6; border-radius:4px;">
+                <button type="submit" class="btn btn-success btn-sm">Guardar</button>
+                <button type="button" onclick="cerrarEditarPrecio({{ detalle.id }})" class="btn btn-gray btn-sm">Cancelar</button>
+            </form>
+        </div>
+        
+        <div style="margin-top:8px; display:flex; gap:6px; flex-wrap:wrap;">
+            <form method="POST" action="{% url 'cambiar_estado_servicio' detalle.id %}" style="display:inline;">
+                {% csrf_token %}
+                <input type="hidden" name="nuevo_estado" value="PENDIENTE">
+                <button type="submit" class="btn btn-gray btn-sm" {% if detalle.estado == 'PENDIENTE' %}disabled{% endif %}>Pendiente</button>
+            </form>
+            <form method="POST" action="{% url 'cambiar_estado_servicio' detalle.id %}" style="display:inline;">
+                {% csrf_token %}
+                <input type="hidden" name="nuevo_estado" value="EN_PROCESO">
+                <button type="submit" class="btn btn-warning btn-sm" {% if detalle.estado == 'EN_PROCESO' %}disabled{% endif %}>En Proceso</button>
+            </form>
+            <form method="POST" action="{% url 'cambiar_estado_servicio' detalle.id %}" style="display:inline;">
+                {% csrf_token %}
+                <input type="hidden" name="nuevo_estado" value="FINALIZADO">
+                <button type="submit" class="btn btn-success btn-sm" {% if detalle.estado == 'FINALIZADO' %}disabled{% endif %}>Finalizar</button>
+            </form>
+        </div>
+        
+        {% if detalle.fecha_inicio %}
+        <div style="font-size:12px; color:#7f8c8d; margin-top:5px;">
+            Inicio: {{ detalle.fecha_inicio|date:"d/m/Y H:i" }}
+            {% if detalle.fecha_fin %}
+            | Fin: {{ detalle.fecha_fin|date:"d/m/Y H:i" }}
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+    {% empty %}
+    <p style="color:#7f8c8d;">No hay servicios asignados</p>
+    {% endfor %}
+    
+    <!-- AGREGAR SERVICIO -->
+    <div style="background:#f8f9fa; padding:10px 15px; border-radius:4px; margin-top:10px; border:1px dashed #dce1e6;">
+        <form method="POST" action="{% url 'agregar_servicio_orden' orden.id %}" style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+            {% csrf_token %}
+            <select name="servicio_id" id="servicioSelect" style="padding:5px 10px; border:1px solid #dce1e6; border-radius:4px; flex:2; min-width:150px;" onchange="actualizarPrecio()">
+                <option value="">-- Agregar servicio --</option>
+                {% for s in servicios %}
+                <option value="{{ s.id }}" data-precio="{{ s.precio_mano_obra }}">{{ s.nombre }} - Bs. {{ s.precio_mano_obra }}</option>
+                {% endfor %}
+            </select>
+            <label style="font-weight:600; font-size:13px; margin:0;">Precio:</label>
+            <input type="number" name="precio_cobrado" id="precioInput" step="0.01" value="" style="width:100px; padding:5px 10px; border:1px solid #dce1e6; border-radius:4px;">
+            <button type="submit" class="btn btn-warning">+ Agregar</button>
+        </form>
+    </div>
+</div>
+
+<!-- PRODUCTOS -->
+<div class="card" style="padding:15px 20px; margin-bottom:15px;">
+    <h3 style="margin:0 0 10px 0; font-size:15px;">Productos</h3>
+    
+    {% for detalle in orden.detalles_producto.all %}
+    <div style="display:flex; justify-content:space-between; padding:6px 0; border-bottom:1px solid #ecf0f1;">
+        <span>{{ detalle.id_producto.nombre }} x{{ detalle.cantidad }}</span>
+        <span>Bs. {{ detalle.subtotal_precio }}</span>
+    </div>
+    {% empty %}
+    <p style="color:#7f8c8d;">Sin productos</p>
+    {% endfor %}
+    
+    <!-- AGREGAR PRODUCTO -->
+    <div style="background:#f8f9fa; padding:10px 15px; border-radius:4px; margin-top:10px; border:1px dashed #dce1e6;">
+        <form method="POST" action="{% url 'agregar_producto_orden' orden.id %}" style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+            {% csrf_token %}
+            <select name="producto_id" style="padding:5px 10px; border:1px solid #dce1e6; border-radius:4px; flex:1; min-width:150px;">
+                <option value="">-- Agregar producto --</option>
+                {% for p in productos %}
+                <option value="{{ p.id }}">{{ p.nombre }} (Stock: {{ p.stock_actual }})</option>
+                {% endfor %}
+            </select>
+            <input type="number" name="cantidad" value="1" min="1" style="width:60px; padding:5px 10px; border:1px solid #dce1e6; border-radius:4px;">
+            <button type="submit" class="btn btn-warning">+ Agregar</button>
+        </form>
+    </div>
+</div>
+
+<!-- HALLAZGOS -->
+<div class="card" style="padding:15px 20px; margin-bottom:15px;">
+    <h3 style="margin:0 0 10px 0; font-size:15px;">Hallazgos</h3>
+    
+    {% for h in orden.hallazgos.all %}
+    <div style="background:#fef9e7; padding:8px 12px; border-left:3px solid #e67e22; margin-bottom:5px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:5px;">
+        <span>{{ h.descripcion|truncatechars:50 }}</span>
+        <span style="color:#e67e22; font-weight:600;">Bs. {{ h.costo_estimado|default:"0.00" }}</span>
+        <span class="badge badge-warning" style="font-size:10px;">{{ h.estado_autorizacion }}</span>
+    </div>
+    {% empty %}
+    <p style="color:#7f8c8d;">Sin hallazgos</p>
+    {% endfor %}
+    
+    <!-- AGREGAR HALLAZGO -->
+    <div style="background:#f8f9fa; padding:10px 15px; border-radius:4px; margin-top:10px; border:1px dashed #dce1e6;">
+        <form method="POST" action="{% url 'agregar_hallazgo_orden' orden.id %}" style="display:grid; grid-template-columns:2fr 1fr auto; gap:10px; align-items:center;">
+            {% csrf_token %}
+            <input type="text" name="descripcion" placeholder="Descripción del hallazgo..." style="padding:5px 10px; border:1px solid #dce1e6; border-radius:4px;">
+            <input type="number" name="costo_estimado" placeholder="Costo estimado" step="0.01" style="padding:5px 10px; border:1px solid #dce1e6; border-radius:4px;">
+            <button type="submit" class="btn btn-warning">+ Agregar</button>
+        </form>
+    </div>
+</div>
+
+<!-- BOTONES -->
+<div style="margin-top:15px; display:flex; gap:10px; flex-wrap:wrap;">
+    <a href="{% url 'modo_taller' %}" class="btn btn-gray">Volver</a>
+    {% if orden.estado_orden == 'POR_COBRAR' %}
+    <a href="{% url 'detalle_orden' orden.id %}" class="btn btn-info">Ver Orden</a>
+    <a href="{% url 'registrar_pago' orden.id %}" class="btn btn-success">Cobrar</a>
+    {% endif %}
+</div>
+
+<script>
+    function actualizarPrecio() {
+        var select = document.getElementById('servicioSelect');
+        var precioInput = document.getElementById('precioInput');
+        var selectedOption = select.options[select.selectedIndex];
+        var precio = selectedOption.getAttribute('data-precio');
+        if (precio) {
+            precioInput.value = precio;
+        } else {
+            precioInput.value = '';
+        }
+    }
+    
+    function editarPrecio(detalleId) {
+        var div = document.getElementById('editarPrecio-' + detalleId);
+        if (div.style.display === 'none') {
+            div.style.display = 'block';
+        } else {
+            div.style.display = 'none';
+        }
+    }
+    
+    function cerrarEditarPrecio(detalleId) {
+        document.getElementById('editarPrecio-' + detalleId).style.display = 'none';
+    }
+</script>
+
+{% endblock %}

@@ -1,0 +1,52 @@
+{% extends 'gestion_vehicular/base.html' %}
+{% block title %}Servicios{% endblock %}
+
+{% block navbar %}
+    <a href="{% url 'dashboard_admin' %}">Inicio</a>
+    <a href="{% url 'lista_insumos' %}">Inventario</a>
+    <a href="{% url 'lista_servicios' %}">Servicios</a>
+    <a href="{% url 'lista_usuarios' %}">Personal</a>
+    <a href="{% url 'logout' %}" style="background:#d35400; color:#fff; padding:8px 16px; border-radius:4px;">Cerrar Sesion</a>
+{% endblock %}
+
+{% block sidebar %}
+    <h3>Acciones</h3>
+    <a href="{% url 'crear_servicio' %}">Agregar Servicio</a>
+    <a href="{% url 'crear_orden' %}">Nueva Orden</a>
+    <a href="{% url 'modo_taller' %}">Modo Taller</a>
+{% endblock %}
+
+{% block content %}
+<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+    <h1 style="color:#1a252f;">Servicios del Taller</h1>
+    <a href="{% url 'crear_servicio' %}" class="btn btn-success">Agregar Servicio</a>
+</div>
+
+<div class="card">
+    <h2>Todos los Servicios ({{ servicios.count }})</h2>
+    {% if servicios %}
+    <table>
+        <thead>
+            <tr><th>Nombre</th><th>Tipo</th><th>Costo</th><th>Precio</th><th>Tiempo</th><th>Acciones</th></tr>
+        </thead>
+        <tbody>
+            {% for s in servicios %}
+            <tr>
+                <td><strong>{{ s.nombre }}</strong></td>
+                <td><span class="badge badge-info">{{ s.id_tipo_servicio.nombre }}</span></td>
+                <td>Bs. {{ s.costo_mano_obra }}</td>
+                <td>Bs. {{ s.precio_mano_obra }}</td>
+                <td>{{ s.tiempo_estimado_minutos|default:"-" }} min</td>
+                <td>
+                    <a href="{% url 'editar_servicio' s.id %}" class="btn btn-info" style="padding:4px 10px; font-size:0.8rem;">Editar</a>
+                    <a href="{% url 'desactivar_servicio' s.id %}" class="btn btn-warning" style="padding:4px 10px; font-size:0.8rem;" onclick="return confirm('¿Desactivar este servicio?')">Desactivar</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p style="color:#7f8c8d;">No hay servicios registrados.</p>
+    {% endif %}
+</div>
+{% endblock %}

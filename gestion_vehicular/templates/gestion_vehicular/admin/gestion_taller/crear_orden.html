@@ -1,0 +1,127 @@
+{% extends 'gestion_vehicular/admin/base_admin.html' %}
+{% block title %}Nueva Orden{% endblock %}
+
+{% block content %}
+
+<h2 style="color:#1a252f; margin-bottom:15px;">Nueva Orden de Trabajo</h2>
+
+<div class="card" style="padding:20px;">
+    <form method="POST">
+        {% csrf_token %}
+
+        <!-- FILA 1: Placa + Cliente + Teléfono -->
+        <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; margin-bottom:10px;">
+            <div>
+                <label>Placa *</label>
+                <input type="text" name="placa" required style="text-transform:uppercase;" value="{{ vehiculo.placa|default:'' }}">
+            </div>
+            <div>
+                <label>Cliente *</label>
+                <input type="text" name="cliente_nombre" required value="{{ cliente.nombre|default:'' }}">
+            </div>
+            <div>
+                <label>Teléfono *</label>
+                <input type="tel" name="cliente_telefono" required value="{{ cliente.telefono|default:'' }}">
+            </div>
+        </div>
+
+        <!-- FILA 2: Servicio + Tipo + Complejidad -->
+        <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; margin-bottom:10px;">
+            <div>
+                <label>Servicio *</label>
+                <select name="servicio" required>
+                    <option value="">Seleccione...</option>
+                    {% for s in servicios %}
+                    <option value="{{ s.id }}">{{ s.nombre }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label>Tipo de Servicio *</label>
+                <select name="tipo_servicio" required>
+                    <option value="">Seleccione...</option>
+                    {% for tipo in tipos_servicio %}
+                    <option value="{{ tipo.id }}">{{ tipo.nombre }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label>Complejidad *</label>
+                <select name="complejidad" required>
+                    <option value="">Seleccione...</option>
+                    {% for comp in complejidades %}
+                    <option value="{{ comp.id }}">{{ comp.nombre }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        <!-- FILA 3: Mecánico + Kilometraje + Botón Expandir -->
+        <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; margin-bottom:10px;">
+            <div>
+                <label>Mecánico Asignado *</label>
+                <select name="mecanico" required>
+                    <option value="">Seleccione...</option>
+                    {% for mec in mecanicos %}
+                    <option value="{{ mec.id }}">{{ mec.nombre_completo }} 
+                        {% if mec.id_rol_id == 1 %}(ADMIN){% elif mec.id_rol_id == 2 %}(JEFE MECANICO){% else %}(MECANICO){% endif %}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label>Kilometraje</label>
+                <input type="number" name="kilometraje" value="{{ vehiculo.kilometraje_actual|default:0 }}">
+            </div>
+            <div style="display:flex; align-items:flex-end; justify-content:flex-end;">
+                <button type="button" onclick="toggleExtra()" style="background:#e67e22; color:white; border:none; padding:6px 15px; border-radius:4px; cursor:pointer;">➕ Más datos</button>
+            </div>
+        </div>
+
+        <!-- CAMPOS EXTRA -->
+        <div id="extra" style="display:none; margin-top:10px; padding:12px; background:#f8f9fa; border-radius:4px;">
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:8px;">
+                <div>
+                    <label>Año del Vehículo</label>
+                    <input type="number" name="anio" value="{{ vehiculo.anio|default:'' }}">
+                </div>
+                <div>
+                    <label>Color</label>
+                    <input type="text" name="color" value="{{ vehiculo.color|default:'' }}">
+                </div>
+            </div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+                <div>
+                    <label>VIN (Chasis)</label>
+                    <input type="text" name="vin" style="text-transform:uppercase;" value="{{ vehiculo.vin|default:'' }}">
+                </div>
+                <div>
+                    <label>Observaciones</label>
+                    <textarea name="observacion" rows="2">{{ vehiculo.observaciones|default:'' }}</textarea>
+                </div>
+            </div>
+        </div>
+
+        <!-- BOTONES -->
+        <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:15px; padding-top:12px; border-top:1px solid #ecf0f1;">
+            <a href="{% url 'buscar_vehiculo' %}" class="btn btn-gray">Cancelar</a>
+            <button type="submit" class="btn btn-success">Crear Orden</button>
+        </div>
+    </form>
+</div>
+
+<script>
+    function toggleExtra() {
+        var extra = document.getElementById('extra');
+        var btn = event.target;
+        if (extra.style.display === 'none') {
+            extra.style.display = 'block';
+            btn.textContent = '➖ Menos datos';
+        } else {
+            extra.style.display = 'none';
+            btn.textContent = '➕ Más datos';
+        }
+    }
+</script>
+
+{% endblock %}

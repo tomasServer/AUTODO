@@ -1,0 +1,17 @@
+,y  m{% extends 'gestion_vehicular/base.html' %}
+{% block title %}Panel Jefe Mecanico{% endblock %}
+
+{% block content %}
+<h1 style="color:#0a1628;">Panel de Jefe Mecanico</h1>
+
+<div class="grid grid-2 mt-20">
+    <div class="card">
+        <h2>Ordenes Pendientes</h2>
+    </div>
+    <div class="card">
+        <h2>Revisiones</h2>
+    </div>
+</div>
+
+<a href="{% url 'logout' %}" class="btn btn-gray mt-20">Cerrar sesion</a>
+{% endblock %}
