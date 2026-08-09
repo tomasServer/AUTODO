@@ -28,7 +28,7 @@ SECRET_KEY = 'django-insecure-qhagf&@-(l@sf)1wyzn!)ul!3b2fm)##qy_vjol&^y++38ar#r
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [*]
 
 
 # Application definition
@@ -79,7 +79,7 @@ WSGI_APPLICATION = 'autodo_core.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
 
-DATABASES = {
+"""DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': 'AUTODO',
@@ -88,6 +88,14 @@ DATABASES = {
         'HOST': 'localhost',
         'PORT': '5432',
     }
+}"""
+
+DATABASES = {
+    'default': dj_database_url.config(
+        default='postgresql://postgres:19732046@localhost:5432/AUTODO',
+        conn_max_age=600,
+        ssl_require=True if os.environ.get('DATABASE_URL') else False
+    )
 }
 
 
@@ -126,7 +134,12 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
 STATIC_URL = 'static/'
-STATIC_ROOT = BASE_DIR / 'staticfiles'  # <-- AGREGA ESTA LÍNEA
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+STORAGES = {
+    "staticfiles": {
+        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+    },
+}  # <-- AGREGA ESTA LÍNEA
 
 AUTHENTICATION_BACKENDS = [
     'gestion_vehicular.auth_backend.UsuarioBackend',
