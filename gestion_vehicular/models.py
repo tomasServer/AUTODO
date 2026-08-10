@@ -8,7 +8,7 @@ class Cliente(models.Model):
     fecha_registro = models.DateTimeField(blank=True, null=True)
 
     class Meta:
-        managed = True
+        managed = False
         db_table = 'cliente'
 
     def __str__(self):
@@ -22,7 +22,7 @@ class Complejidad(models.Model):
     descripcion = models.TextField(blank=True, null=True)
 
     class Meta:
-        managed = True
+        managed = False
         db_table = 'complejidad'
 
     def __str__(self):
@@ -34,7 +34,7 @@ class Componente(models.Model):
     orden = models.IntegerField(blank=True, null=True)
 
     class Meta:
-        managed = True
+        managed = False
         db_table = 'componente'
 
     def __str__(self):
@@ -47,7 +47,7 @@ class NotaPredefinida(models.Model):
     texto = models.CharField(max_length=200)
 
     class Meta:
-        managed = True
+        managed = False
         db_table = 'nota_predefinida'
 
     def __str__(self):
@@ -65,7 +65,7 @@ class DetalleProducto(models.Model):
     registrado_por = models.ForeignKey('Usuario', models.DO_NOTHING, db_column='registrado_por', blank=True, null=True)
 
     class Meta:
-        managed = True
+        managed = False
         db_table = 'detalle_producto'
 
     def __str__(self):
@@ -80,7 +80,7 @@ class DetalleRevision(models.Model):
     foto_ruta = models.TextField(blank=True, null=True)
 
     class Meta:
-        managed = True
+        managed = False
         db_table = 'detalle_revision'
 
     def __str__(self):
@@ -99,7 +99,7 @@ class DetalleServicio(models.Model):
     observacion = models.TextField(blank=True, null=True)
 
     class Meta:
-        managed = True
+        managed = False
         db_table = 'detalle_servicio'
 
     def __str__(self):
@@ -118,7 +118,7 @@ class HallazgoAdicional(models.Model):
     foto_ruta = models.TextField(blank=True, null=True)
 
     class Meta:
-        managed = True
+        managed = False
         db_table = 'hallazgo_adicional'
 
     def __str__(self):
@@ -134,7 +134,7 @@ class HistorialEstadoOrden(models.Model):
     comentario = models.TextField(blank=True, null=True)
 
     class Meta:
-        managed = True
+        managed = False
         db_table = 'historial_estado_orden'
 
     def __str__(self):
@@ -151,7 +151,7 @@ class NotaTecnica(models.Model):
     visible_en_proxima = models.BooleanField(blank=True, null=True)
 
     class Meta:
-        managed = True
+        managed = False
         db_table = 'nota_tecnica'
 
     def __str__(self):
@@ -172,7 +172,7 @@ class OrdenTrabajo(models.Model):
     fecha_creacion = models.DateTimeField(blank=True, null=True)
 
     class Meta:
-        managed = True
+        managed = False
         db_table = 'orden_trabajo'
 
     def __str__(self):
@@ -191,7 +191,7 @@ class Pago(models.Model):
     comprobante = models.CharField(max_length=100, blank=True, null=True)
 
     class Meta:
-        managed = True
+        managed = False
         db_table = 'pago'
 
     def __str__(self):
@@ -208,7 +208,7 @@ class Producto(models.Model):
     activo = models.BooleanField(blank=True, null=True)
 
     class Meta:
-        managed = True
+        managed = False
         db_table = 'producto'
 
     def __str__(self):
@@ -223,7 +223,7 @@ class RevisionTecnica(models.Model):
     isv_porcentaje = models.DecimalField(max_digits=5, decimal_places=2, blank=True, null=True)
 
     class Meta:
-        managed = True
+        managed = False
         db_table = 'revision_tecnica'
 
     def __str__(self):
@@ -234,7 +234,7 @@ class Rol(models.Model):
     nombre = models.CharField(unique=True, max_length=50)
 
     class Meta:
-        managed = True
+        managed = False
         db_table = 'rol'
 
     def __str__(self):
@@ -251,7 +251,7 @@ class Servicio(models.Model):
     activo = models.BooleanField(blank=True, null=True)
 
     class Meta:
-        managed = True
+        managed = False
         db_table = 'servicio'
 
     def __str__(self):
@@ -264,7 +264,7 @@ class TipoServicio(models.Model):
     activo = models.BooleanField(blank=True, null=True)
 
     class Meta:
-        managed = True
+        managed = False
         db_table = 'tipo_servicio'
 
     def __str__(self):
@@ -284,7 +284,7 @@ class Usuario(models.Model):
     last_login = models.DateTimeField(blank=True, null=True)
 
     class Meta:
-        managed = True
+        managed = False
         db_table = 'usuario'
 
     def __str__(self):
@@ -348,7 +348,7 @@ class Vehiculo(models.Model):
     fecha_registro = models.DateTimeField(blank=True, null=True)
 
     class Meta:
-        managed = True
+        managed = False
         db_table = 'vehiculo'
 
     def __str__(self):
