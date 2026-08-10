@@ -348,7 +348,7 @@ class Vehiculo(models.Model):
     fecha_registro = models.DateTimeField(blank=True, null=True)
 
     class Meta:
-        managed = False
+        managed = True
         db_table = 'vehiculo'
 
     def __str__(self):
