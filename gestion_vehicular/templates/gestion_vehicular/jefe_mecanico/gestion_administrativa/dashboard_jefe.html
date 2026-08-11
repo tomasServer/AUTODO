@@ -1,0 +1,62 @@
+{% extends 'gestion_vehicular/base.html' %}
+{% block title %}Jefe Mecanico{% endblock %}
+
+{% block navbar %}
+    <a href="{% url 'dashboard_jefe' %}">Inicio</a>
+    <a href="{% url 'buscar_vehiculo' %}">Vehiculos</a>
+    <a href="{% url 'crear_orden' %}">Nueva Orden</a>
+    <a href="{% url 'modo_taller' %}">Taller</a>
+    <a href="{% url 'logout' %}" style="background:#d35400; color:#fff; padding:8px 16px; border-radius:4px;">Salir</a>
+{% endblock %}
+
+{% block sidebar %}
+    <h3>Acciones</h3>
+    <a href="{% url 'crear_orden' %}">Nueva Orden</a>
+    <a href="{% url 'modo_taller' %}">Modo Taller</a>
+    <a href="{% url 'buscar_vehiculo' %}">Buscar Vehiculo</a>
+{% endblock %}
+
+{% block content %}
+<h1 style="color:#1a252f; margin-bottom:5px;">Panel de Jefe Mecanico</h1>
+<p style="color:#7f8c8d; margin-bottom:20px;">{{ hoy|date:"l d \d\e F \d\e Y" }}</p>
+
+<div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:12px; margin-bottom:20px;">
+    <div style="background:#d35400; padding:15px; border-radius:4px; color:white;">
+        <div style="font-size:1.5rem; font-weight:700;">{{ ordenes_hoy }}</div>
+        <div style="font-size:0.75rem;">Ordenes Hoy</div>
+    </div>
+    <div style="background:#e67e22; padding:15px; border-radius:4px; color:white;">
+        <div style="font-size:1.5rem; font-weight:700;">{{ ordenes.count }}</div>
+        <div style="font-size:0.75rem;">Ordenes Activas</div>
+    </div>
+    <div style="background:#c0392b; padding:15px; border-radius:4px; color:white;">
+        <div style="font-size:1.5rem; font-weight:700;">{{ ordenes_sin_revision }}</div>
+        <div style="font-size:0.75rem;">Sin Revision</div>
+    </div>
+</div>
+
+<div class="card" style="padding:15px 20px;">
+    <h2 style="font-size:1rem; margin-bottom:10px;">Ordenes Activas</h2>
+    {% if ordenes %}
+    <table style="font-size:0.85rem;">
+        <thead>
+            <tr><th>Orden</th><th>Placa</th><th>Vehiculo</th><th>Servicio</th><th>Estado</th><th></th></tr>
+        </thead>
+        <tbody>
+            {% for o in ordenes %}
+            <tr>
+                <td><strong>#{{ o.id }}</strong></td>
+                <td>{{ o.id_vehiculo.placa }}</td>
+                <td>{{ o.id_vehiculo.marca|default:"" }} {{ o.id_vehiculo.modelo|default:"" }}</td>
+                <td>{{ o.id_servicio.nombre|default:"-" }}</td>
+                <td><span class="badge {% if o.estado_orden == 'FINALIZADA' %}badge-success{% elif o.estado_orden == 'EN_PROCESO' %}badge-info{% else %}badge-warning{% endif %}">{{ o.estado_orden }}</span></td>
+                <td><a href="{% url 'detalle_orden' o.id %}" class="btn btn-primary" style="padding:3px 10px; font-size:0.7rem;">Ver</a></td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p style="color:#7f8c8d;">No hay ordenes activas.</p>
+    {% endif %}
+</div>
+{% endblock %}

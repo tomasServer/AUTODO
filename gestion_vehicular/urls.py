@@ -41,6 +41,7 @@ urlpatterns = [
     #fecha: 17 de julio de 2026
     path('admin-dashboard/', gestion_administrativa.dashboard_admin, name='dashboard_admin'),
     path('jefe-dashboard/', gestion_administrativa.dashboard_jefe, name='dashboard_jefe'),
+
     path('orden/<int:orden_id>/pago/', gestion_administrativa.registrar_pago, name='registrar_pago'),
     path('insumos/', gestion_administrativa.lista_insumos, name='lista_insumos'),
     path('insumos/crear/', gestion_administrativa.crear_insumo, name='crear_insumo'),

@@ -61,18 +61,26 @@ def dashboard_admin(request):
         'hallazgos_pendientes': hallazgos_pendientes,
         'hoy': hoy,
     }
-    return render(request, 'gestion_vehicular/admin/gestion_administrativa/dashboard.html', contexto)
+    return render(request, 'gestion_vehicular/jefe_mecanico/gestion_administrativa/dashboard_jefe.html', contexto)
 
 
 def dashboard_jefe(request):
     hoy = timezone.now().date()
-    return render(request, 'gestion_vehicular/jefe/dashboard.html', {
-        'vehiculos_hoy': OrdenTrabajo.objects.filter(fecha_ingreso__date=hoy).count(),
-        'ordenes_finalizadas': OrdenTrabajo.objects.filter(fecha_finalizacion__date=hoy, estado_orden__in=['FINALIZADA', 'COBRADA']).count(),
-        'ordenes_pendientes': OrdenTrabajo.objects.filter(estado_orden__in=['PENDIENTE', 'EN_PROCESO']).order_by('fecha_ingreso'),
-        'ultimas_revisiones': RevisionTecnica.objects.all().order_by('-fecha_revision')[:5],
+    
+    ordenes_activas = OrdenTrabajo.objects.filter(
+        estado_orden__in=['PENDIENTE', 'EN_PROCESO', 'FINALIZADA']
+    ).order_by('-fecha_ingreso')
+    
+    ordenes_hoy = ordenes_activas.filter(fecha_ingreso__date=hoy).count()
+    ordenes_sin_revision = ordenes_activas.filter(revisiones__isnull=True).count()
+    
+    contexto = {
+        'ordenes': ordenes_activas,
+        'ordenes_hoy': ordenes_hoy,
+        'ordenes_sin_revision': ordenes_sin_revision,
         'hoy': hoy,
-    })
+    }
+    return render(request, 'gestion_vehicular/gestion_mecanico/gestion_taller/dashboard_jefe.html', contexto)
 
 
 
