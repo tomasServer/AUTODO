@@ -62,15 +62,15 @@
             <div style="font-size:2rem; font-weight:700;">{{ pendientes_count }}</div>
             <div style="font-size:0.8rem; opacity:0.9;">Vehículos Pendientes</div>
         </div>
-        <div style="background:#27ae60; padding:18px; border-radius:4px; color:white; display:flex; flex-direction:column; justify-content:center;">
+        <div style="background:#d35400; padding:18px; border-radius:4px; color:white; display:flex; flex-direction:column; justify-content:center;">
             <div style="font-size:2rem; font-weight:700;">{{ vehiculos_pagados }}</div>
             <div style="font-size:0.8rem; opacity:0.9;">Pagados Hoy</div>
         </div>
-        <div style="background:#2980b9; padding:18px; border-radius:4px; color:white; display:flex; flex-direction:column; justify-content:center;">
+        <div style="background:#d35400; padding:18px; border-radius:4px; color:white; display:flex; flex-direction:column; justify-content:center;">
             <div style="font-size:2rem; font-weight:700;">Bs. {{ total_facturado|floatformat:2 }}</div>
             <div style="font-size:0.8rem; opacity:0.9;">Facturado Hoy</div>
         </div>
-        <div style="background:#8e44ad; padding:18px; border-radius:4px; color:white; display:flex; flex-direction:column; justify-content:center;">
+        <div style="background:#d35400; padding:18px; border-radius:4px; color:white; display:flex; flex-direction:column; justify-content:center;">
             <div style="font-size:2rem; font-weight:700;">Bs. {{ total_mes|floatformat:2 }}</div>
             <div style="font-size:0.8rem; opacity:0.9;">Facturado del Mes</div>
         </div>
@@ -88,7 +88,7 @@
         <tbody>
             {% for o in ultimas_ordenes %}
             <tr>
-                <td><strong>#{{ o.id }}</strong></td>
+                <td><strong>Nº {{ o.id }}</strong></td>
                 <td>{{ o.id_vehiculo.placa }}</td>
                 <td>{{ o.id_vehiculo.marca|default:"" }} {{ o.id_vehiculo.modelo|default:"" }}</td>
                 <td>{{ o.id_servicio.nombre|default:"-" }}</td>

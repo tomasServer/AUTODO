@@ -1,16 +1,7 @@
-{% extends 'gestion_vehicular/base.html' %}
+{% extends 'gestion_vehicular/admin/base_admin.html' %}
 {% block title %}Editar Servicio{% endblock %}
 
-{% block navbar %}
-    <a href="{% url 'dashboard_admin' %}">Inicio</a>
-    <a href="{% url 'lista_servicios' %}">Servicios</a>
-{% endblock %}
 
-{% block sidebar %}
-    <h3>Acciones</h3>
-    <a href="{% url 'lista_servicios' %}">Ver Servicios</a>
-    <a href="{% url 'crear_servicio' %}">Agregar Servicio</a>
-{% endblock %}
 
 {% block content %}
 <h1 style="color:#1a252f; margin-bottom:20px;">Editar: {{ servicio.nombre }}</h1>

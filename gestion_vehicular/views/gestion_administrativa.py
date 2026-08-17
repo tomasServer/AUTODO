@@ -248,67 +248,50 @@ def desactivar_servicio(request, servicio_id):
     #reportes
     #...
 def reportes(request):
-    fecha_inicio = request.GET.get('fecha_inicio', '')
-    fecha_fin = request.GET.get('fecha_fin', '')
+    # === PRODUCTOS ===
+    fecha_inicio_p = request.GET.get('fecha_inicio_p', '')
+    fecha_fin_p = request.GET.get('fecha_fin_p', '')
+    producto_buscar = request.GET.get('producto', '')
     
-    # === FILTROS BASE ===
-    productos_filter = DetalleProducto.objects.all()
-    servicios_filter = DetalleServicio.objects.filter(estado='FINALIZADO')
-    pagos_filter = Pago.objects.filter(estado_pago='COBRADO')
+    productos_detalle = DetalleProducto.objects.all().order_by('-id_orden__fecha_ingreso')
     
-    if fecha_inicio and fecha_fin:
-        productos_filter = productos_filter.filter(
-            id_orden__fecha_ingreso__date__gte=fecha_inicio,
-            id_orden__fecha_ingreso__date__lte=fecha_fin
-        )
-        servicios_filter = servicios_filter.filter(
-            id_orden__fecha_ingreso__date__gte=fecha_inicio,
-            id_orden__fecha_ingreso__date__lte=fecha_fin
-        )
-        pagos_filter = pagos_filter.filter(
-            fecha_pago__date__gte=fecha_inicio,
-            fecha_pago__date__lte=fecha_fin
-        )
+    if producto_buscar:
+        productos_detalle = productos_detalle.filter(id_producto__nombre__icontains=producto_buscar)
+    if fecha_inicio_p and fecha_fin_p:
+        productos_detalle = productos_detalle.filter(id_orden__fecha_ingreso__date__gte=fecha_inicio_p, id_orden__fecha_ingreso__date__lte=fecha_fin_p)
     
-    # === PRODUCTOS VENDIDOS (con ID para enlace) ===
-    productos_vendidos = productos_filter.values(
-        'id_producto__id', 'id_producto__nombre'
-    ).annotate(
-        total_vendido=Sum('cantidad'),
-        total_bs=Sum('subtotal_precio')
-    ).order_by('-total_vendido')
+    # === SERVICIOS ===
+    fecha_inicio_s = request.GET.get('fecha_inicio_s', '')
+    fecha_fin_s = request.GET.get('fecha_fin_s', '')
+    servicio_buscar = request.GET.get('servicio', '')
     
-    # === SERVICIOS POR MECÁNICO (con ID para enlace) ===
-    servicios_por_mecanico = servicios_filter.values(
+    servicios_detalle = DetalleServicio.objects.all().order_by('-fecha_fin')
+    
+    if servicio_buscar:
+        servicios_detalle = servicios_detalle.filter(id_servicio__nombre__icontains=servicio_buscar)
+    if fecha_inicio_s and fecha_fin_s:
+        servicios_detalle = servicios_detalle.filter(id_orden__fecha_ingreso__date__gte=fecha_inicio_s, id_orden__fecha_ingreso__date__lte=fecha_fin_s)
+    
+    # === MECÁNICOS ===
+    fecha_inicio_m = request.GET.get('fecha_inicio_m', '')
+    fecha_fin_m = request.GET.get('fecha_fin_m', '')
+    
+    servicios_por_mecanico = DetalleServicio.objects.filter(estado='FINALIZADO').values(
         'id_mecanico__id', 'id_mecanico__nombre', 'id_mecanico__apellido'
-    ).annotate(
-        total=Count('id')
-    ).order_by('-total')
+    ).annotate(total=Count('id')).order_by('-total')
     
-    # === SERVICIOS MÁS REALIZADOS ===
-    servicios_mas_realizados = servicios_filter.values(
-        'id_servicio__nombre'
-    ).annotate(
-        total=Count('id')
-    ).order_by('-total')
-    
-    # === TOTALES ===
-    total_productos_bs = productos_filter.aggregate(Sum('subtotal_precio'))['subtotal_precio__sum'] or 0
-    total_servicios_bs = servicios_filter.aggregate(Sum('precio_cobrado'))['precio_cobrado__sum'] or 0
-    total_pagado = pagos_filter.aggregate(Sum('monto_total'))['monto_total__sum'] or 0
+    if fecha_inicio_m and fecha_fin_m:
+        servicios_por_mecanico = servicios_por_mecanico.filter(id_orden__fecha_ingreso__date__gte=fecha_inicio_m, id_orden__fecha_ingreso__date__lte=fecha_fin_m)
     
     contexto = {
-        'fecha_inicio': fecha_inicio,
-        'fecha_fin': fecha_fin,
-        'productos_vendidos': productos_vendidos,
+        'fecha_inicio_p': fecha_inicio_p, 'fecha_fin_p': fecha_fin_p, 'producto_buscar': producto_buscar,
+        'fecha_inicio_s': fecha_inicio_s, 'fecha_fin_s': fecha_fin_s, 'servicio_buscar': servicio_buscar,
+        'fecha_inicio_m': fecha_inicio_m, 'fecha_fin_m': fecha_fin_m,
+        'productos_detalle': productos_detalle,
+        'servicios_detalle': servicios_detalle,
         'servicios_por_mecanico': servicios_por_mecanico,
-        'servicios_mas_realizados': servicios_mas_realizados,
-        'total_productos_bs': total_productos_bs,
-        'total_servicios_bs': total_servicios_bs,
-        'total_pagado': total_pagado,
     }
     return render(request, 'gestion_vehicular/admin/gestion_administrativa/reportes.html', contexto)
-
 
 def detalle_producto_vendido(request, producto_id):
     """Muestra las órdenes donde se vendió un producto específico"""
@@ -348,44 +331,6 @@ def detalle_mecanico(request, mecanico_id):
             id_orden__fecha_ingreso__date__gte=fecha_inicio,
             id_orden__fecha_ingreso__date__lte=fecha_fin
         )
-    
-    return render(request, 'gestion_vehicular/admin/gestion_administrativa/detalle_mecanico.html', {
-        'mecanico': mecanico,
-        'servicios': servicios,
-        'fecha_inicio': fecha_inicio,
-        'fecha_fin': fecha_fin,
-    })
-
-
-def detalle_producto_vendido(request, producto_id):
-    """Muestra las órdenes donde se vendió un producto específico"""
-    producto = get_object_or_404(Producto, id=producto_id)
-    fecha_inicio = request.GET.get('fecha_inicio', '')
-    fecha_fin = request.GET.get('fecha_fin', '')
-    
-    ventas = DetalleProducto.objects.filter(id_producto=producto).order_by('-id_orden__fecha_ingreso')
-    
-    if fecha_inicio and fecha_fin:
-        ventas = ventas.filter(id_orden__fecha_ingreso__date__gte=fecha_inicio, id_orden__fecha_ingreso__date__lte=fecha_fin)
-    
-    return render(request, 'gestion_vehicular/admin/gestion_administrativa/detalle_producto.html', {
-        'producto': producto,
-        'ventas': ventas,
-        'fecha_inicio': fecha_inicio,
-        'fecha_fin': fecha_fin,
-    })
-
-
-def detalle_mecanico(request, mecanico_id):
-    """Muestra los servicios realizados por un mecánico específico"""
-    mecanico = get_object_or_404(Usuario, id=mecanico_id)
-    fecha_inicio = request.GET.get('fecha_inicio', '')
-    fecha_fin = request.GET.get('fecha_fin', '')
-    
-    servicios = DetalleServicio.objects.filter(id_mecanico=mecanico, estado='FINALIZADO').order_by('-fecha_fin')
-    
-    if fecha_inicio and fecha_fin:
-        servicios = servicios.filter(id_orden__fecha_ingreso__date__gte=fecha_inicio, id_orden__fecha_ingreso__date__lte=fecha_fin)
     
     return render(request, 'gestion_vehicular/admin/gestion_administrativa/detalle_mecanico.html', {
         'mecanico': mecanico,
