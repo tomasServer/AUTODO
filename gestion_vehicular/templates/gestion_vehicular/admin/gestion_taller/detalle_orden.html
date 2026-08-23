@@ -28,7 +28,7 @@
             <div><strong>VIN:</strong> {{ orden.id_vehiculo.vin|default:"-" }}</div>
             <div><strong>Kilometraje:</strong> {{ orden.id_vehiculo.kilometraje_actual|default:"-" }}</div>
             <div><strong>Estado:</strong> 
-                <span style="background:{% if orden.estado_orden == 'COBRADA' %}#27ae60{% elif orden.estado_orden == 'POR_COBRAR' %}#27ae60{% elif orden.estado_orden == 'EN_PROCESO' %}#f39c12{% elif orden.anulado %}#e74c3c{% else %}#e74c3c{% endif %}; color:white; padding:2px 12px; border-radius:12px; font-size:12px;">
+                <span style="background:{% if orden.estado_orden == 'COBRADA' or orden.estado_orden == 'POR_COBRAR' %}#27ae60{% elif orden.estado_orden == 'EN_PROCESO' %}#f39c12{% elif orden.estado_orden == 'VISITA' %}#e67e22{% elif orden.anulado %}#e74c3c{% else %}#e74c3c{% endif %}; color:white; padding:2px 12px; border-radius:12px; font-size:12px;">
                     {% if orden.anulado %}ANULADA{% else %}{{ orden.estado_orden }}{% endif %}
                 </span>
             </div>
@@ -121,6 +121,13 @@
 </div>
 
 <div style="margin-top:15px; display:flex; gap:10px; flex-wrap:wrap;">
+    {% if orden.estado_orden == 'VISITA' %}
+    <div style="margin-top:15px; padding:15px; background:#fef9e7; border-radius:4px; border-left:4px solid #e67e22;">
+        <p style="margin:0 0 10px 0; font-weight:600; color:#e67e22;">Este vehiculo solo vino a revision</p>
+        <a href="{% url 'crear_orden' %}" class="btn btn-success" style="margin-right:10px;">¿Acepta servicios? Crear Orden</a>
+        <a href="{% url 'modo_taller' %}" class="btn btn-gray">Cliente se va</a>
+    </div>
+    {% endif %}
     <a href="{% url 'modo_taller' %}" class="btn btn-gray">Volver</a>
     {% if orden.estado_orden == 'POR_COBRAR' %}
     <a href="{% url 'registrar_pago' orden.id %}" class="btn btn-success">Cobrar</a>

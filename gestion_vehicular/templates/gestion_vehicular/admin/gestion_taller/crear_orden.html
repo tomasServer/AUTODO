@@ -5,48 +5,69 @@
 
 <h2 style="color:#1a252f; margin-bottom:15px;">Nueva Orden de Trabajo</h2>
 
+{% if cotizacion_anterior %}
+<div style="background:#fef9e7; border:1px solid #e67e22; border-radius:4px; padding:15px; margin-bottom:15px;">
+    <h3 style="margin:0 0 10px 0; color:#e67e22;">Cotización Anterior (Cancelada)</h3>
+    <p style="margin:0 0 10px 0; font-size:0.9rem;">Fecha: {{ cotizacion_anterior.fecha_creacion|date:"d/m/Y" }}</p>
+    
+    <strong>Servicios:</strong>
+    <ul style="margin:5px 0 10px 20px;">
+        {% for d in cotizacion_anterior.detalles_servicio.all %}
+        <li class="servicio-anterior" data-servicio-id="{{ d.id_servicio.id }}" data-precio="{{ d.precio_cobrado }}">
+            {{ d.id_servicio.nombre }} - Bs. {{ d.precio_cobrado }}
+        </li>
+        {% endfor %}
+    </ul>
+    
+    <strong>Productos:</strong>
+    <ul style="margin:5px 0 10px 20px;">
+        {% for d in cotizacion_anterior.detalles_producto.all %}
+        <li class="producto-anterior" data-producto-id="{{ d.id_producto.id }}" data-cantidad="{{ d.cantidad }}" data-precio="{{ d.precio_unitario }}">
+            {{ d.id_producto.nombre }} x{{ d.cantidad }} - Bs. {{ d.subtotal_precio }}
+        </li>
+        {% endfor %}
+    </ul>
+    
+</div>
+{% endif %}
+
 <div class="card" style="padding:20px;">
-    <form method="POST">
+    <form method="POST" id="ordenForm">
         {% csrf_token %}
 
         <!-- FILA 1: Placa + Cliente + Teléfono -->
         <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; margin-bottom:10px;">
             <div>
                 <label>Placa *</label>
-                <input type="text" name="placa" required style="text-transform:uppercase;" value="{{ vehiculo.placa|default:'' }}">
+                <input type="text" name="placa" id="placa" required style="text-transform:uppercase;" value="{{ placa|default:'' }}">
             </div>
             <div>
-                <label>Cliente *</label>
-                <input type="text" name="cliente_nombre" required value="{{ cliente.nombre|default:'' }}">
+                <label>Cliente</label>
+                <input type="text" name="cliente_nombre" value="{{ cliente_nombre|default:'' }}" placeholder="Opcional...">
             </div>
             <div>
-                <label>Teléfono *</label>
-                <input type="tel" name="cliente_telefono" required value="{{ cliente.telefono|default:'' }}">
+                <label>Teléfono</label>
+                <input type="tel" name="cliente_telefono" value="{{ cliente_telefono|default:'' }}" placeholder="Opcional...">
             </div>
         </div>
 
-        <!-- FILA 2: Servicio + Tipo + Complejidad -->
-        <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; margin-bottom:10px;">
+        <!-- FILA 2: Servicio + Precio + Complejidad -->
+        <div style="display:grid; grid-template-columns:1fr 0.8fr 1fr; gap:12px; margin-bottom:10px;">
             <div>
-                <label>Servicio *</label>
-                <select name="servicio" required>
+                <label>Servicio</label>
+                <select name="servicio" id="servicio" onchange="actualizarPrecio()">
                     <option value="">Seleccione...</option>
                     {% for s in servicios %}
-                    <option value="{{ s.id }}">{{ s.nombre }}</option>
+                    <option value="{{ s.id }}" data-precio="{{ s.precio_mano_obra }}">{{ s.nombre }} - Bs. {{ s.precio_mano_obra }}</option>
                     {% endfor %}
                 </select>
             </div>
             <div>
-                <label>Tipo de Servicio *</label>
-                <select name="tipo_servicio" required>
-                    <option value="">Seleccione...</option>
-                    {% for tipo in tipos_servicio %}
-                    <option value="{{ tipo.id }}">{{ tipo.nombre }}</option>
-                    {% endfor %}
-                </select>
+                <label>Precio (modificable)</label>
+                <input type="number" name="precio_manual" id="precio_manual" step="0.01" value="0.00" oninput="actualizarTotal()">
             </div>
             <div>
-                <label>Complejidad *</label>
+                <label>Complejidad</label>
                 <select name="complejidad" required>
                     <option value="">Seleccione...</option>
                     {% for comp in complejidades %}
@@ -56,22 +77,72 @@
             </div>
         </div>
 
+        <!-- SERVICIOS ADICIONALES -->
+        <div style="margin-bottom:10px;">
+            <label>Servicios Adicionales (opcional)</label>
+            <div id="serviciosAdicionales">
+                <div style="display:grid; grid-template-columns:1fr 0.5fr auto; gap:8px; margin-bottom:5px;">
+                    <select name="servicio_adicional_1" onchange="actualizarPrecioAdicional(this, 1)">
+                        <option value="">Seleccione servicio adicional...</option>
+                        {% for s in servicios %}
+                        <option value="{{ s.id }}" data-precio="{{ s.precio_mano_obra }}">{{ s.nombre }} - Bs. {{ s.precio_mano_obra }}</option>
+                        {% endfor %}
+                    </select>
+                    <input type="number" name="precio_adicional_1" step="0.01" value="0.00" placeholder="Precio" oninput="actualizarTotal()">
+                    <button type="button" onclick="eliminarServicio(this)" style="background:#e74c3c; color:white; border:none; padding:5px 10px; border-radius:4px; cursor:pointer;">X</button>
+                </div>
+            </div>
+            <button type="button" onclick="agregarServicio()" style="background:#2980b9; color:white; border:none; padding:6px 15px; border-radius:4px; cursor:pointer; margin-top:5px;">
+                + Agregar Servicio
+            </button>
+        </div>
+
+        <!-- PRODUCTOS -->
+        <div style="margin-bottom:10px; margin-top:15px;">
+            <label>Productos a Utilizar (opcional)</label>
+            <div id="productosAdicionales">
+                <div style="display:grid; grid-template-columns:1fr 0.3fr 0.5fr auto; gap:8px; margin-bottom:5px;">
+                    <select name="producto_1" onchange="actualizarPrecioProducto(this, 1)">
+                        <option value="">Seleccione producto...</option>
+                        {% for p in productos %}
+                        <option value="{{ p.id }}" data-precio="{{ p.precio_venta }}">{{ p.nombre }} - Bs. {{ p.precio_venta }}</option>
+                        {% endfor %}
+                    </select>
+                    <input type="number" name="cantidad_1" value="1" min="1" placeholder="Cant." oninput="actualizarTotal()">
+                    <input type="number" name="precio_producto_1" step="0.01" value="0.00" placeholder="Precio" oninput="actualizarTotal()">
+                    <button type="button" onclick="eliminarProducto(this)" style="background:#e74c3c; color:white; border:none; padding:5px 10px; border-radius:4px; cursor:pointer;">X</button>
+                </div>
+            </div>
+            <button type="button" onclick="agregarProducto()" style="background:#2980b9; color:white; border:none; padding:6px 15px; border-radius:4px; cursor:pointer; margin-top:5px;">
+                + Agregar Producto
+            </button>
+        </div>
+
+        <!-- TOTAL COTIZACIÓN -->
+        <div style="margin-top:15px; padding:15px; background:#fef9e7; border-radius:4px; border-left:4px solid #e67e22;">
+            <h3 style="margin:0 0 10px 0; color:#e67e22; font-size:1rem;">Total Cotización</h3>
+            <div style="display:flex; justify-content:space-between; font-size:1.2rem;">
+                <span>Total estimado:</span>
+                <span><strong id="totalCotizacion">Bs. 0.00</strong></span>
+            </div>
+        </div>
+
         <!-- FILA 3: Mecánico + Kilometraje + Botón Expandir -->
         <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; margin-bottom:10px;">
             <div>
-                <label>Mecánico Asignado *</label>
+                <label>Mecánico</label>
                 <select name="mecanico" required>
                     <option value="">Seleccione...</option>
                     {% for mec in mecanicos %}
                     <option value="{{ mec.id }}">{{ mec.nombre_completo }} 
-                        {% if mec.id_rol_id == 1 %}(ADMIN){% elif mec.id_rol_id == 2 %}(JEFE MECANICO){% else %}(MECANICO){% endif %}
+                        {% if mec.id_rol_id == 1 %}(ADMIN){% elif mec.id_rol_id == 2 %}(JEFE){% else %}(MECANICO){% endif %}
                     </option>
                     {% endfor %}
                 </select>
             </div>
             <div>
                 <label>Kilometraje</label>
-                <input type="number" name="kilometraje" value="{{ vehiculo.kilometraje_actual|default:0 }}">
+                <input type="number" name="kilometraje" value="{{ kilometraje|default:0 }}">
             </div>
             <div style="display:flex; align-items:flex-end; justify-content:flex-end;">
                 <button type="button" onclick="toggleExtra()" style="background:#e67e22; color:white; border:none; padding:6px 15px; border-radius:4px; cursor:pointer;">➕ Más datos</button>
@@ -83,27 +154,37 @@
             <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:8px;">
                 <div>
                     <label>Año del Vehículo</label>
-                    <input type="number" name="anio" value="{{ vehiculo.anio|default:'' }}">
+                    <input type="number" name="anio" value="{{ anio|default:'' }}">
                 </div>
                 <div>
                     <label>Color</label>
-                    <input type="text" name="color" value="{{ vehiculo.color|default:'' }}">
+                    <input type="text" name="color" value="{{ color|default:'' }}">
                 </div>
             </div>
             <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
                 <div>
                     <label>VIN (Chasis)</label>
-                    <input type="text" name="vin" style="text-transform:uppercase;" value="{{ vehiculo.vin|default:'' }}">
+                    <input type="text" name="vin" style="text-transform:uppercase;" value="{{ vin|default:'' }}">
                 </div>
                 <div>
                     <label>Observaciones</label>
-                    <textarea name="observacion" rows="2">{{ vehiculo.observaciones|default:'' }}</textarea>
+                    <textarea name="observacion" rows="2">{{ observacion|default:'' }}</textarea>
                 </div>
+            </div>
+        </div>
+
+        <!-- COTIZACIÓN PRELIMINAR -->
+        <div style="display:none; margin-top:15px; padding:15px; background:#fef9e7; border-radius:4px; border-left:4px solid #e67e22;" id="cotizacionBox">
+            <h3 style="margin:0 0 10px 0; color:#e67e22; font-size:1rem;">Cotización Preliminar</h3>
+            <div style="display:flex; justify-content:space-between; font-size:1rem;">
+                <span>Precio del servicio:</span>
+                <span><strong id="precioServicio">Bs. 0.00</strong></span>
             </div>
         </div>
 
         <!-- BOTONES -->
         <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:15px; padding-top:12px; border-top:1px solid #ecf0f1;">
+            <button type="button" onclick="cancelarVisita()" class="btn btn-danger" style="background:#c0392b; color:white;">Cliente no acepta</button>
             <a href="{% url 'buscar_vehiculo' %}" class="btn btn-gray">Cancelar</a>
             <button type="submit" class="btn btn-success">Crear Orden</button>
         </div>
@@ -111,6 +192,9 @@
 </div>
 
 <script>
+    var contadorServicios = 1;
+    var contadorProductos = 1;
+
     function toggleExtra() {
         var extra = document.getElementById('extra');
         var btn = event.target;
@@ -122,6 +206,155 @@
             btn.textContent = '➕ Más datos';
         }
     }
-</script>
 
+    function actualizarPrecio() {
+        var select = document.getElementById('servicio');
+        var precioInput = document.getElementById('precio_manual');
+        var cotizacionBox = document.getElementById('cotizacionBox');
+        var precioServicio = document.getElementById('precioServicio');
+        
+        var selected = select.options[select.selectedIndex];
+        if (selected.value) {
+            var precio = selected.getAttribute('data-precio');
+            precioInput.value = precio;
+            precioServicio.textContent = 'Bs. ' + precio;
+            cotizacionBox.style.display = 'block';
+        } else {
+            precioInput.value = '0.00';
+            cotizacionBox.style.display = 'none';
+        }
+        actualizarTotal();
+    }
+
+    function cancelarVisita() {
+        if (confirm('¿El cliente no acepta? Se guardará como cancelada.')) {
+            document.getElementById('ordenForm').action = "{% url 'cancelar_visita' %}";
+            document.getElementById('ordenForm').submit();
+        }
+    }
+
+    function agregarServicio() {
+        contadorServicios++;
+        var div = document.createElement('div');
+        div.style.cssText = 'display:grid; grid-template-columns:1fr 0.5fr auto; gap:8px; margin-bottom:5px;';
+        div.innerHTML = `
+            <select name="servicio_adicional_${contadorServicios}" onchange="actualizarPrecioAdicional(this, ${contadorServicios})">
+                <option value="">Seleccione servicio adicional...</option>
+                {% for s in servicios %}
+                <option value="{{ s.id }}" data-precio="{{ s.precio_mano_obra }}">{{ s.nombre }} - Bs. {{ s.precio_mano_obra }}</option>
+                {% endfor %}
+            </select>
+            <input type="number" name="precio_adicional_${contadorServicios}" step="0.01" value="0.00" placeholder="Precio" oninput="actualizarTotal()">
+            <button type="button" onclick="eliminarServicio(this)" style="background:#e74c3c; color:white; border:none; padding:5px 10px; border-radius:4px; cursor:pointer;">X</button>
+        `;
+        document.getElementById('serviciosAdicionales').appendChild(div);
+    }
+
+    function agregarProducto() {
+        contadorProductos++;
+        var div = document.createElement('div');
+        div.style.cssText = 'display:grid; grid-template-columns:1fr 0.3fr 0.5fr auto; gap:8px; margin-bottom:5px;';
+        div.innerHTML = `
+            <select name="producto_${contadorProductos}" onchange="actualizarPrecioProducto(this, ${contadorProductos})">
+                <option value="">Seleccione producto...</option>
+                {% for p in productos %}
+                <option value="{{ p.id }}" data-precio="{{ p.precio_venta }}">{{ p.nombre }} - Bs. {{ p.precio_venta }}</option>
+                {% endfor %}
+            </select>
+            <input type="number" name="cantidad_${contadorProductos}" value="1" min="1" placeholder="Cant." oninput="actualizarTotal()">
+            <input type="number" name="precio_producto_${contadorProductos}" step="0.01" value="0.00" placeholder="Precio" oninput="actualizarTotal()">
+            <button type="button" onclick="eliminarProducto(this)" style="background:#e74c3c; color:white; border:none; padding:5px 10px; border-radius:4px; cursor:pointer;">X</button>
+        `;
+        document.getElementById('productosAdicionales').appendChild(div);
+    }
+
+    function eliminarServicio(btn) {
+        btn.parentElement.remove();
+        actualizarTotal();
+    }
+
+    function eliminarProducto(btn) {
+        btn.parentElement.remove();
+        actualizarTotal();
+    }
+
+    function actualizarPrecioAdicional(select, num) {
+        var precio = select.options[select.selectedIndex].getAttribute('data-precio') || '0';
+        var input = document.querySelector(`input[name="precio_adicional_${num}"]`);
+        if (input) input.value = precio;
+        actualizarTotal();
+    }
+
+    function actualizarPrecioProducto(select, num) {
+        var precio = select.options[select.selectedIndex].getAttribute('data-precio') || '0';
+        var input = document.querySelector(`input[name="precio_producto_${num}"]`);
+        if (input) input.value = precio;
+        actualizarTotal();
+    }
+
+    function actualizarTotal() {
+        var total = 0;
+        
+        var precioPrincipal = parseFloat(document.getElementById('precio_manual').value) || 0;
+        total += precioPrincipal;
+        
+        document.querySelectorAll('input[name^="precio_adicional_"]').forEach(function(input) {
+            total += parseFloat(input.value) || 0;
+        });
+        
+        var inputsProductos = document.querySelectorAll('input[name^="precio_producto_"]');
+        inputsProductos.forEach(function(input) {
+            var num = input.name.split('_').pop();
+            var cantidad = document.querySelector(`input[name="cantidad_${num}"]`);
+            var cant = cantidad ? (parseFloat(cantidad.value) || 0) : 0;
+            total += (parseFloat(input.value) || 0) * cant;
+        });
+        
+        document.getElementById('totalCotizacion').textContent = 'Bs. ' + total.toFixed(2);
+    }
+
+    function copiarCotizacion() {
+        var serviciosAnteriores = document.querySelectorAll('.servicio-anterior');
+        var productosAnteriores = document.querySelectorAll('.producto-anterior');
+        
+        serviciosAnteriores.forEach(function(servicio, index) {
+            var idServicio = servicio.getAttribute('data-servicio-id');
+            var precioServicio = servicio.getAttribute('data-precio');
+            
+            if (index === 0) {
+                document.getElementById('servicio').value = idServicio;
+                document.getElementById('precio_manual').value = precioServicio;
+            } else {
+                agregarServicio();
+                var selects = document.querySelectorAll('#serviciosAdicionales select');
+                selects[selects.length - 1].value = idServicio;
+                var inputsPrecio = document.querySelectorAll('input[name^="precio_adicional_"]');
+                inputsPrecio[inputsPrecio.length - 1].value = precioServicio;
+            }
+        });
+        
+        productosAnteriores.forEach(function(producto, index) {
+            var idProducto = producto.getAttribute('data-producto-id');
+            var cantidad = producto.getAttribute('data-cantidad');
+            var precio = producto.getAttribute('data-precio');
+            
+            if (index === 0) {
+                document.querySelector('select[name="producto_1"]').value = idProducto;
+                document.querySelector('input[name="cantidad_1"]').value = cantidad;
+                document.querySelector('input[name="precio_producto_1"]').value = precio;
+            } else {
+                agregarProducto();
+                var selects = document.querySelectorAll('#productosAdicionales select');
+                selects[selects.length - 1].value = idProducto;
+                var inputsCantidad = document.querySelectorAll('input[name^="cantidad_"]');
+                inputsCantidad[inputsCantidad.length - 1].value = cantidad;
+                var inputsPrecio = document.querySelectorAll('input[name^="precio_producto_"]');
+                inputsPrecio[inputsPrecio.length - 1].value = precio;
+            }
+        });
+        
+        actualizarTotal();
+        alert('Cotizacion cargada');
+    }
+</script>
 {% endblock %}

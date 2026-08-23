@@ -6,6 +6,16 @@ from ..models import *
 
 
 def crear_orden(request):
+    orden_anterior_id = request.GET.get('orden_anterior_id')
+    cotizacion_anterior = None
+    
+    if orden_anterior_id:
+        cotizacion_anterior = OrdenTrabajo.objects.filter(
+            id=orden_anterior_id, 
+            estado_orden='CANCELADA'
+        ).first()
+        
+    placa = request.GET.get('placa', '')
     vehiculo_id = request.GET.get('vehiculo_id')
     vehiculo = None
     cliente = None
@@ -25,6 +35,7 @@ def crear_orden(request):
         complejidad_id = request.POST.get('complejidad')
         servicio_id = request.POST.get('servicio')
         mecanico_id = request.POST.get('mecanico')
+        precio_manual = request.POST.get('precio_manual', '0')
         observacion = request.POST.get('observacion', '')
         kilometraje = request.POST.get('kilometraje')
         anio = request.POST.get('anio')
@@ -55,25 +66,66 @@ def crear_orden(request):
         # Crear la orden
         orden = OrdenTrabajo.objects.create(
             id_vehiculo=vehiculo,
-            id_tipo_servicio_id=tipo_servicio_id,
-            id_complejidad_id=complejidad_id,
-            id_servicio_id=servicio_id,
+            id_tipo_servicio_id=tipo_servicio_id if tipo_servicio_id else None,
+            id_complejidad_id=complejidad_id if complejidad_id else None,
+            id_servicio_id=servicio_id if servicio_id else None,
             estado_orden='PENDIENTE',
             observacion_general=observacion,
             fecha_ingreso=timezone.now(),
             fecha_creacion=timezone.now(),
         )
         
-        # Crear el detalle del servicio con el mecánico
-        servicio = get_object_or_404(Servicio, id=servicio_id)
-        DetalleServicio.objects.create(
-            id_orden=orden,
-            id_servicio=servicio,
-            id_mecanico_id=mecanico_id if mecanico_id else None,
-            precio_cobrado=servicio.precio_mano_obra,
-            costo_real=servicio.costo_mano_obra,
-            estado='PENDIENTE',
-        )
+        # Guardar servicio principal
+        if servicio_id:
+            servicio = get_object_or_404(Servicio, id=servicio_id)
+            DetalleServicio.objects.create(
+                id_orden=orden,
+                id_servicio=servicio,
+                id_mecanico_id=mecanico_id if mecanico_id else None,
+                precio_cobrado=float(precio_manual) if precio_manual else servicio.precio_mano_obra,
+                costo_real=servicio.costo_mano_obra,
+                estado='PENDIENTE',
+            )
+        
+        # Guardar servicios adicionales
+        for key in request.POST:
+            if key.startswith('servicio_adicional_'):
+                num = key.split('_')[-1]
+                servicio_adicional_id = request.POST.get(key)
+                precio_adicional = request.POST.get(f'precio_adicional_{num}', '0')
+                
+                if servicio_adicional_id:
+                    servicio_adicional = get_object_or_404(Servicio, id=servicio_adicional_id)
+                    DetalleServicio.objects.create(
+                        id_orden=orden,
+                        id_servicio=servicio_adicional,
+                        id_mecanico_id=mecanico_id if mecanico_id else None,
+                        precio_cobrado=float(precio_adicional) if precio_adicional else servicio_adicional.precio_mano_obra,
+                        costo_real=servicio_adicional.costo_mano_obra,
+                        estado='PENDIENTE',
+                    )
+        
+        # Guardar productos (con SQL directo por columnas generadas)
+        from django.db import connection
+        
+        for key in request.POST:
+            if key.startswith('producto_') and not key.startswith('precio_producto_'):
+                num = key.split('_')[-1]
+                producto_id = request.POST.get(key)
+                cantidad = request.POST.get(f'cantidad_{num}', '1')
+                precio_producto = request.POST.get(f'precio_producto_{num}', '0')
+                
+                if producto_id:
+                    producto = get_object_or_404(Producto, id=producto_id)
+                    
+                    with connection.cursor() as cursor:
+                        cursor.execute(
+                            "INSERT INTO detalle_producto (id_orden, id_producto, cantidad, costo_unitario, precio_unitario) "
+                            "VALUES (%s, %s, %s, %s, %s)",
+                            [orden.id, producto.id, int(cantidad) if cantidad else 1, 
+                             producto.costo_unitario, 
+                             float(precio_producto) if precio_producto else producto.precio_venta]
+                        )
         
         messages.success(request, f'Orden #{orden.id} creada para {placa}')
         return redirect('detalle_orden', orden_id=orden.id)
@@ -93,8 +145,10 @@ def crear_orden(request):
         'mecanicos': mecanicos,
         'vehiculo': vehiculo,
         'cliente': cliente,
+        'placa': placa,
+        'productos': Producto.objects.filter(activo=True, stock_actual__gt=0),
+        'cotizacion_anterior': cotizacion_anterior,
     })
-
 
 def detalle_orden(request, orden_id):
     orden = get_object_or_404(OrdenTrabajo, id=orden_id)
@@ -266,7 +320,7 @@ def agregar_hallazgo_orden(request, orden_id):
 
 def editar_precio_servicio(request, detalle_id):
     detalle = get_object_or_404(DetalleServicio, id=detalle_id)
-    
+    #request sirve para
     if request.method == 'POST':
         nuevo_precio = request.POST.get('nuevo_precio')
         if nuevo_precio:
@@ -277,3 +331,66 @@ def editar_precio_servicio(request, detalle_id):
             messages.error(request, 'Ingrese un precio válido')
     
     return redirect('taller_detalle', orden_id=detalle.id_orden.id)
+
+
+#23/08/2026 cancelar pero guardar información
+def cancelar_visita(request):
+    if request.method == 'POST':
+        placa = request.POST.get('placa', '').upper()
+        vehiculo = Vehiculo.objects.filter(placa=placa).first()
+        
+        if vehiculo:
+            # Buscar la orden VISITA más reciente
+            orden = OrdenTrabajo.objects.filter(
+                id_vehiculo=vehiculo, 
+                estado_orden='VISITA'
+            ).order_by('-fecha_creacion').first()
+            
+            if orden:
+                # Guardar los servicios cotizados
+                for key in request.POST:
+                    if key.startswith('servicio_adicional_'):
+                        num = key.split('_')[-1]
+                        servicio_id = request.POST.get(key)
+                        precio = request.POST.get(f'precio_adicional_{num}', '0')
+                        
+                        if servicio_id:
+                            servicio = get_object_or_404(Servicio, id=servicio_id)
+                            DetalleServicio.objects.create(
+                                id_orden=orden,
+                                id_servicio=servicio,
+                                precio_cobrado=float(precio) if precio else servicio.precio_mano_obra,
+                                costo_real=servicio.costo_mano_obra,
+                                estado='PENDIENTE',
+                            )
+                
+                # Guardar productos cotizados
+                from django.db import connection
+                for key in request.POST:
+                    if key.startswith('producto_') and not key.startswith('precio_producto_'):
+                        num = key.split('_')[-1]
+                        producto_id = request.POST.get(key)
+                        cantidad = request.POST.get(f'cantidad_{num}', '1')
+                        precio = request.POST.get(f'precio_producto_{num}', '0')
+                        
+                        if producto_id:
+                            producto = get_object_or_404(Producto, id=producto_id)
+                            with connection.cursor() as cursor:
+                                cursor.execute(
+                                    "INSERT INTO detalle_producto (id_orden, id_producto, cantidad, costo_unitario, precio_unitario) "
+                                    "VALUES (%s, %s, %s, %s, %s)",
+                                    [orden.id, producto.id, int(cantidad), 
+                                     producto.costo_unitario, 
+                                     float(precio) if precio else producto.precio_venta]
+                                )
+                
+                # Marcar como CANCELADA
+                orden.estado_orden = 'CANCELADA'
+                orden.save()
+                messages.success(request, 'Visita guardada como cancelada con los servicios cotizados')
+            else:
+                messages.warning(request, 'No se encontró visita activa')
+        else:
+            messages.warning(request, 'No se encontró el vehículo')
+    
+    return redirect('buscar_vehiculo')

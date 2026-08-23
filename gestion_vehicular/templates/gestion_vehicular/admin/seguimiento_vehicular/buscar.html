@@ -23,6 +23,7 @@
     
     <div style="margin-top:15px; display:flex; gap:10px; flex-wrap:wrap;">
         <a href="{% url 'crear_orden' %}?vehiculo_id={{ vehiculo.id }}" class="btn btn-success">+ Nueva Orden</a>
+        <a href="{% url 'revision_rapida_placa' %}?placa={{ vehiculo.placa }}" class="btn btn-warning">Revisión</a>
         <a href="{% url 'historial_vehiculo' vehiculo.placa %}" class="btn btn-info">Ver Historial</a>
     </div>
 </div>
@@ -47,7 +48,11 @@
                 <td>{{ orden.fecha_ingreso|date:"d/m/Y H:i" }}</td>
                 <td><span class="badge {% if orden.estado_orden == 'COBRADA' %}badge-success{% elif orden.estado_orden == 'EN_PROCESO' %}badge-info{% else %}badge-warning{% endif %}">{{ orden.estado_orden }}</span></td>
                 <td>Bs. {{ orden.total_orden|floatformat:2|default:"0.00" }}</td>
-                <td><a href="{% url 'detalle_orden' orden.id %}" class="btn btn-primary" style="padding:2px 10px; font-size:0.7rem;">Ver</a></td>
+                <td>    <a href="{% url 'detalle_orden' orden.id %}" class="btn btn-primary" style="padding:2px 10px; font-size:0.7rem;">Ver</a>
+                        {% if orden.estado_orden == 'CANCELADA' %}
+                        <a href="{% url 'crear_orden' %}?orden_anterior_id={{ orden.id }}" class="btn btn-warning" style="padding:2px 10px; font-size:0.7rem;">Usar Cotización</a>
+                        {% endif %}
+                </td>
             </tr>
             {% endfor %}
         </tbody>
@@ -57,6 +62,16 @@
 
 {% elif placa %}
 <p style="color:#e74c3c;">No se encontró el vehículo "{{ placa }}"</p>
+
+{% endif %}
+
+{% if not vehiculo and placa %}
+<div class="card" style="padding:20px; text-align:center;">
+    <p style="color:#7f8c8d; margin-bottom:15px;">No se encontro el vehiculo con placa <strong>{{ placa }}</strong></p>
+    <a href="{% url 'revision_rapida_placa' %}?placa={{ placa }}" class="btn btn-warning" style="padding:12px 24px;">
+        Revision
+    </a>
+</div>
 {% endif %}
 
 {% endblock %}

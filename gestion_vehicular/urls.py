@@ -59,4 +59,8 @@ urlpatterns = [
     #31 de julio de 2026
     #path('dashboard/', dashboard_views.dashboard, name='dashboard'),
 
+    #22/08/2026 para atencion
+    path('revision-rapida/', seguimiento_vehicular.revision_rapida_placa, name='revision_rapida_placa'),
+    path('revision-rapida/guardar/', seguimiento_vehicular.guardar_revision_rapida, name='guardar_revision_rapida'),
+    path('orden/cancelar-visita/', gestion_taller.cancelar_visita, name='cancelar_visita'),
 ]

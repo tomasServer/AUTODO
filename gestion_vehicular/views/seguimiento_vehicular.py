@@ -112,3 +112,65 @@ def rechazar_hallazgo(request, hallazgo_id):
     hallazgo.save()
     messages.warning(request, 'Hallazgo rechazado')
     return redirect('dashboard_admin')
+
+
+##codigo 22/08/2026 23:59
+def revision_rapida_placa(request):
+    """Revisión rápida para vehículo nuevo (sin orden formal)"""
+    placa = request.GET.get('placa', '')
+    componentes = Componente.objects.all().order_by('orden')
+    
+    return render(request, 'gestion_vehicular/admin/seguimiento_vehicular/revision_rapida.html', {
+        'placa': placa,
+        'componentes': componentes,
+    })
+
+
+def guardar_revision_rapida(request):
+    """Guarda la revisión rápida como orden VISITA"""
+    if request.method == 'POST':
+        placa = request.POST.get('placa', '').upper()
+        componentes = Componente.objects.all().order_by('orden')
+        
+        # Buscar o crear vehículo (solo placa)
+        vehiculo, created = Vehiculo.objects.get_or_create(
+            placa=placa,
+            defaults={}
+        )
+        
+        # Crear orden VISITA
+        orden = OrdenTrabajo.objects.create(
+            id_vehiculo=vehiculo,
+            estado_orden='VISITA',
+            fecha_ingreso=timezone.now(),
+            fecha_creacion=timezone.now(),
+        )
+        
+        # Crear revisión
+        revision = RevisionTecnica.objects.create(
+            id_orden=orden,
+            tipo_revision='RAPIDA',
+            fecha_revision=timezone.now(),
+        )
+        
+        # Guardar componentes
+        for componente in componentes:
+            estado = request.POST.get(f'comp_{componente.id}', 'OK')
+            DetalleRevision.objects.create(
+                id_revision=revision,
+                id_componente=componente,
+                estado=estado,
+            )
+        
+        # Calcular estado del vehículo
+        total = revision.detalles.count()
+        ok = revision.detalles.filter(estado='OK').count()
+        regular = revision.detalles.filter(estado='REGULAR').count()
+        estado_porcentaje = round(((ok * 100) + (regular * 50)) / total, 2) if total > 0 else 0
+        revision.isv_porcentaje = estado_porcentaje
+        revision.save()
+        
+        messages.success(request, f'Revision guardada. Estado del vehiculo: {estado_porcentaje}%')
+        return redirect(f'/orden/crear/?placa={placa}')
+    
+    return redirect('buscar_vehiculo')
