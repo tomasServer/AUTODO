@@ -32,6 +32,9 @@ class Complejidad(models.Model):
 class Componente(models.Model):
     nombre = models.CharField(max_length=100)
     orden = models.IntegerField(blank=True, null=True)
+    en_visita = models.BooleanField(blank=True, null=True, default=True)
+    en_rapida = models.BooleanField(blank=True, null=True, default=True)
+    en_completa = models.BooleanField(blank=True, null=True, default=True)
 
     class Meta:
         managed = False
@@ -353,3 +356,25 @@ class Vehiculo(models.Model):
 
     def __str__(self):
         return f"{self.placa} - {self.marca or ''} {self.modelo or ''}"
+
+
+#ventas............................
+class VentaRapida(models.Model):
+    fecha_venta = models.DateTimeField(blank=True, null=True)
+    total = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    registrado_por = models.ForeignKey('Usuario', models.DO_NOTHING, db_column='registrado_por', blank=True, null=True)
+
+    class Meta:
+        managed = False
+        db_table = 'venta_rapida'
+
+
+class DetalleVentaRapida(models.Model):
+    id_venta = models.ForeignKey(VentaRapida, models.DO_NOTHING, db_column='id_venta', related_name='detalles')
+    id_producto = models.ForeignKey('Producto', models.DO_NOTHING, db_column='id_producto')
+    cantidad = models.IntegerField()
+    precio_venta = models.DecimalField(max_digits=10, decimal_places=2)
+
+    class Meta:
+        managed = False
+        db_table = 'detalle_venta_rapida'

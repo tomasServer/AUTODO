@@ -105,7 +105,7 @@ def crear_orden(request):
                         estado='PENDIENTE',
                     )
         
-        # Guardar productos (con SQL directo por columnas generadas)
+        # Guardar productos (con SQL directo por columnas generadas y descuento de stock)
         from django.db import connection
         
         for key in request.POST:
@@ -117,15 +117,20 @@ def crear_orden(request):
                 
                 if producto_id:
                     producto = get_object_or_404(Producto, id=producto_id)
+                    cantidad_int = int(cantidad) if cantidad else 1
                     
                     with connection.cursor() as cursor:
                         cursor.execute(
                             "INSERT INTO detalle_producto (id_orden, id_producto, cantidad, costo_unitario, precio_unitario) "
                             "VALUES (%s, %s, %s, %s, %s)",
-                            [orden.id, producto.id, int(cantidad) if cantidad else 1, 
+                            [orden.id, producto.id, cantidad_int, 
                              producto.costo_unitario, 
                              float(precio_producto) if precio_producto else producto.precio_venta]
                         )
+                    
+                    # DESCONTAR STOCK
+                    producto.stock_actual -= cantidad_int
+                    producto.save()
         
         messages.success(request, f'Orden #{orden.id} creada para {placa}')
         return redirect('detalle_orden', orden_id=orden.id)
@@ -149,6 +154,7 @@ def crear_orden(request):
         'productos': Producto.objects.filter(activo=True, stock_actual__gt=0),
         'cotizacion_anterior': cotizacion_anterior,
     })
+
 
 def detalle_orden(request, orden_id):
     orden = get_object_or_404(OrdenTrabajo, id=orden_id)
@@ -201,13 +207,19 @@ def agregar_producto_orden(request, orden_id):
         
         if producto_id and cantidad:
             producto = get_object_or_404(Producto, id=producto_id)
+            cantidad_int = int(cantidad)
             
             from django.db import connection
             with connection.cursor() as cursor:
                 cursor.execute(
                     "INSERT INTO detalle_producto (id_orden, id_producto, cantidad, costo_unitario, precio_unitario) VALUES (%s, %s, %s, %s, %s)",
-                    [orden.id, producto.id, cantidad, producto.costo_unitario, producto.precio_venta]
+                    [orden.id, producto.id, cantidad_int, producto.costo_unitario, producto.precio_venta]
                 )
+            
+            # DESCONTAR STOCK
+            producto.stock_actual -= cantidad_int
+            producto.save()
+            
             messages.success(request, f'Producto "{producto.nombre}" agregado')
         else:
             messages.error(request, 'Seleccione un producto y cantidad')

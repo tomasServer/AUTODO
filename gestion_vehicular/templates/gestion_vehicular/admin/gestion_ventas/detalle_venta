@@ -1,0 +1,36 @@
+{% extends 'gestion_vehicular/admin/base_admin.html' %}
+{% block title %}Venta {{ venta.id }}{% endblock %}
+
+{% block content %}
+<h2 style="color:#1a252f; margin-bottom:15px;">Venta Rapida #{{ venta.id }}</h2>
+
+<div class="card" style="padding:20px;">
+    <p><strong>Fecha:</strong> {{ venta.fecha_venta|date:"d/m/Y H:i" }}</p>
+    <p><strong>Registrado por:</strong> {{ venta.registrado_por.nombre|default:"-" }}</p>
+    
+    <table style="font-size:0.85rem; margin-top:15px;">
+        <thead>
+            <tr><th>Producto</th><th>Cantidad</th><th>Precio</th><th>Subtotal</th></tr>
+        </thead>
+        <tbody>
+            {% for d in venta.detalles.all %}
+            <tr>
+                <td>{{ d.id_producto.nombre }}</td>
+                <td>{{ d.cantidad }}</td>
+                <td>Bs. {{ d.precio_venta }}</td>
+                <td><strong>Bs. {{ d.cantidad|floatformat:0 }} x {{ d.precio_venta }}</strong></td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    
+    <div style="margin-top:15px; padding:15px; background:#fef9e7; border-radius:4px;">
+        <div style="display:flex; justify-content:space-between; font-size:1.2rem;">
+            <span>TOTAL:</span>
+            <span><strong>Bs. {{ venta.total|floatformat:2 }}</strong></span>
+        </div>
+    </div>
+</div>
+
+<a href="{% url 'lista_ventas_rapidas' %}" class="btn btn-gray mt-20">Volver</a>
+{% endblock %}

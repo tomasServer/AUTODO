@@ -259,6 +259,7 @@ def reportes(request):
         productos_detalle = productos_detalle.filter(id_producto__nombre__icontains=producto_buscar)
     if fecha_inicio_p and fecha_fin_p:
         productos_detalle = productos_detalle.filter(id_orden__fecha_ingreso__date__gte=fecha_inicio_p, id_orden__fecha_ingreso__date__lte=fecha_fin_p)
+
     
     # === SERVICIOS ===
     fecha_inicio_s = request.GET.get('fecha_inicio_s', '')
@@ -282,7 +283,16 @@ def reportes(request):
     
     if fecha_inicio_m and fecha_fin_m:
         servicios_por_mecanico = servicios_por_mecanico.filter(id_orden__fecha_ingreso__date__gte=fecha_inicio_m, id_orden__fecha_ingreso__date__lte=fecha_fin_m)
-    
+
+    # === VENTAS RAPIDAS ===
+    fecha_inicio_v = request.GET.get('fecha_inicio_v', '')
+    fecha_fin_v = request.GET.get('fecha_fin_v', '')
+
+    ventas_rapidas = VentaRapida.objects.all().order_by('-fecha_venta')
+
+    if fecha_inicio_v and fecha_fin_v:
+        ventas_rapidas = ventas_rapidas.filter(fecha_venta__date__gte=fecha_inicio_v, fecha_venta__date__lte=fecha_fin_v)
+        
     contexto = {
         'fecha_inicio_p': fecha_inicio_p, 'fecha_fin_p': fecha_fin_p, 'producto_buscar': producto_buscar,
         'fecha_inicio_s': fecha_inicio_s, 'fecha_fin_s': fecha_fin_s, 'servicio_buscar': servicio_buscar,
@@ -290,6 +300,9 @@ def reportes(request):
         'productos_detalle': productos_detalle,
         'servicios_detalle': servicios_detalle,
         'servicios_por_mecanico': servicios_por_mecanico,
+
+        'ventas_rapidas': ventas_rapidas,
+        'fecha_inicio_v': fecha_inicio_v, 'fecha_fin_v': fecha_fin_v,
     }
     return render(request, 'gestion_vehicular/admin/gestion_administrativa/reportes.html', contexto)
 
@@ -337,4 +350,25 @@ def detalle_mecanico(request, mecanico_id):
         'servicios': servicios,
         'fecha_inicio': fecha_inicio,
         'fecha_fin': fecha_fin,
+    })
+
+
+
+## visualizar la gestion de revisiones
+def gestionar_revisiones(request):
+    """Administrar qué componentes aparecen en cada tipo de revisión"""
+    componentes = Componente.objects.all().order_by('orden')
+    
+    if request.method == 'POST':
+        for componente in componentes:
+            componente.en_visita = request.POST.get(f'en_visita_{componente.id}') == 'on'
+            componente.en_rapida = request.POST.get(f'en_rapida_{componente.id}') == 'on'
+            componente.en_completa = request.POST.get(f'en_completa_{componente.id}') == 'on'
+            componente.save()
+        
+        messages.success(request, 'Configuración de revisiones actualizada')
+        return redirect('gestionar_revisiones')
+    
+    return render(request, 'gestion_vehicular/admin/gestion_administrativa/revisiones.html', {
+        'componentes': componentes,
     })

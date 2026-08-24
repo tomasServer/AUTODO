@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import gestion_basica, gestion_taller, seguimiento_vehicular, gestion_administrativa
+from .views import gestion_basica, gestion_taller, seguimiento_vehicular, gestion_administrativa, gestion_ventas
 #dashboard_views
 
 urlpatterns = [
@@ -63,4 +63,13 @@ urlpatterns = [
     path('revision-rapida/', seguimiento_vehicular.revision_rapida_placa, name='revision_rapida_placa'),
     path('revision-rapida/guardar/', seguimiento_vehicular.guardar_revision_rapida, name='guardar_revision_rapida'),
     path('orden/cancelar-visita/', gestion_taller.cancelar_visita, name='cancelar_visita'),
+
+    #ventas
+    path('venta-rapida/', gestion_ventas.venta_rapida, name='venta_rapida'),
+    path('venta-rapida/guardar/', gestion_ventas.guardar_venta_rapida, name='guardar_venta_rapida'),
+    path('ventas/', gestion_ventas.lista_ventas_rapidas, name='lista_ventas_rapidas'),
+    path('ventas/<int:venta_id>/', gestion_ventas.detalle_venta, name='detalle_venta'),
+
+
+    path('reviciones/', gestion_administrativa.gestionar_revisiones, name='gestionar_revisiones'),
 ]

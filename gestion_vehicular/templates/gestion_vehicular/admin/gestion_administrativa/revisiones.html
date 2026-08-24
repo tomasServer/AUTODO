@@ -1,0 +1,43 @@
+{% extends 'gestion_vehicular/admin/base_admin.html' %}
+{% block title %}Gestionar Revisiones{% endblock %}
+
+{% block content %}
+<h2 style="color:#1a252f; margin-bottom:15px;">Gestionar Componentes de Revision</h2>
+
+<div class="card" style="padding:20px;">
+    <form method="POST">
+        {% csrf_token %}
+        
+        <table style="font-size:0.85rem;">
+            <thead>
+                <tr>
+                    <th>Componente</th>
+                    <th style="text-align:center;">Visita</th>
+                    <th style="text-align:center;">Rapida</th>
+                    <th style="text-align:center;">Completa</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for c in componentes %}
+                <tr>
+                    <td>{{ c.nombre }}</td>
+                    <td style="text-align:center;">
+                        <input type="checkbox" name="en_visita_{{ c.id }}" {% if c.en_visita %}checked{% endif %}>
+                    </td>
+                    <td style="text-align:center;">
+                        <input type="checkbox" name="en_rapida_{{ c.id }}" {% if c.en_rapida %}checked{% endif %}>
+                    </td>
+                    <td style="text-align:center;">
+                        <input type="checkbox" name="en_completa_{{ c.id }}" {% if c.en_completa %}checked{% endif %}>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        
+        <div style="margin-top:15px; display:flex; justify-content:flex-end;">
+            <button type="submit" class="btn btn-success">Guardar Configuracion</button>
+        </div>
+    </form>
+</div>
+{% endblock %}

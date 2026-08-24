@@ -59,12 +59,26 @@ def historial_vehiculo(request, placa):
 def revision_tecnica(request, orden_id):
     orden = get_object_or_404(OrdenTrabajo, id=orden_id)
     tipo = request.GET.get('tipo', 'COMPLETA')
-    componentes = Componente.objects.filter(orden__lte=5).order_by('orden') if tipo == 'RAPIDA' else Componente.objects.all().order_by('orden')
+    
+    # Filtrar componentes según el tipo de revisión
+    if tipo == 'RAPIDA':
+        componentes = Componente.objects.filter(en_rapida=True).order_by('orden')
+    else:
+        componentes = Componente.objects.filter(en_completa=True).order_by('orden')
     
     if request.method == 'POST':
-        revision = RevisionTecnica.objects.create(id_orden=orden, tipo_revision=request.POST.get('tipo_revision', 'COMPLETA'), fecha_revision=timezone.now())
+        revision = RevisionTecnica.objects.create(
+            id_orden=orden, 
+            tipo_revision=request.POST.get('tipo_revision', 'COMPLETA'), 
+            fecha_revision=timezone.now()
+        )
         for c in componentes:
-            DetalleRevision.objects.create(id_revision=revision, id_componente=c, estado=request.POST.get(f'comp_{c.id}', 'OK'), nota=request.POST.get(f'nota_{c.id}', ''))
+            DetalleRevision.objects.create(
+                id_revision=revision, 
+                id_componente=c, 
+                estado=request.POST.get(f'comp_{c.id}', 'OK'), 
+                nota=request.POST.get(f'nota_{c.id}', '')
+            )
         total = revision.detalles.count()
         ok = revision.detalles.filter(estado='OK').count()
         regular = revision.detalles.filter(estado='REGULAR').count()
@@ -74,7 +88,10 @@ def revision_tecnica(request, orden_id):
         return redirect('detalle_orden', orden_id=orden.id)
     
     return render(request, 'gestion_vehicular/admin/seguimiento_vehicular/revision.html', {
-        'orden': orden, 'componentes': componentes, 'notas_predefinidas': NotaPredefinida.objects.all(), 'tipo': tipo,
+        'orden': orden, 
+        'componentes': componentes, 
+        'notas_predefinidas': NotaPredefinida.objects.all(), 
+        'tipo': tipo,
     })
 
 
@@ -118,19 +135,19 @@ def rechazar_hallazgo(request, hallazgo_id):
 def revision_rapida_placa(request):
     """Revisión rápida para vehículo nuevo (sin orden formal)"""
     placa = request.GET.get('placa', '')
-    componentes = Componente.objects.all().order_by('orden')
+    componentes = Componente.objects.filter(en_visita=True).order_by('orden')
     
     return render(request, 'gestion_vehicular/admin/seguimiento_vehicular/revision_rapida.html', {
         'placa': placa,
         'componentes': componentes,
-    })
+    }) 
 
 
 def guardar_revision_rapida(request):
     """Guarda la revisión rápida como orden VISITA"""
     if request.method == 'POST':
         placa = request.POST.get('placa', '').upper()
-        componentes = Componente.objects.all().order_by('orden')
+        componentes = Componente.objects.filter(en_visita=True).order_by('orden')
         
         # Buscar o crear vehículo (solo placa)
         vehiculo, created = Vehiculo.objects.get_or_create(
@@ -174,3 +191,7 @@ def guardar_revision_rapida(request):
         return redirect(f'/orden/crear/?placa={placa}')
     
     return redirect('buscar_vehiculo')
+
+
+
+

@@ -313,48 +313,5 @@
         document.getElementById('totalCotizacion').textContent = 'Bs. ' + total.toFixed(2);
     }
 
-    function copiarCotizacion() {
-        var serviciosAnteriores = document.querySelectorAll('.servicio-anterior');
-        var productosAnteriores = document.querySelectorAll('.producto-anterior');
-        
-        serviciosAnteriores.forEach(function(servicio, index) {
-            var idServicio = servicio.getAttribute('data-servicio-id');
-            var precioServicio = servicio.getAttribute('data-precio');
-            
-            if (index === 0) {
-                document.getElementById('servicio').value = idServicio;
-                document.getElementById('precio_manual').value = precioServicio;
-            } else {
-                agregarServicio();
-                var selects = document.querySelectorAll('#serviciosAdicionales select');
-                selects[selects.length - 1].value = idServicio;
-                var inputsPrecio = document.querySelectorAll('input[name^="precio_adicional_"]');
-                inputsPrecio[inputsPrecio.length - 1].value = precioServicio;
-            }
-        });
-        
-        productosAnteriores.forEach(function(producto, index) {
-            var idProducto = producto.getAttribute('data-producto-id');
-            var cantidad = producto.getAttribute('data-cantidad');
-            var precio = producto.getAttribute('data-precio');
-            
-            if (index === 0) {
-                document.querySelector('select[name="producto_1"]').value = idProducto;
-                document.querySelector('input[name="cantidad_1"]').value = cantidad;
-                document.querySelector('input[name="precio_producto_1"]').value = precio;
-            } else {
-                agregarProducto();
-                var selects = document.querySelectorAll('#productosAdicionales select');
-                selects[selects.length - 1].value = idProducto;
-                var inputsCantidad = document.querySelectorAll('input[name^="cantidad_"]');
-                inputsCantidad[inputsCantidad.length - 1].value = cantidad;
-                var inputsPrecio = document.querySelectorAll('input[name^="precio_producto_"]');
-                inputsPrecio[inputsPrecio.length - 1].value = precio;
-            }
-        });
-        
-        actualizarTotal();
-        alert('Cotizacion cargada');
-    }
 </script>
 {% endblock %}
