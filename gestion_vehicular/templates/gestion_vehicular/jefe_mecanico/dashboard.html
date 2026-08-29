@@ -1,0 +1,110 @@
+{% extends 'gestion_vehicular/jefe_mecanico/base_jefe.html' %}
+{% block title %}Panel Jefe{% endblock %}
+
+{% block content %}
+
+<h1 style="color:#1a252f; margin-bottom:4px; font-size:1.3rem;">Panel de Jefe Mecanico</h1>
+<p style="color:#7f8c8d; margin-bottom:15px; font-size:0.85rem;">{{ hoy|date:"l d \d\e F \d\e Y" }}</p>
+
+<!-- ESTRUCTURA PRINCIPAL: IZQUIERDA (Hallazgos) | DERECHA (4 tarjetas) -->
+<div style="display:grid; grid-template-columns:1fr 1fr; gap:15px; margin-bottom:15px;">
+
+    <!-- COLUMNA IZQUIERDA: HALLAZGOS -->
+    <div style="display:flex; flex-direction:column; gap:15px;">
+        <div class="card" style="padding:12px 15px; border-left:4px solid #d35400;">
+            <h2 style="font-size:0.95rem; margin-bottom:8px; color:#d35400;">Hallazgos Pendientes</h2>
+            {% if hallazgos_pendientes %}
+            <div style="display:flex; flex-direction:column; gap:6px; max-height:200px; overflow-y:auto;">
+                {% for h in hallazgos_pendientes %}
+                <div style="background:#fef9e7; padding:8px 10px; border-radius:4px; font-size:0.8rem;">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <div>
+                            <strong>#{{ h.id_orden.id }}</strong> - {{ h.id_orden.id_vehiculo.placa }}
+                            <span style="color:#7f8c8d;">| {{ h.descripcion|truncatechars:30 }}</span>
+                        </div>
+                        <span style="font-weight:700; color:#d35400;">Bs. {{ h.costo_estimado|default:"0" }}</span>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p style="color:#27ae60; font-size:0.8rem;">No hay hallazgos pendientes.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- COLUMNA DERECHA: 4 TARJETAS -->
+    <div style="display:grid; grid-template-columns:1fr 1fr; grid-template-rows:1fr 1fr; gap:12px;">
+        <div style="background:#d35400; padding:15px; border-radius:4px; color:white; display:flex; flex-direction:column; justify-content:center;">
+            <div style="font-size:1.5rem; font-weight:700;">{{ pendientes_count }}</div>
+            <div style="font-size:0.75rem; opacity:0.9;">Pendientes</div>
+        </div>
+        <div style="background:#d35400; padding:15px; border-radius:4px; color:white; display:flex; flex-direction:column; justify-content:center;">
+            <div style="font-size:1.5rem; font-weight:700;">{{ por_cobrar_count }}</div>
+            <div style="font-size:0.75rem; opacity:0.9;">Por Cobrar</div>
+        </div>
+        <div style="background:#d35400; padding:15px; border-radius:4px; color:white; display:flex; flex-direction:column; justify-content:center;">
+            <div style="font-size:1.5rem; font-weight:700;">Bs. {{ cobrado_hoy|floatformat:2 }}</div>
+            <div style="font-size:0.75rem; opacity:0.9;">Cobrado Hoy</div>
+        </div>
+        <div style="background:#d35400; padding:15px; border-radius:4px; color:white; display:flex; flex-direction:column; justify-content:center;">
+            <div style="font-size:1.5rem; font-weight:700;">Bs. {{ ventas_rapidas_hoy|floatformat:2 }}</div>
+            <div style="font-size:0.75rem; opacity:0.9;">Ventas Rapidas</div>
+        </div>
+    </div>
+</div>
+
+<!-- ÓRDENES RECIENTES -->
+<div class="card" style="padding:12px 15px;">
+    <h2 style="font-size:0.95rem; margin-bottom:8px;">Ordenes Recientes</h2>
+    {% if ultimas_ordenes %}
+    <div style="max-height:200px; overflow-y:auto;">
+        <table style="font-size:0.8rem; width:100%;">
+            <thead style="position:sticky; top:0; background:#1a252f; color:white;">
+                <tr><th style="padding:6px;">Orden</th><th style="padding:6px;">Placa</th><th style="padding:6px;">Vehiculo</th><th style="padding:6px;">Estado</th><th style="padding:6px;">Total</th></tr>
+            </thead>
+            <tbody>
+                {% for o in ultimas_ordenes %}
+                <tr style="border-bottom:1px solid #ecf0f1;">
+                    <td style="padding:6px;"><strong>Nº {{ o.id }}</strong></td>
+                    <td style="padding:6px;">{{ o.id_vehiculo.placa }}</td>
+                    <td style="padding:6px;">{{ o.id_vehiculo.marca|default:"" }} {{ o.id_vehiculo.modelo|default:"" }}</td>
+                    <td style="padding:6px;"><span class="badge {% if o.estado_orden == 'COBRADA' %}badge-success{% elif o.estado_orden == 'EN_PROCESO' %}badge-info{% else %}badge-warning{% endif %}" style="font-size:0.65rem;">{{ o.estado_orden }}</span></td>
+                    <td style="padding:6px;"><strong>{% if o.pago %}Bs. {{ o.pago.monto_total }}{% else %}-{% endif %}</strong></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p style="color:#7f8c8d; font-size:0.8rem;">No hay ordenes registradas.</p>
+    {% endif %}
+</div>
+
+<!-- VENTAS RAPIDAS DE HOY -->
+<div class="card" style="padding:12px 15px; margin-top:15px;">
+    <h2 style="font-size:0.95rem; margin-bottom:8px;">Ventas Rapidas de Hoy</h2>
+    {% if ventas_rapidas_lista %}
+    <div style="max-height:200px; overflow-y:auto;">
+        <table style="font-size:0.8rem; width:100%;">
+            <thead style="position:sticky; top:0; background:#1a252f; color:white;">
+                <tr><th style="padding:6px;">Venta</th><th style="padding:6px;">Hora</th><th style="padding:6px;">Registrado</th><th style="padding:6px;">Total</th></tr>
+            </thead>
+            <tbody>
+                {% for v in ventas_rapidas_lista %}
+                <tr style="border-bottom:1px solid #ecf0f1;">
+                    <td style="padding:6px;">#{{ v.id }}</td>
+                    <td style="padding:6px;">{{ v.fecha_venta|date:"H:i" }}</td>
+                    <td style="padding:6px;">{{ v.registrado_por.nombre|default:"-" }}</td>
+                    <td style="padding:6px;"><strong>Bs. {{ v.total|floatformat:2 }}</strong></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p style="color:#7f8c8d; font-size:0.8rem;">No hay ventas rapidas hoy.</p>
+    {% endif %}
+</div>
+
+{% endblock %}

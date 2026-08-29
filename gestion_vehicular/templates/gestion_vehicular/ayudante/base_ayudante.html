@@ -1,0 +1,14 @@
+{% extends 'gestion_vehicular/base.html' %}
+{% block title %}Ayudante - AUTODO{% endblock %}
+
+{% block navbar %}
+    <a href="{% url 'dashboard_ayudante' %}">Inicio</a>
+    <a href="{% url 'logout' %}" style="background:#d35400; color:#fff; padding:8px 16px; border-radius:4px;">Salir</a>
+{% endblock %}
+
+{% block sidebar %}
+    <h3>Acciones</h3>
+    <a href="{% url 'modo_taller' %}">Mis Trabajos</a>
+    <a href="{% url 'crear_orden' %}">Nueva Orden</a>
+    <a href="{% url 'venta_rapida' %}">Venta Rapida</a>
+{% endblock %}

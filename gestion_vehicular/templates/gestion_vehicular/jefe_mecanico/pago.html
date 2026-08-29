@@ -1,0 +1,46 @@
+{% extends 'gestion_vehicular/jefe_mecanico/base_jefe.html' %}
+{% block title %}Registrar Pago{% endblock %}
+
+{% block content %}
+<h2 style="color:#1a252f; margin-bottom:15px;">Registrar Pago</h2>
+
+<div class="card" style="padding:20px;">
+    <table style="font-size:0.9rem;">
+        <tr>
+            <td>Total Servicios:</td>
+            <td style="text-align:right;"><strong>Bs. {{ total_servicios|floatformat:2 }}</strong></td>
+        </tr>
+        <tr>
+            <td>Total Productos:</td>
+            <td style="text-align:right;"><strong>Bs. {{ total_productos|floatformat:2 }}</strong></td>
+        </tr>
+        {% if total_hallazgos > 0 %}
+        <tr>
+            <td>Hallazgos Autorizados:</td>
+            <td style="text-align:right;"><strong>Bs. {{ total_hallazgos|floatformat:2 }}</strong></td>
+        </tr>
+        {% endif %}
+        <tr style="background:#1a252f; color:white;">
+            <td>TOTAL A COBRAR:</td>
+            <td style="text-align:right;"><strong>Bs. {{ total_general|floatformat:2 }}</strong></td>
+        </tr>
+    </table>
+    
+    <form method="POST" style="margin-top:20px;">
+        {% csrf_token %}
+        <label>Metodo de Pago</label>
+        <select name="metodo_pago" required>
+            <option value="">Seleccione...</option>
+            <option value="EFECTIVO">Efectivo</option>
+            <option value="TARJETA">Tarjeta</option>
+            <option value="TRANSFERENCIA">Transferencia</option>
+            <option value="QR">Codigo QR</option>
+        </select>
+        
+        <div style="margin-top:15px; display:flex; justify-content:flex-end; gap:10px;">
+            <a href="{% url 'detalle_orden' orden.id %}" class="btn btn-gray">Cancelar</a>
+            <button type="submit" class="btn btn-success">Confirmar Pago</button>
+        </div>
+    </form>
+</div>
+{% endblock %}

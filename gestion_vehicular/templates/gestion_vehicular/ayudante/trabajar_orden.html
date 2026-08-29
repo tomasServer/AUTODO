@@ -1,0 +1,39 @@
+{% extends 'gestion_vehicular/ayudante/base_ayudante.html' %}
+{% block title %}Trabajar Orden {{ orden.id }}{% endblock %}
+
+{% block content %}
+<h2 style="color:#1a252f; margin-bottom:15px;">Orden #{{ orden.id }}</h2>
+
+<div class="card" style="padding:15px 20px; margin-bottom:15px;">
+    <p><strong>Placa:</strong> {{ orden.id_vehiculo.placa }}</p>
+</div>
+
+<h3 style="margin-bottom:10px;">Servicios:</h3>
+{% for servicio in servicios_detalle %}
+<div class="card" style="padding:15px 20px; margin-bottom:10px; display:flex; justify-content:space-between; align-items:center;">
+    <div>
+        <strong>{{ servicio.id_servicio.nombre }}</strong>
+        <span style="margin-left:10px; font-size:12px;" class="badge {% if servicio.estado == 'FINALIZADO' %}badge-success{% elif servicio.estado == 'EN_PROCESO' %}badge-info{% else %}badge-warning{% endif %}">
+            {{ servicio.estado }}
+        </span>
+    </div>
+    <div>
+        {% if servicio.estado == 'PENDIENTE' %}
+        <form method="POST" action="{% url 'cambiar_estado_servicio' servicio.id %}" style="display:inline;">
+            {% csrf_token %}
+            <input type="hidden" name="nuevo_estado" value="EN_PROCESO">
+            <button type="submit" class="btn btn-info" style="padding:5px 15px;">Iniciar</button>
+        </form>
+        {% elif servicio.estado == 'EN_PROCESO' %}
+        <form method="POST" action="{% url 'cambiar_estado_servicio' servicio.id %}" style="display:inline;">
+            {% csrf_token %}
+            <input type="hidden" name="nuevo_estado" value="FINALIZADO">
+            <button type="submit" class="btn btn-success" style="padding:5px 15px;">Finalizar</button>
+        </form>
+        {% endif %}
+    </div>
+</div>
+{% endfor %}
+
+<a href="{% url 'modo_taller' %}" class="btn btn-gray" style="margin-top:15px;">Volver</a>
+{% endblock %}

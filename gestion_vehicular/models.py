@@ -286,6 +286,11 @@ class Usuario(models.Model):
     fecha_creacion = models.DateTimeField(blank=True, null=True)
     last_login = models.DateTimeField(blank=True, null=True)
 
+    # --- agregar ---
+    USERNAME_FIELD = 'usuario_login'
+    REQUIRED_FIELDS = ['nombre']
+    # ------------------------------------
+
     class Meta:
         managed = False
         db_table = 'usuario'

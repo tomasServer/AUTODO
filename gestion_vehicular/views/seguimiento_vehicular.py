@@ -23,8 +23,14 @@ def buscar_vehiculo(request):
                 
         except Vehiculo.DoesNotExist:
             messages.error(request, f'No se encontro el vehiculo "{placa}"')
-            
-    return render(request, 'gestion_vehicular/admin/seguimiento_vehicular/buscar.html', {
+    
+    # Elegir template según rol
+    if request.user.id_rol_id == 2:  # JEFE
+        template = 'gestion_vehicular/jefe_mecanico/buscar.html'
+    else:  # ADMIN
+        template = 'gestion_vehicular/admin/seguimiento_vehicular/buscar.html'
+    
+    return render(request, template, {
         'vehiculo': vehiculo, 
         'ordenes': ordenes, 
         'placa': placa
@@ -46,7 +52,13 @@ def historial_vehiculo(request, placa):
     ultima_revision = revisiones.first()
     total_gastado = Pago.objects.filter(id_orden__id_vehiculo=vehiculo, estado_pago='COBRADO').aggregate(Sum('monto_total'))['monto_total__sum'] or 0
     
-    return render(request, 'gestion_vehicular/admin/seguimiento_vehicular/historial.html', {
+    # Elegir template según rol
+    if request.user.id_rol_id == 2:  # JEFE
+        template = 'gestion_vehicular/jefe_mecanico/historial.html'
+    else:  # ADMIN
+        template = 'gestion_vehicular/admin/seguimiento_vehicular/historial.html'
+    
+    return render(request, template, {
         'vehiculo': vehiculo,
         'ordenes': ordenes,
         'notas': notas,
@@ -87,7 +99,13 @@ def revision_tecnica(request, orden_id):
         messages.success(request, f'Revision guardada. ISV: {revision.isv_porcentaje}%')
         return redirect('detalle_orden', orden_id=orden.id)
     
-    return render(request, 'gestion_vehicular/admin/seguimiento_vehicular/revision.html', {
+    # Elegir template según rol
+    if request.user.id_rol_id == 2:  # JEFE
+        template = 'gestion_vehicular/jefe_mecanico/revision.html'
+    else:  # ADMIN
+        template = 'gestion_vehicular/admin/seguimiento_vehicular/revision.html'
+    
+    return render(request, template, {
         'orden': orden, 
         'componentes': componentes, 
         'notas_predefinidas': NotaPredefinida.objects.all(), 
@@ -98,7 +116,13 @@ def revision_tecnica(request, orden_id):
 def registrar_hallazgo(request, orden_id):
     if request.method == 'POST':
         orden = get_object_or_404(OrdenTrabajo, id=orden_id)
-        HallazgoAdicional.objects.create(id_orden=orden, descripcion=request.POST.get('descripcion'), costo_estimado=request.POST.get('costo_estimado', 0), estado_autorizacion='PENDIENTE', fecha_deteccion=timezone.now())
+        HallazgoAdicional.objects.create(
+            id_orden=orden, 
+            descripcion=request.POST.get('descripcion'), 
+            costo_estimado=request.POST.get('costo_estimado', 0), 
+            estado_autorizacion='PENDIENTE', 
+            fecha_deteccion=timezone.now()
+        )
         messages.success(request, 'Hallazgo registrado')
     return redirect('detalle_orden', orden_id=orden_id)
 

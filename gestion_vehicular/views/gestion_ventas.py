@@ -9,24 +9,30 @@ def venta_rapida(request):
     """Muestra el formulario de venta rápida"""
     productos = Producto.objects.filter(activo=True, stock_actual__gt=0).order_by('nombre')
     
-    return render(request, 'gestion_vehicular/admin/gestion_ventas/venta_rapida.html', {
+    # Elegir template según rol
+    if request.user.id_rol_id == 1:  # ADMIN
+        template = 'gestion_vehicular/admin/gestion_ventas/venta_rapida.html'
+    elif request.user.id_rol_id == 2:  # JEFE
+        template = 'gestion_vehicular/jefe_mecanico/venta_rapida.html'
+    else:  # AYUDANTE
+        template = 'gestion_vehicular/ayudante/venta_rapida.html'
+    
+    return render(request, template, {
         'productos': productos,
     })
+
 
 
 def guardar_venta_rapida(request):
     """Guarda la venta rápida y descuenta stock"""
     if request.method == 'POST':
-        # Crear venta rápida
         venta = VentaRapida.objects.create(
             fecha_venta=timezone.now(),
             registrado_por=request.user if request.user.is_authenticated else None,
         )
         
         total = 0
-        productos_vendidos = []
         
-        # Recorrer los productos enviados
         for key in request.POST:
             if key.startswith('producto_') and not key.startswith('precio_producto_'):
                 num = key.split('_')[-1]
@@ -46,12 +52,10 @@ def guardar_venta_rapida(request):
                         precio_venta=precio_float,
                     )
                     
-                    # Descontar stock
                     producto.stock_actual -= cantidad_int
                     producto.save()
                     
                     total += precio_float * cantidad_int
-                    productos_vendidos.append(f"{producto.nombre} x{cantidad_int}")
         
         if total > 0:
             venta.total = total
@@ -63,6 +67,7 @@ def guardar_venta_rapida(request):
         return redirect('venta_rapida')
     
     return redirect('venta_rapida')
+
 
 
 def lista_ventas_rapidas(request):

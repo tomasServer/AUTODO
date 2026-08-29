@@ -1,0 +1,63 @@
+{% extends 'gestion_vehicular/jefe_mecanico/base_jefe.html' %}
+{% block title %}Orden {{ orden.id }}{% endblock %}
+
+{% block content %}
+<h2 style="color:#1a252f; margin-bottom:15px;">Orden #{{ orden.id }}</h2>
+
+<div class="card" style="padding:20px;">
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+        <div><strong>Placa:</strong> {{ orden.id_vehiculo.placa }}</div>
+        <div><strong>Vehiculo:</strong> {{ orden.id_vehiculo.marca|default:"" }} {{ orden.id_vehiculo.modelo|default:"" }}</div>
+        <div><strong>Cliente:</strong> {{ orden.id_vehiculo.id_cliente.nombre|default:"-" }}</div>
+        <div><strong>Estado:</strong> 
+            <span class="badge {% if orden.estado_orden == 'COBRADA' %}badge-success{% elif orden.estado_orden == 'POR_COBRAR' %}badge-success{% elif orden.estado_orden == 'EN_PROCESO' %}badge-info{% else %}badge-warning{% endif %}">{{ orden.estado_orden }}</span>
+        </div>
+    </div>
+</div>
+
+<div class="card" style="padding:20px;">
+    <h3 style="margin:0 0 15px 0; color:#2c3e50;">Servicios</h3>
+    {% for d in orden.detalles_servicio.all %}
+    <div style="display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid #ecf0f1;">
+        <span>{{ d.id_servicio.nombre }}</span>
+        <span><strong>Bs. {{ d.precio_cobrado }}</strong></span>
+    </div>
+    {% empty %}
+    <p style="color:#7f8c8d;">Sin servicios</p>
+    {% endfor %}
+</div>
+
+<div class="card" style="padding:20px;">
+    <h3 style="margin:0 0 15px 0; color:#2c3e50;">Productos</h3>
+    {% for d in orden.detalles_producto.all %}
+    <div style="display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid #ecf0f1;">
+        <span>{{ d.id_producto.nombre }} x{{ d.cantidad }}</span>
+        <span><strong>Bs. {{ d.subtotal_precio }}</strong></span>
+    </div>
+    {% empty %}
+    <p style="color:#7f8c8d;">Sin productos</p>
+    {% endfor %}
+</div>
+
+<div class="card" style="padding:20px; background:#1a252f; color:white;">
+    <div style="display:flex; justify-content:space-between; font-size:1.2rem;">
+        <span>Total Servicios:</span>
+        <span>Bs. {{ total_servicios|floatformat:2 }}</span>
+    </div>
+    <div style="display:flex; justify-content:space-between; font-size:1.2rem;">
+        <span>Total Productos:</span>
+        <span>Bs. {{ total_productos|floatformat:2 }}</span>
+    </div>
+    <div style="display:flex; justify-content:space-between; font-size:1.5rem; margin-top:10px;">
+        <span><strong>TOTAL:</strong></span>
+        <span><strong>Bs. {{ total_general|floatformat:2 }}</strong></span>
+    </div>
+</div>
+
+<div style="margin-top:15px; display:flex; gap:10px; flex-wrap:wrap;">
+    <a href="{% url 'modo_taller' %}" class="btn btn-gray">Volver</a>
+    {% if orden.estado_orden == 'POR_COBRAR' %}
+    <a href="{% url 'registrar_pago' orden.id %}" class="btn btn-success">Cobrar</a>
+    {% endif %}
+</div>
+{% endblock %}

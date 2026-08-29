@@ -1,6 +1,5 @@
 from django.urls import path
 from .views import gestion_basica, gestion_taller, seguimiento_vehicular, gestion_administrativa, gestion_ventas
-#dashboard_views
 
 urlpatterns = [
 
@@ -36,7 +35,6 @@ urlpatterns = [
     path('hallazgo/autorizar/<int:hallazgo_id>/', seguimiento_vehicular.autorizar_hallazgo, name='autorizar_hallazgo'),
     path('hallazgo/rechazar/<int:hallazgo_id>/', seguimiento_vehicular.rechazar_hallazgo, name='rechazar_hallazgo'), 
 
-       
     # ultimo aministrativo
     #fecha: 17 de julio de 2026
     path('admin-dashboard/', gestion_administrativa.dashboard_admin, name='dashboard_admin'),
@@ -51,13 +49,10 @@ urlpatterns = [
     path('servicios/', gestion_administrativa.lista_servicios, name='lista_servicios'),
     path('servicios/crear/', gestion_administrativa.crear_servicio, name='crear_servicio'),
     path('servicios/<int:servicio_id>/editar/', gestion_administrativa.editar_servicio, name='editar_servicio'),
-
     path('servicios/<int:servicio_id>/desactivar/', gestion_administrativa.desactivar_servicio, name='desactivar_servicio'),
     path('reportes/', gestion_administrativa.reportes, name='reportes'),
     path('reportes/producto/<int:producto_id>/', gestion_administrativa.detalle_producto_vendido, name='detalle_producto_vendido'),
     path('reportes/mecanico/<int:mecanico_id>/', gestion_administrativa.detalle_mecanico, name='detalle_mecanico'),
-    #31 de julio de 2026
-    #path('dashboard/', dashboard_views.dashboard, name='dashboard'),
 
     #22/08/2026 para atencion
     path('revision-rapida/', seguimiento_vehicular.revision_rapida_placa, name='revision_rapida_placa'),
@@ -70,6 +65,12 @@ urlpatterns = [
     path('ventas/', gestion_ventas.lista_ventas_rapidas, name='lista_ventas_rapidas'),
     path('ventas/<int:venta_id>/', gestion_ventas.detalle_venta, name='detalle_venta'),
 
-
     path('reviciones/', gestion_administrativa.gestionar_revisiones, name='gestionar_revisiones'),
+
+    #25/08/2026 ayudante (usa gestion_taller y gestion_ventas)
+    path('ayudante-dashboard/', gestion_administrativa.dashboard_ayudante, name='dashboard_ayudante'),
+    path('ayudante/taller/', gestion_taller.modo_taller, name='modo_taller_ayudante'),
+    path('ayudante/orden/<int:orden_id>/', gestion_taller.taller_detalle, name='trabajar_orden_ayudante'),
+    path('ayudante/servicio/<int:detalle_id>/cambiar/', gestion_taller.cambiar_estado_servicio, name='cambiar_estado_servicio_ayudante'),
+    path('ayudante/venta-rapida/', gestion_ventas.venta_rapida, name='venta_rapida_ayudante'),
 ]

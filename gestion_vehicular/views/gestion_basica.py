@@ -35,7 +35,7 @@ def dashboard(request):
     elif request.user.id_rol_id == 2:
         return redirect('dashboard_jefe')
     elif request.user.id_rol_id == 3:
-        return redirect('modo_taller')
+        return redirect('modo_ayudante')
     return redirect('dashboard_admin')
 
 

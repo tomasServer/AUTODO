@@ -1,0 +1,91 @@
+{% extends 'gestion_vehicular/jefe_mecanico/base_jefe.html' %}
+{% block title %}Venta Rapida{% endblock %}
+
+{% block content %}
+<h2 style="color:#1a252f; margin-bottom:15px;">Venta Rapida de Productos</h2>
+
+<div class="card" style="padding:20px;">
+    <form method="POST" action="{% url 'guardar_venta_rapida' %}">
+        {% csrf_token %}
+        
+        <div id="productosVenta">
+            <div style="display:grid; grid-template-columns:1fr 0.3fr 0.5fr auto; gap:8px; margin-bottom:5px;">
+                <select name="producto_1" onchange="actualizarPrecioVenta(this, 1)">
+                    <option value="">Seleccione producto...</option>
+                    {% for p in productos %}
+                    <option value="{{ p.id }}" data-precio="{{ p.precio_venta }}">{{ p.nombre }} - Bs. {{ p.precio_venta }} (Stock: {{ p.stock_actual }})</option>
+                    {% endfor %}
+                </select>
+                <input type="number" name="cantidad_1" value="1" min="1" oninput="actualizarTotalVenta()">
+                <input type="number" name="precio_producto_1" step="0.01" value="0.00" oninput="actualizarTotalVenta()">
+                <button type="button" onclick="eliminarVenta(this)" style="background:#e74c3c; color:white; border:none; padding:5px 10px; border-radius:4px; cursor:pointer;">X</button>
+            </div>
+        </div>
+        
+        <button type="button" onclick="agregarProductoVenta()" style="background:#2980b9; color:white; border:none; padding:6px 15px; border-radius:4px; cursor:pointer; margin-top:5px;">+ Agregar Producto</button>
+        
+        <div style="margin-top:15px; padding:15px; background:#fef9e7; border-radius:4px; border-left:4px solid #e67e22;">
+            <div style="display:flex; justify-content:space-between; font-size:1.2rem;">
+                <span>Total:</span>
+                <span><strong id="totalVenta">Bs. 0.00</strong></span>
+            </div>
+        </div>
+        
+        <div style="margin-top:15px; display:flex; justify-content:flex-end;">
+            <button type="submit" class="btn btn-success">Registrar Venta</button>
+        </div>
+    </form>
+</div>
+
+<script>
+    var contadorVentas = 1;
+    
+    function agregarProductoVenta() {
+        contadorVentas++;
+        var div = document.createElement('div');
+        div.style.cssText = 'display:grid; grid-template-columns:1fr 0.3fr 0.5fr auto; gap:8px; margin-bottom:5px;';
+        div.innerHTML = `
+            <select name="producto_${contadorVentas}">
+                <option value="">Seleccione producto...</option>
+                {% for p in productos %}
+                <option value="{{ p.id }}" data-precio="{{ p.precio_venta }}">{{ p.nombre }} - Bs. {{ p.precio_venta }}</option>
+                {% endfor %}
+            </select>
+            <input type="number" name="cantidad_${contadorVentas}" value="1" min="1">
+            <input type="number" name="precio_producto_${contadorVentas}" step="0.01" value="0.00">
+            <button type="button" onclick="eliminarVenta(this)" style="background:#e74c3c; color:white; border:none; padding:5px 10px; border-radius:4px; cursor:pointer;">X</button>
+        `;
+        document.getElementById('productosVenta').appendChild(div);
+        
+        div.querySelector('select').addEventListener('change', function() {
+            actualizarPrecioVenta(this, contadorVentas);
+        });
+        div.querySelectorAll('input[type="number"]').forEach(function(input) {
+            input.addEventListener('input', actualizarTotalVenta);
+        });
+    }
+    
+    function actualizarPrecioVenta(select, num) {
+        var precio = select.options[select.selectedIndex].getAttribute('data-precio') || '0';
+        var input = document.querySelector(`input[name="precio_producto_${num}"]`);
+        if (input) input.value = precio;
+        actualizarTotalVenta();
+    }
+    
+    function eliminarVenta(btn) {
+        btn.closest('div').remove();
+        actualizarTotalVenta();
+    }
+    
+    function actualizarTotalVenta() {
+        var total = 0;
+        document.querySelectorAll('input[name^="precio_producto_"]').forEach(function(input) {
+            var num = input.name.split('_').pop();
+            var cantidad = document.querySelector(`input[name="cantidad_${num}"]`);
+            var cant = cantidad ? (parseFloat(cantidad.value) || 0) : 0;
+            total += (parseFloat(input.value) || 0) * cant;
+        });
+        document.getElementById('totalVenta').textContent = 'Bs. ' + total.toFixed(2);
+    }
+</script>
+{% endblock %}

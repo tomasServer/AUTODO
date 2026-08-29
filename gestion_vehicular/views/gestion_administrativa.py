@@ -67,24 +67,75 @@ def dashboard_admin(request):
 def dashboard_jefe(request):
     hoy = timezone.now().date()
     
-    # Órdenes pendientes y en proceso
     ordenes_activas = OrdenTrabajo.objects.filter(
         estado_orden__in=['PENDIENTE', 'EN_PROCESO', 'FINALIZADA']
     ).order_by('-fecha_ingreso')
     
-    # Órdenes de hoy
     ordenes_hoy = ordenes_activas.filter(fecha_ingreso__date=hoy).count()
-    
-    # Revisiones pendientes (órdenes sin revisión)
     ordenes_sin_revision = ordenes_activas.filter(revisiones__isnull=True).count()
+    
+    pendientes_count = OrdenTrabajo.objects.filter(
+        estado_orden__in=['PENDIENTE', 'EN_PROCESO']
+    ).count()
+    
+    por_cobrar_count = OrdenTrabajo.objects.filter(
+        estado_orden='POR_COBRAR'
+    ).count()
+    
+    cobrado_hoy = Pago.objects.filter(
+        fecha_pago__date=hoy, 
+        estado_pago='COBRADO'
+    ).aggregate(Sum('monto_total'))['monto_total__sum'] or 0
+    
+    ventas_rapidas_hoy = VentaRapida.objects.filter(
+        fecha_venta__date=hoy
+    ).aggregate(Sum('total'))['total__sum'] or 0
+    
+    # NUEVO: lista de ventas rápidas de hoy
+    ventas_rapidas_lista = VentaRapida.objects.filter(
+        fecha_venta__date=hoy
+    ).order_by('-fecha_venta')
+    
+    hallazgos_pendientes = HallazgoAdicional.objects.filter(
+        estado_autorizacion='PENDIENTE'
+    ).order_by('-fecha_deteccion')
+    
+    ultimas_ordenes = OrdenTrabajo.objects.all().order_by('-fecha_ingreso')[:10]
     
     contexto = {
         'ordenes': ordenes_activas,
         'ordenes_hoy': ordenes_hoy,
         'ordenes_sin_revision': ordenes_sin_revision,
+        'pendientes_count': pendientes_count,
+        'por_cobrar_count': por_cobrar_count,
+        'cobrado_hoy': cobrado_hoy,
+        'ventas_rapidas_hoy': ventas_rapidas_hoy,
+        'ventas_rapidas_lista': ventas_rapidas_lista,  # ← NUEVO
+        'hallazgos_pendientes': hallazgos_pendientes,
+        'ultimas_ordenes': ultimas_ordenes,
         'hoy': hoy,
     }
-    return render(request, 'gestion_vehicular/jefe_mecanico/gestion_administrativa/dashboard_jefe.html', contexto)
+    return render(request, 'gestion_vehicular/jefe_mecanico/dashboard.html', contexto)
+
+def dashboard_ayudante(request):
+    hoy = timezone.now().date()
+    
+    ordenes_trabajo = OrdenTrabajo.objects.filter(
+        estado_orden__in=['PENDIENTE', 'EN_PROCESO']
+    ).order_by('fecha_ingreso')
+    
+    ventas_rapidas_lista = VentaRapida.objects.filter(
+        fecha_venta__date=hoy,
+        registrado_por=request.user
+    ).order_by('-fecha_venta')
+    
+    return render(request, 'gestion_vehicular/ayudante/dashboard.html', {
+        'ordenes_trabajo': ordenes_trabajo,
+        'ventas_rapidas_lista': ventas_rapidas_lista,
+        'hoy': hoy,
+    })
+
+
 
 
 
@@ -125,7 +176,13 @@ def registrar_pago(request, orden_id):
         messages.success(request, f'Pago registrado. Total: Bs. {tg}')
         return redirect('modo_taller')
     
-    return render(request, 'gestion_vehicular/admin/gestion_administrativa/pago.html', {
+    # Elegir template según rol
+    if request.user.id_rol_id == 2:  # JEFE
+        template = 'gestion_vehicular/jefe_mecanico/pago.html'
+    else:  # ADMIN
+        template = 'gestion_vehicular/admin/gestion_administrativa/pago.html'
+    
+    return render(request, template, {
         'orden': orden,
         'total_servicios': ts,
         'total_productos': tp,

@@ -151,3 +151,6 @@ LOGOUT_REDIRECT_URL = '/login/'
 
 SESSION_COOKIE_AGE = 28800
 SESSION_EXPIRE_AT_BROWSER_CLOSE = True
+
+# settings.py
+AUTH_USER_MODEL = 'gestion_vehicular.Usuario'  # Reemplaza 'gestion_vehicular' con el nombre de tu app

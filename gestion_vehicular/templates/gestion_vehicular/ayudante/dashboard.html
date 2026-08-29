@@ -1,0 +1,58 @@
+{% extends 'gestion_vehicular/ayudante/base_ayudante.html' %}
+{% block title %}Panel Ayudante{% endblock %}
+
+{% block content %}
+<h2 style="color:#1a252f; margin-bottom:15px;">Panel de Ayudante</h2>
+
+<!-- ORDENES PENDIENTES -->
+<div class="card" style="padding:15px 20px; margin-bottom:15px;">
+    <h3 style="margin:0 0 12px 0; color:#2c3e50;">Mis Ordenes Pendientes</h3>
+    {% if ordenes_trabajo %}
+    <div style="max-height:250px; overflow-y:auto;">
+        <table style="width:100%; font-size:0.85rem;">
+            <thead style="position:sticky; top:0; background:#1a252f; color:white;">
+                <tr><th style="padding:8px;">Orden</th><th style="padding:8px;">Placa</th><th style="padding:8px;">Vehículo</th><th style="padding:8px;">Estado</th><th style="padding:8px;"></th></tr>
+            </thead>
+            <tbody>
+                {% for orden in ordenes_trabajo %}
+                <tr style="border-bottom:1px solid #ecf0f1;">
+                    <td style="padding:8px;"><strong>#{{ orden.id }}</strong></td>
+                    <td style="padding:8px;">{{ orden.id_vehiculo.placa }}</td>
+                    <td style="padding:8px;">{{ orden.id_vehiculo.marca|default:"" }} {{ orden.id_vehiculo.modelo|default:"" }}</td>
+                    <td style="padding:8px;"><span class="badge {% if orden.estado_orden == 'EN_PROCESO' %}badge-info{% else %}badge-warning{% endif %}">{{ orden.estado_orden }}</span></td>
+                    <td style="padding:8px;"><a href="{% url 'taller_detalle' orden.id %}" class="btn btn-primary" style="padding:3px 10px; font-size:0.7rem;">Trabajar</a></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p style="color:#7f8c8d;">No hay ordenes pendientes.</p>
+    {% endif %}
+</div>
+
+<!-- VENTAS RAPIDAS DE HOY -->
+<div class="card" style="padding:15px 20px;">
+    <h3 style="margin:0 0 12px 0; color:#2c3e50;">Mis Ventas Rapidas de Hoy</h3>
+    {% if ventas_rapidas_lista %}
+    <div style="max-height:250px; overflow-y:auto;">
+        <table style="width:100%; font-size:0.85rem;">
+            <thead style="position:sticky; top:0; background:#1a252f; color:white;">
+                <tr><th style="padding:8px;">Venta</th><th style="padding:8px;">Hora</th><th style="padding:8px;">Total</th></tr>
+            </thead>
+            <tbody>
+                {% for v in ventas_rapidas_lista %}
+                <tr style="border-bottom:1px solid #ecf0f1;">
+                    <td style="padding:8px;">#{{ v.id }}</td>
+                    <td style="padding:8px;">{{ v.fecha_venta|date:"H:i" }}</td>
+                    <td style="padding:8px;"><strong>Bs. {{ v.total|floatformat:2 }}</strong></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p style="color:#7f8c8d;">No has vendido productos hoy.</p>
+    {% endif %}
+</div>
+{% endblock %}

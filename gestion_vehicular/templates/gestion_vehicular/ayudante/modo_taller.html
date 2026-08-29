@@ -1,0 +1,26 @@
+{% extends 'gestion_vehicular/ayudante/base_ayudante.html' %}
+{% block title %}Mis Trabajos{% endblock %}
+
+{% block content %}
+<h2 style="color:#1a252f; margin-bottom:15px;">Ordenes de Trabajo</h2>
+
+{% if ordenes_trabajo %}
+<div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(280px, 1fr)); gap:15px;">
+    {% for orden in ordenes_trabajo %}
+    <a href="{% url 'taller_detalle' orden.id %}" style="text-decoration:none; color:inherit;">
+        <div class="card" style="padding:15px 20px; cursor:pointer;">
+            <h3 style="margin:0 0 10px 0;">#{{ orden.id }} - {{ orden.id_vehiculo.placa }}</h3>
+            <p style="margin:5px 0;"><strong>Vehiculo:</strong> {{ orden.id_vehiculo.marca|default:"" }} {{ orden.id_vehiculo.modelo|default:"" }}</p>
+            <p style="margin:5px 0;">
+                <span style="background:{% if orden.estado_orden == 'EN_PROCESO' %}#f39c12{% else %}#e74c3c{% endif %}; color:white; padding:2px 10px; border-radius:10px; font-size:12px;">
+                    {{ orden.estado_orden }}
+                </span>
+            </p>
+        </div>
+    </a>
+    {% endfor %}
+</div>
+{% else %}
+<p style="color:#7f8c8d;">No hay ordenes pendientes.</p>
+{% endif %}
+{% endblock %}
