@@ -144,22 +144,6 @@ class HistorialEstadoOrden(models.Model):
         return f"Orden {self.id_orden_id}: {self.estado_anterior} -> {self.estado_nuevo}"
 
 
-class NotaTecnica(models.Model):
-    id_vehiculo = models.ForeignKey('Vehiculo', models.DO_NOTHING, db_column='id_vehiculo', related_name='notas_tecnicas')
-    id_usuario = models.ForeignKey('Usuario', models.DO_NOTHING, db_column='id_usuario', blank=True, null=True)
-    fecha = models.DateTimeField(blank=True, null=True)
-    tipo = models.CharField(max_length=30)
-    titulo = models.CharField(max_length=200, blank=True, null=True)
-    descripcion = models.TextField()
-    visible_en_proxima = models.BooleanField(blank=True, null=True)
-
-    class Meta:
-        managed = False
-        db_table = 'nota_tecnica'
-
-    def __str__(self):
-        return f"Nota: {self.titulo or self.tipo}"
-
 
 class OrdenTrabajo(models.Model):
     id_vehiculo = models.ForeignKey('Vehiculo', models.DO_NOTHING, db_column='id_vehiculo')

@@ -2,25 +2,37 @@
 {% block title %}Mis Trabajos{% endblock %}
 
 {% block content %}
-<h2 style="color:#1a252f; margin-bottom:15px;">Ordenes de Trabajo</h2>
 
-{% if ordenes_trabajo %}
-<div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(280px, 1fr)); gap:15px;">
-    {% for orden in ordenes_trabajo %}
-    <a href="{% url 'taller_detalle' orden.id %}" style="text-decoration:none; color:inherit;">
-        <div class="card" style="padding:15px 20px; cursor:pointer;">
-            <h3 style="margin:0 0 10px 0;">#{{ orden.id }} - {{ orden.id_vehiculo.placa }}</h3>
-            <p style="margin:5px 0;"><strong>Vehiculo:</strong> {{ orden.id_vehiculo.marca|default:"" }} {{ orden.id_vehiculo.modelo|default:"" }}</p>
-            <p style="margin:5px 0;">
-                <span style="background:{% if orden.estado_orden == 'EN_PROCESO' %}#f39c12{% else %}#e74c3c{% endif %}; color:white; padding:2px 10px; border-radius:10px; font-size:12px;">
-                    {{ orden.estado_orden }}
-                </span>
-            </p>
-        </div>
-    </a>
-    {% endfor %}
+<h2>Mis Trabajos</h2>
+
+<!-- ÓRDENES PARA TRABAJAR -->
+<div class="card">
+    <h3>Órdenes para Trabajar</h3>
+    {% if ordenes_trabajo %}
+    <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(260px, 1fr)); gap:12px;">
+        {% for orden in ordenes_trabajo %}
+        <a href="{% url 'taller_detalle' orden.id %}" style="text-decoration:none; color:inherit;">
+            <div style="background:#fff; padding:12px 16px; border:1px solid #bdc3c7; border-radius:4px;">
+                <div style="font-weight:600; font-size:1rem;">#{{ orden.id }} - {{ orden.id_vehiculo.placa }}</div>
+                <div style="font-size:0.85rem; color:#7f8c8d; margin-top:4px;">
+                    {{ orden.id_vehiculo.marca|default:"" }} {{ orden.id_vehiculo.modelo|default:"" }}
+                </div>
+                <div style="margin-top:6px;">
+                    <span class="badge {% if orden.estado_orden == 'EN_PROCESO' %}badge-info{% else %}badge-warning{% endif %}">
+                        {{ orden.estado_orden }}
+                    </span>
+                </div>
+            </div>
+        </a>
+        {% endfor %}
+    </div>
+    {% else %}
+    <p class="text-muted">No hay órdenes asignadas.</p>
+    {% endif %}
 </div>
-{% else %}
-<p style="color:#7f8c8d;">No hay ordenes pendientes.</p>
-{% endif %}
+
+<div style="margin-top:20px;">
+    <a href="{% url 'dashboard_ayudante' %}" class="btn btn-gray">Volver al Panel</a>
+</div>
+
 {% endblock %}

@@ -14,11 +14,31 @@ def dashboard_admin(request):
     vehiculos_ingresados = ordenes_hoy.count()
     vehiculos_pagados = ordenes_hoy.filter(estado_orden='COBRADA').count()
     
+    # === PENDIENTES ===
+    pendientes_count = OrdenTrabajo.objects.filter(
+        estado_orden__in=['PENDIENTE', 'EN_PROCESO']
+    ).count()
+    
+    # === POR COBRAR ===
+    por_cobrar_count = OrdenTrabajo.objects.filter(
+        estado_orden='POR_COBRAR'
+    ).count()
+    
     pagos_hoy = Pago.objects.filter(fecha_pago__date=hoy, estado_pago='COBRADO')
     total_facturado = pagos_hoy.aggregate(Sum('monto_total'))['monto_total__sum'] or 0
     
     pagos_mes = Pago.objects.filter(fecha_pago__date__gte=mes_actual, estado_pago='COBRADO')
     total_mes = pagos_mes.aggregate(Sum('monto_total'))['monto_total__sum'] or 0
+    
+    # === VENTAS RAPIDAS HOY ===
+    ventas_rapidas_hoy = VentaRapida.objects.filter(
+        fecha_venta__date=hoy
+    ).aggregate(Sum('total'))['total__sum'] or 0
+    
+    # === VENTAS RAPIDAS LISTA ===
+    ventas_rapidas_lista = VentaRapida.objects.filter(
+        fecha_venta__date=hoy
+    ).order_by('-fecha_venta')
     
     # === SERVICIOS POR MECÁNICO ===
     servicios_por_mecanico = DetalleServicio.objects.filter(
@@ -38,7 +58,7 @@ def dashboard_admin(request):
     ultimos_vehiculos = OrdenTrabajo.objects.all().order_by('-fecha_ingreso')[:5]
     
     # === ÚLTIMAS ÓRDENES ===
-    ultimas_ordenes = OrdenTrabajo.objects.all().order_by('-fecha_ingreso')[:10]
+    ultimas_ordenes = OrdenTrabajo.objects.all().order_by('-fecha_ingreso')[:20]
     
     # === STOCK BAJO ===
     stock_bajo = Producto.objects.filter(activo=True, stock_actual__lte=5)
@@ -51,8 +71,12 @@ def dashboard_admin(request):
     contexto = {
         'vehiculos_ingresados': vehiculos_ingresados,
         'vehiculos_pagados': vehiculos_pagados,
+        'pendientes_count': pendientes_count,
+        'por_cobrar_count': por_cobrar_count,
         'total_facturado': total_facturado,
         'total_mes': total_mes,
+        'ventas_rapidas_hoy': ventas_rapidas_hoy,
+        'ventas_rapidas_lista': ventas_rapidas_lista,
         'servicios_por_mecanico': servicios_por_mecanico,
         'servicios_mes': servicios_mes,
         'ultimos_vehiculos': ultimos_vehiculos,
@@ -142,52 +166,55 @@ def dashboard_ayudante(request):
 def registrar_pago(request, orden_id):
     orden = get_object_or_404(OrdenTrabajo, id=orden_id)
     
-    # Verificar que la orden esté POR_COBRAR o FINALIZADA
     if orden.estado_orden not in ['POR_COBRAR', 'FINALIZADA']:
         messages.error(request, 'Esta orden no está lista para cobrar.')
         return redirect('modo_taller')
     
-    # Sumar servicios
-    ts = sum(d.precio_cobrado or 0 for d in orden.detalles_servicio.all())
+    # Sumar servicios (mano de obra)
+    total_servicios = orden.detalles_servicio.aggregate(total=Sum('precio_cobrado'))['total'] or 0
     
-    # Sumar productos
-    tp = sum(d.subtotal_precio or 0 for d in orden.detalles_producto.all())
+    # Sumar productos (solo productos, NO hallazgos)
+    total_productos = orden.detalles_producto.aggregate(total=Sum('subtotal_precio'))['total'] or 0
     
-    # Sumar hallazgos AUTORIZADOS
-    th = sum(h.costo_estimado or 0 for h in orden.hallazgos.filter(
-        estado_autorizacion='AUTORIZADO_CLIENTE'
-    ))
+    # Total general = servicios + productos (sin hallazgos)
+    total_general = total_servicios + total_productos
     
-    # Total general
-    tg = ts + tp + th
+    # ============ PERMISOS ============
+    puede_cobrar = request.user.id_rol_id in [1, 2]  # Admin o Jefe pueden cobrar
+    # ===================================
     
-    if request.method == 'POST':
+    if request.method == 'POST' and puede_cobrar:
         Pago.objects.create(
             id_orden=orden,
-            monto_total_servicios=ts,
-            monto_total_productos=tp + th,
-            monto_total=tg,
+            monto_total_servicios=total_servicios,
+            monto_total_productos=total_productos,
+            monto_total=total_general,
             metodo_pago=request.POST.get('metodo_pago'),
             estado_pago='COBRADO',
             fecha_pago=timezone.now()
         )
         orden.estado_orden = 'COBRADA'
         orden.save()
-        messages.success(request, f'Pago registrado. Total: Bs. {tg}')
+        messages.success(request, f'Pago registrado. Total: Bs. {total_general}')
+        return redirect('modo_taller')
+    elif request.method == 'POST' and not puede_cobrar:
+        messages.error(request, 'No tienes permiso para cobrar.')
         return redirect('modo_taller')
     
     # Elegir template según rol
     if request.user.id_rol_id == 2:  # JEFE
         template = 'gestion_vehicular/jefe_mecanico/pago.html'
+    elif request.user.id_rol_id == 3:  # AYUDANTE
+        template = 'gestion_vehicular/ayudante/pago.html'  # <-- TEMPLATE ESPECÍFICO PARA AYUDANTE
     else:  # ADMIN
         template = 'gestion_vehicular/admin/gestion_administrativa/pago.html'
     
     return render(request, template, {
         'orden': orden,
-        'total_servicios': ts,
-        'total_productos': tp,
-        'total_hallazgos': th,
-        'total_general': tg
+        'total_servicios': total_servicios,
+        'total_productos': total_productos,
+        'total_general': total_general,
+        'puede_cobrar': puede_cobrar,  # <-- PASAR PERMISO AL TEMPLATE
     })
 
 

@@ -2,38 +2,71 @@
 {% block title %}Trabajar Orden {{ orden.id }}{% endblock %}
 
 {% block content %}
-<h2 style="color:#1a252f; margin-bottom:15px;">Orden #{{ orden.id }}</h2>
 
-<div class="card" style="padding:15px 20px; margin-bottom:15px;">
-    <p><strong>Placa:</strong> {{ orden.id_vehiculo.placa }}</p>
-</div>
+<h2>Orden #{{ orden.id }}</h2>
 
-<h3 style="margin-bottom:10px;">Servicios:</h3>
-{% for servicio in servicios_detalle %}
-<div class="card" style="padding:15px 20px; margin-bottom:10px; display:flex; justify-content:space-between; align-items:center;">
-    <div>
-        <strong>{{ servicio.id_servicio.nombre }}</strong>
-        <span style="margin-left:10px; font-size:12px;" class="badge {% if servicio.estado == 'FINALIZADO' %}badge-success{% elif servicio.estado == 'EN_PROCESO' %}badge-info{% else %}badge-warning{% endif %}">
-            {{ servicio.estado }}
-        </span>
-    </div>
-    <div>
-        {% if servicio.estado == 'PENDIENTE' %}
-        <form method="POST" action="{% url 'cambiar_estado_servicio' servicio.id %}" style="display:inline;">
-            {% csrf_token %}
-            <input type="hidden" name="nuevo_estado" value="EN_PROCESO">
-            <button type="submit" class="btn btn-info" style="padding:5px 15px;">Iniciar</button>
-        </form>
-        {% elif servicio.estado == 'EN_PROCESO' %}
-        <form method="POST" action="{% url 'cambiar_estado_servicio' servicio.id %}" style="display:inline;">
-            {% csrf_token %}
-            <input type="hidden" name="nuevo_estado" value="FINALIZADO">
-            <button type="submit" class="btn btn-success" style="padding:5px 15px;">Finalizar</button>
-        </form>
-        {% endif %}
+<div class="card">
+    <div class="grid grid-2">
+        <div><strong>Placa:</strong> {{ orden.id_vehiculo.placa }}</div>
+        <div><strong>Cliente:</strong> {{ orden.id_vehiculo.id_cliente.nombre|default:"Sin cliente" }}</div>
     </div>
 </div>
-{% endfor %}
 
-<a href="{% url 'modo_taller' %}" class="btn btn-gray" style="margin-top:15px;">Volver</a>
+<h3 style="margin:15px 0 10px 0;">Mis Servicios</h3>
+
+{% if servicios_detalle %}
+<div style="display:grid; gap:10px;">
+    {% for servicio in servicios_detalle %}
+    <div class="card" style="padding:12px 15px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+        <div>
+            <strong>{{ servicio.id_servicio.nombre }}</strong>
+            <span class="badge 
+                {% if servicio.estado == 'FINALIZADO' %}badge-success
+                {% elif servicio.estado == 'EN_PROCESO' %}badge-info
+                {% else %}badge-warning{% endif %}" 
+                style="margin-left:10px;">
+                {{ servicio.estado }}
+            </span>
+        </div>
+        <div>
+            {% if servicio.estado == 'PENDIENTE' %}
+            <form method="POST" action="{% url 'cambiar_estado_servicio' servicio.id %}" style="display:inline;">
+                {% csrf_token %}
+                <input type="hidden" name="nuevo_estado" value="EN_PROCESO">
+                <button type="submit" class="btn btn-info btn-sm">Iniciar</button>
+            </form>
+            {% elif servicio.estado == 'EN_PROCESO' %}
+            <form method="POST" action="{% url 'cambiar_estado_servicio' servicio.id %}" style="display:inline;">
+                {% csrf_token %}
+                <input type="hidden" name="nuevo_estado" value="FINALIZADO">
+                <button type="submit" class="btn btn-success btn-sm">Finalizar</button>
+            </form>
+            {% else %}
+            <span style="color:#27ae60; font-weight:600;">✓ Finalizado</span>
+            {% endif %}
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<p class="text-muted">No tienes servicios asignados en esta orden.</p>
+{% endif %}
+
+<div style="margin-top:20px;">
+    <a href="{% url 'modo_taller' %}" class="btn btn-gray">Volver</a>
+</div>
+
+<style>
+    .grid-2 {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+    }
+    @media (max-width: 768px) {
+        .grid-2 {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+
 {% endblock %}

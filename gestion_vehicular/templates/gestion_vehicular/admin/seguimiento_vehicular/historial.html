@@ -3,49 +3,49 @@
 
 {% block content %}
 
-<h2 style="color:#1a252f; margin-bottom:15px;">Historial - {{ vehiculo.placa }}</h2>
+<h2>Historial - {{ vehiculo.placa }}</h2>
 
 <!-- DATOS DEL VEHICULO -->
-<div style="background:white; padding:15px 20px; border-radius:6px; box-shadow:0 1px 4px rgba(0,0,0,0.06); margin-bottom:20px;">
-    <div style="display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:10px;">
+<div class="card">
+    <div class="grid grid-4">
         <div><strong>Placa:</strong> {{ vehiculo.placa }}</div>
         <div><strong>Cliente:</strong> {{ vehiculo.id_cliente.nombre|default:"-" }}</div>
         <div><strong>Teléfono:</strong> {{ vehiculo.id_cliente.telefono|default:"-" }}</div>
         <div><strong>Total Gastado:</strong> Bs. {{ total_gastado|floatformat:2|default:"0.00" }}</div>
     </div>
-    <div style="margin-top:10px; display:flex; gap:10px; flex-wrap:wrap;">
-        <a href="{% url 'crear_orden' %}?vehiculo_id={{ vehiculo.id }}" class="btn btn-warning" style="background:#e67e22; color:white;">+ Nueva Orden</a>
+    <div class="flex flex-wrap mt-10">
+        <a href="{% url 'crear_orden' %}?vehiculo_id={{ vehiculo.id }}" class="btn btn-warning">+ Nueva Orden</a>
         <a href="{% url 'buscar_vehiculo' %}" class="btn btn-gray">Volver</a>
     </div>
 </div>
 
 <!-- REVISIONES -->
-<div style="background:white; padding:15px 20px; border-radius:6px; box-shadow:0 1px 4px rgba(0,0,0,0.06); margin-bottom:20px;">
-    <h3 style="margin:0 0 12px 0; font-size:15px; color:#e67e22;">Historial de Revisiones</h3>
+<div class="card">
+    <h3>Historial de Revisiones</h3>
     {% if revisiones %}
-    <div style="display:grid; grid-template-columns:1fr; gap:12px;">
+    <div class="grid">
         {% for revision in revisiones %}
         <div style="border:1px solid #ecf0f1; border-radius:6px; padding:12px 15px;">
-            <div style="display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:10px; margin-bottom:8px;">
+            <div class="grid grid-4">
                 <div><strong>Fecha:</strong> {{ revision.fecha_revision|date:"d/m/Y H:i" }}</div>
                 <div><strong>Tipo:</strong> {{ revision.tipo_revision }}</div>
-                <div><strong>ISV:</strong> {{ revision.isv_porcentaje|default:"0" }}%</div>
+                <div><strong>Salud:</strong> {{ revision.isv_porcentaje|default:"0" }}%</div>
                 <div>
                     <strong>Estado:</strong> 
-                    <span style="{% if revision.isv_porcentaje < 50 %}color:#e74c3c; font-weight:700;{% elif revision.isv_porcentaje >= 80 %}color:#27ae60;{% else %}color:#f39c12;{% endif %}">
+                    <span class="{% if revision.isv_porcentaje >= 80 %}badge badge-success{% elif revision.isv_porcentaje >= 50 %}badge badge-warning{% else %}badge badge-danger{% endif %}">
                         {% if revision.isv_porcentaje >= 80 %}BUENO
                         {% elif revision.isv_porcentaje >= 50 %}REGULAR
                         {% else %}CRÍTICO{% endif %}
                     </span>
                 </div>
             </div>
-            <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; font-size:13px; color:#2c3e50; padding-top:8px; border-top:1px solid #f0f2f5;">
+            <div class="grid grid-3 mt-10" style="font-size:0.8rem;">
                 {% for detalle in revision.detalles.all %}
                 <div>
                     <span>{{ detalle.id_componente.nombre }}:</span>
-                    <span style="color:{% if detalle.estado == 'OK' %}#27ae60{% elif detalle.estado == 'REGULAR' %}#f39c12{% else %}#e74c3c{% endif %}; font-weight:600;">
+                    <strong class="{% if detalle.estado == 'OK' %}badge badge-success{% elif detalle.estado == 'REGULAR' %}badge badge-warning{% else %}badge badge-danger{% endif %}">
                         {{ detalle.estado }}
-                    </span>
+                    </strong>
                 </div>
                 {% endfor %}
             </div>
@@ -53,44 +53,40 @@
         {% endfor %}
     </div>
     {% else %}
-    <p style="color:#7f8c8d;">No hay revisiones registradas</p>
+    <p class="text-muted">No hay revisiones registradas</p>
     {% endif %}
 </div>
 
 <!-- ORDENES -->
-<div style="background:white; padding:15px 20px; border-radius:6px; box-shadow:0 1px 4px rgba(0,0,0,0.06); margin-bottom:20px;">
-    <h3 style="margin:0 0 12px 0; font-size:15px; color:#2c3e50;">Órdenes de Trabajo</h3>
+<div class="card">
+    <h3>Órdenes de Trabajo</h3>
     {% if ordenes %}
-    <table style="width:100%; border-collapse:collapse; font-size:0.85rem;">
+    <table>
         <thead>
-            <tr style="border-bottom:1px solid #ecf0f1;">
-                <th style="padding:8px 10px; text-align:left;">Orden</th>
-                <th style="padding:8px 10px; text-align:left;">Fecha</th>
-                <th style="padding:8px 10px; text-align:left;">Estado</th>
-                <th style="padding:8px 10px; text-align:left;">Total</th>
-                <th style="padding:8px 10px; text-align:center;"></th>
+            <tr>
+                <th>Orden</th>
+                <th>Fecha</th>
+                <th>Estado</th>
+                <th>Total</th>
+                <th class="text-center">Acciones</th>
             </tr>
         </thead>
         <tbody>
             {% for orden in ordenes %}
-            <tr style="border-bottom:1px solid #f0f2f5;">
-                <td style="padding:8px 10px;"><strong>{{ orden.id }}</strong></td>
-                <td style="padding:8px 10px;">{{ orden.fecha_ingreso|date:"d/m/Y H:i" }}</td>
-                <td style="padding:8px 10px;">
-                    <span class="badge {% if orden.estado_orden == 'COBRADA' %}badge-success{% elif orden.estado_orden == 'EN_PROCESO' %}badge-info{% else %}badge-warning{% endif %}">
-                        {{ orden.estado_orden }}
-                    </span>
-                </td>
-                <td style="padding:8px 10px;">Bs. {{ orden.total_orden|floatformat:2|default:"0.00" }}</td>
-                <td style="padding:8px 10px; text-align:center;">
-                    <a href="{% url 'detalle_orden' orden.id %}" class="btn btn-warning" style="background:#e67e22; color:white; padding:2px 10px; font-size:0.7rem; border-radius:4px; text-decoration:none;">Ver</a>
+            <tr>
+                <td><strong>Nº {{ orden.id }}</strong></td>
+                <td>{{ orden.fecha_ingreso|date:"d/m/Y H:i" }}</td>
+                <td><span class="badge {% if orden.estado_orden == 'COBRADA' %}badge-success{% elif orden.estado_orden == 'EN_PROCESO' %}badge-info{% else %}badge-warning{% endif %}">{{ orden.estado_orden }}</span></td>
+                <td>Bs. {{ orden.total_orden|floatformat:2|default:"0.00" }}</td>
+                <td class="text-center">
+                    <a href="{% url 'detalle_orden' orden.id %}" class="btn btn-warning btn-sm">Ver</a>
                 </td>
             </tr>
             {% endfor %}
         </tbody>
     </table>
     {% else %}
-    <p style="color:#7f8c8d;">No hay órdenes registradas</p>
+    <p class="text-muted">No hay órdenes registradas</p>
     {% endif %}
 </div>
 

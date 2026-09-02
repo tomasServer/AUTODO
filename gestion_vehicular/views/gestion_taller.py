@@ -3,6 +3,7 @@ from django.utils import timezone
 from django.contrib import messages
 from django.db import connection
 from ..models import *
+from django.contrib.auth.decorators import login_required
 
 
 def crear_orden(request):
@@ -31,11 +32,8 @@ def crear_orden(request):
         placa = request.POST.get('placa').upper()
         cliente_nombre = request.POST.get('cliente_nombre')
         cliente_telefono = request.POST.get('cliente_telefono')
-        tipo_servicio_id = request.POST.get('tipo_servicio')
-        complejidad_id = request.POST.get('complejidad')
-        servicio_id = request.POST.get('servicio')
-        mecanico_id = request.POST.get('mecanico')
-        precio_manual = request.POST.get('precio_manual', '0')
+        supervisor_id = request.POST.get('supervisor_id')
+        complejidad_id = request.POST.get('complejidad_id')
         observacion = request.POST.get('observacion', '')
         kilometraje = request.POST.get('kilometraje')
         anio = request.POST.get('anio')
@@ -43,13 +41,16 @@ def crear_orden(request):
         vin = request.POST.get('vin')
         
         # Crear o obtener cliente
-        cliente, _ = Cliente.objects.get_or_create(
-            telefono=cliente_telefono,
-            defaults={'nombre': cliente_nombre}
-        )
+        if cliente_telefono:
+            cliente, _ = Cliente.objects.get_or_create(
+                telefono=cliente_telefono,
+                defaults={'nombre': cliente_nombre}
+            )
+        else:
+            cliente = None
         
         # Crear o obtener vehículo
-        vehiculo, _ = Vehiculo.objects.get_or_create(
+        vehiculo, created = Vehiculo.objects.get_or_create(
             placa=placa,
             defaults={
                 'id_cliente': cliente,
@@ -59,55 +60,55 @@ def crear_orden(request):
             }
         )
         
+        # Actualizar datos del vehículo si ya existía
+        if not created:
+            if cliente:
+                vehiculo.id_cliente = cliente
+            if anio:
+                vehiculo.anio = anio
+            if color:
+                vehiculo.color = color
+            if vin:
+                vehiculo.vin = vin
+            vehiculo.save()
+        
         if kilometraje:
             vehiculo.kilometraje_actual = int(kilometraje)
             vehiculo.save()
         
-        # Crear la orden
+        # Crear la orden SIN servicio principal
         orden = OrdenTrabajo.objects.create(
             id_vehiculo=vehiculo,
-            id_tipo_servicio_id=tipo_servicio_id if tipo_servicio_id else None,
+            id_jefe_tecnico_id=supervisor_id if supervisor_id else None,
             id_complejidad_id=complejidad_id if complejidad_id else None,
-            id_servicio_id=servicio_id if servicio_id else None,
             estado_orden='PENDIENTE',
             observacion_general=observacion,
             fecha_ingreso=timezone.now(),
             fecha_creacion=timezone.now(),
         )
         
-        # Guardar servicio principal
-        if servicio_id:
-            servicio = get_object_or_404(Servicio, id=servicio_id)
-            DetalleServicio.objects.create(
-                id_orden=orden,
-                id_servicio=servicio,
-                id_mecanico_id=mecanico_id if mecanico_id else None,
-                precio_cobrado=float(precio_manual) if precio_manual else servicio.precio_mano_obra,
-                costo_real=servicio.costo_mano_obra,
-                estado='PENDIENTE',
-            )
-        
-        # Guardar servicios adicionales
+        # Guardar servicios (cada uno con su mecánico)
         for key in request.POST:
-            if key.startswith('servicio_adicional_'):
+            if key.startswith('servicio_id_'):
                 num = key.split('_')[-1]
-                servicio_adicional_id = request.POST.get(key)
-                precio_adicional = request.POST.get(f'precio_adicional_{num}', '0')
+                servicio_id = request.POST.get(key)
+                precio = request.POST.get(f'precio_servicio_{num}', '0')
+                mecanico_id = request.POST.get(f'mecanico_{num}')
                 
-                if servicio_adicional_id:
-                    servicio_adicional = get_object_or_404(Servicio, id=servicio_adicional_id)
+                if servicio_id:
+                    servicio = get_object_or_404(Servicio, id=servicio_id)
                     DetalleServicio.objects.create(
                         id_orden=orden,
-                        id_servicio=servicio_adicional,
+                        id_servicio=servicio,
                         id_mecanico_id=mecanico_id if mecanico_id else None,
-                        precio_cobrado=float(precio_adicional) if precio_adicional else servicio_adicional.precio_mano_obra,
-                        costo_real=servicio_adicional.costo_mano_obra,
+                        precio_cobrado=float(precio) if precio else servicio.precio_mano_obra,
+                        costo_real=servicio.costo_mano_obra,
                         estado='PENDIENTE',
                     )
         
         # Guardar productos
         for key in request.POST:
-            if key.startswith('producto_') and not key.startswith('precio_producto_'):
+            if key.startswith('producto_id_'):
                 num = key.split('_')[-1]
                 producto_id = request.POST.get(key)
                 cantidad = request.POST.get(f'cantidad_{num}', '1')
@@ -129,22 +130,28 @@ def crear_orden(request):
                     producto.stock_actual -= cantidad_int
                     producto.save()
         
-        messages.success(request, f'Orden #{orden.id} creada para {placa}')
+        messages.success(request, f'Orden #{orden.id} creada para {placa}. Servicios y productos guardados.')
         return redirect('detalle_orden', orden_id=orden.id)
     
-    # Obtener usuarios activos que pueden ser mecánicos
-    from django.db.models import Q
-    mecanicos = Usuario.objects.filter(
-        activo=True
-    ).filter(
-        Q(id_rol_id=1) | Q(id_rol_id=2) | Q(id_rol_id=3)
+    # Supervisores (Admin y Jefe Mecánico)
+    supervisores = Usuario.objects.filter(
+        activo=True,
+        id_rol_id__in=[1, 2]
     ).order_by('id_rol_id', 'nombre')
     
-    # Servicios según rol
+    # Mecánicos (Admin, Jefe, Ayudante)
+    mecanicos = Usuario.objects.filter(
+        activo=True,
+        id_rol_id__in=[1, 2, 3]
+    ).order_by('id_rol_id', 'nombre')
+    
+    # ============ FILTRO PARA AYUDANTE ============
     if request.user.id_rol_id == 3:  # AYUDANTE
-        servicios = Servicio.objects.filter(activo=True, tiempo_estimado_minutos__lte=30)
+        # Solo servicios con tiempo estimado MENOS DE 30 minutos
+        servicios = Servicio.objects.filter(activo=True, tiempo_estimado_minutos__lt=30)
     else:
         servicios = Servicio.objects.filter(activo=True)
+    # =============================================
     
     # Elegir template según rol
     if request.user.id_rol_id == 1:  # ADMIN
@@ -155,14 +162,14 @@ def crear_orden(request):
         template = 'gestion_vehicular/ayudante/crear_orden.html'
     
     return render(request, template, {
-        'tipos_servicio': TipoServicio.objects.filter(activo=True),
+        'supervisores': supervisores,
         'complejidades': Complejidad.objects.all(),
-        'servicios': servicios,
+        'servicios': servicios,  # <-- FILTRADO
+        'productos': Producto.objects.filter(activo=True, stock_actual__gt=0),
         'mecanicos': mecanicos,
         'vehiculo': vehiculo,
         'cliente': cliente,
         'placa': placa,
-        'productos': Producto.objects.filter(activo=True, stock_actual__gt=0),
         'cotizacion_anterior': cotizacion_anterior,
     })
 
@@ -195,25 +202,21 @@ def agregar_servicio_orden(request, orden_id):
     if request.method == 'POST':
         servicio_id = request.POST.get('servicio_id')
         precio_cobrado = request.POST.get('precio_cobrado')
+        mecanico_id = request.POST.get('mecanico_id')
         
         if servicio_id:
             servicio = get_object_or_404(Servicio, id=servicio_id)
-            
-            if precio_cobrado and precio_cobrado.strip():
-                precio = float(precio_cobrado)
-            else:
-                precio = float(servicio.precio_mano_obra)
+            precio = float(precio_cobrado) if precio_cobrado else float(servicio.precio_mano_obra)
             
             DetalleServicio.objects.create(
                 id_orden=orden,
                 id_servicio=servicio,
+                id_mecanico_id=mecanico_id if mecanico_id else None,
                 precio_cobrado=precio,
                 costo_real=servicio.costo_mano_obra,
                 estado='PENDIENTE',
             )
             messages.success(request, f'Servicio "{servicio.nombre}" agregado por Bs. {precio}')
-        else:
-            messages.error(request, 'Seleccione un servicio')
     
     return redirect('taller_detalle', orden_id=orden.id)
 
@@ -245,15 +248,35 @@ def agregar_producto_orden(request, orden_id):
     return redirect('taller_detalle', orden_id=orden.id)
 
 
+from django.db.models import Q
+
 def modo_taller(request):
-    ordenes_trabajo = OrdenTrabajo.objects.filter(
-        estado_orden__in=['PENDIENTE', 'EN_PROCESO']
-    ).order_by('fecha_ingreso')
+    if request.user.id_rol_id == 3:  # AYUDANTE
+        # Órdenes donde el ayudante tiene al menos un servicio asignado
+        ordenes_ids = DetalleServicio.objects.filter(
+            id_mecanico=request.user
+        ).values_list('id_orden_id', flat=True).distinct()
+        
+        ordenes_trabajo = OrdenTrabajo.objects.filter(
+            id__in=ordenes_ids,
+            estado_orden__in=['PENDIENTE', 'EN_PROCESO']
+        ).order_by('fecha_ingreso')
+        
+        ordenes_cobrar = OrdenTrabajo.objects.filter(
+            id__in=ordenes_ids,
+            estado_orden='POR_COBRAR'
+        ).order_by('fecha_ingreso')
+    else:
+        # Admin o Jefe ven todas las órdenes
+        ordenes_trabajo = OrdenTrabajo.objects.filter(
+            estado_orden__in=['PENDIENTE', 'EN_PROCESO']
+        ).order_by('fecha_ingreso')
+        
+        ordenes_cobrar = OrdenTrabajo.objects.filter(
+            estado_orden='POR_COBRAR'
+        ).order_by('fecha_ingreso')
     
-    ordenes_cobrar = OrdenTrabajo.objects.filter(
-        estado_orden='POR_COBRAR'
-    ).order_by('fecha_ingreso')
-    
+    # Elegir template según rol
     if request.user.id_rol_id == 1:  # ADMIN
         template = 'gestion_vehicular/admin/gestion_taller/taller.html'
     elif request.user.id_rol_id == 2:  # JEFE
@@ -272,7 +295,17 @@ def taller_detalle(request, orden_id):
     
     servicios_disponibles = Servicio.objects.filter(activo=True)
     productos_disponibles = Producto.objects.filter(activo=True, stock_actual__gt=0)
-    
+    mecanicos = Usuario.objects.filter(activo=True, id_rol_id__in=[1, 2, 3]).order_by('nombre')
+
+    # ============ FILTRO PARA AYUDANTE ============
+    if request.user.id_rol_id == 3:  # AYUDANTE
+        # Solo muestra los servicios donde el ayudante es el mecánico asignado
+        servicios_detalle = orden.detalles_servicio.filter(id_mecanico=request.user)
+    else:
+        # Admin y Jefe ven todos los servicios
+        servicios_detalle = orden.detalles_servicio.all()
+    # =============================================
+
     if request.user.id_rol_id == 1:  # ADMIN
         template = 'gestion_vehicular/admin/gestion_taller/taller_detalle.html'
     elif request.user.id_rol_id == 2:  # JEFE
@@ -282,11 +315,11 @@ def taller_detalle(request, orden_id):
     
     return render(request, template, {
         'orden': orden,
-        'servicios_detalle': orden.detalles_servicio.all(),
+        'servicios_detalle': servicios_detalle,  # <--- AHORA FILTRADO
         'servicios': servicios_disponibles,
         'productos': productos_disponibles,
+        'mecanicos': mecanicos,
     })
-
 
 def cambiar_estado_orden(request, orden_id):
     orden = get_object_or_404(OrdenTrabajo, id=orden_id)
@@ -303,9 +336,15 @@ def cambiar_estado_orden(request, orden_id):
     return redirect('modo_taller')
 
 
+@login_required
 def cambiar_estado_servicio(request, detalle_id):
     detalle = get_object_or_404(DetalleServicio, id=detalle_id)
     orden = detalle.id_orden
+    
+    # Verificar permisos: solo admin o el mecánico asignado
+    if request.user.id_rol_id != 1 and detalle.id_mecanico_id != request.user.id:
+        messages.error(request, 'No tienes permiso para modificar este servicio.')
+        return redirect('taller_detalle', orden_id=orden.id)
     
     if request.method == 'POST':
         nuevo_estado = request.POST.get('nuevo_estado')
@@ -332,6 +371,9 @@ def cambiar_estado_servicio(request, detalle_id):
             messages.success(request, f'Servicio cambiado a {nuevo_estado}')
         
         return redirect('taller_detalle', orden_id=orden.id)
+    
+    # Si no es POST, redirigir al detalle de la orden
+    return redirect('taller_detalle', orden_id=orden.id)
 
 
 def agregar_hallazgo_orden(request, orden_id):
@@ -356,19 +398,26 @@ def agregar_hallazgo_orden(request, orden_id):
     return redirect('taller_detalle', orden_id=orden.id)
 
 
+@login_required
 def editar_precio_servicio(request, detalle_id):
     detalle = get_object_or_404(DetalleServicio, id=detalle_id)
+    
+    # Verificar permisos: solo admin o el mecánico asignado
+    if request.user.id_rol_id != 1 and detalle.id_mecanico_id != request.user.id:
+        messages.error(request, 'No tienes permiso para editar este servicio.')
+        return redirect('taller_detalle', orden_id=detalle.id_orden.id)
     
     if request.method == 'POST':
         nuevo_precio = request.POST.get('nuevo_precio')
         if nuevo_precio:
-            detalle.precio_cobrado = float(nuevo_precio)
+            detalle.precio_cobrado = float(nuevo_precio)  # Considera usar Decimal para mayor precisión
             detalle.save()
             messages.success(request, f'Precio actualizado a Bs. {nuevo_precio}')
         else:
             messages.error(request, 'Ingrese un precio válido')
     
     return redirect('taller_detalle', orden_id=detalle.id_orden.id)
+
 
 
 def cancelar_visita(request):

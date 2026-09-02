@@ -1,16 +1,16 @@
-{% extends 'gestion_vehicular/admin/base_admin.html' %}
-{% block title %}Registrar Pago - Orden #{{ orden.id }}{% endblock %}
+{% extends 'gestion_vehicular/ayudante/base_ayudante.html' %}
+{% block title %}Ver Cobro - Orden #{{ orden.id }}{% endblock %}
 
 {% block content %}
 
-<h2>Registrar Pago</h2>
+<h2>Resumen de Cobro</h2>
 <p class="text-muted mb-20">
     <strong>Orden #{{ orden.id }}</strong> | 
     Vehículo: {{ orden.id_vehiculo.placa }} | 
     Cliente: {{ orden.id_vehiculo.id_cliente.nombre|default:"Sin cliente" }}
 </p>
 
-<!-- RESUMEN DE COBRO -->
+<!-- RESUMEN DE COBRO (sin hallazgos) -->
 <div class="card">
     <h3>Resumen de Cobro</h3>
     <table>
@@ -34,27 +34,45 @@
     </div>
 </div>
 
-<!-- FORMULARIO DE PAGO -->
+<!-- FORMULARIO DE PAGO (SOLO VISIBLE PARA ADMIN Y JEFE) -->
 <div class="card">
+    {% if puede_cobrar %}
     <form method="POST">
         {% csrf_token %}
         
         <div style="margin-bottom:15px;">
             <label for="metodo_pago" style="font-weight:600; display:block; margin-bottom:5px;">Método de Pago</label>
-            <select name="metodo_pago" id="metodo_pago" class="form-control" required style="padding:10px; font-size:1rem; width:100%; max-width:400px;">
+            <select name="metodo_pago" id="metodo_pago" style="padding:10px; font-size:1rem; width:100%; max-width:400px; border:1px solid #bdc3c7; border-radius:4px;">
                 <option value="">Seleccione cómo paga el cliente...</option>
                 <option value="EFECTIVO">Efectivo</option>
                 <option value="TRANSFERENCIA">Transferencia bancaria</option>
                 <option value="QR">Código QR</option>
             </select>
         </div>
-
+        
+        <div style="padding:12px; background:#d6eaf8; border-radius:4px; margin-bottom:15px;">
+            <p style="margin:0;">Al confirmar el pago, la orden cambiará a estado <strong>COBRADA</strong> y se registrará la fecha de finalización.</p>
+        </div>
         
         <div style="text-align:right;">
-            <a href="{% url 'detalle_orden' orden.id %}" class="btn btn-gray">Volver</a>
+            <a href="{% url 'modo_taller' %}" class="btn btn-gray">Volver</a>
             <button type="submit" class="btn btn-success">Confirmar Pago</button>
         </div>
     </form>
+    {% else %}
+    <!-- MENSAJE PARA AYUDANTE -->
+    <div style="padding:20px; background:#fef9e7; border-radius:4px; text-align:center;">
+        <p style="margin:0; font-size:1.1rem;">
+            <i class="text-muted">Solo el Administrador o Jefe Mecánico pueden confirmar el pago.</i>
+        </p>
+        <p style="margin:10px 0 0 0; font-size:0.9rem; color:#7f8c8d;">
+            Puedes ver el resumen del cobro, pero no tienes permisos para realizarlo.
+        </p>
+        <div style="margin-top:15px;">
+            <a href="{% url 'modo_taller' %}" class="btn btn-gray">Volver</a>
+        </div>
+    </div>
+    {% endif %}
 </div>
 
 {% endblock %}
