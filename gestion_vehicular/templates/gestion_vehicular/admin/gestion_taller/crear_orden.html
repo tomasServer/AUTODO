@@ -3,7 +3,53 @@
 
 {% block content %}
 
-<h2>Nueva Orden de Trabajo</h2>
+<!-- ====== REVISIÓN Y VISITA ====== -->
+<!-- ====== REVISIÓN DEL VEHÍCULO ====== -->
+{% if revision_detalle %}
+<div class="card">
+    <h4>Revisión del Vehículo</h4>
+    <p><strong>Estado:</strong> {{ revision_detalle.porcentaje }}%</p>
+    
+    {% if revision_detalle.resumen.malo %}
+    <p><strong>MALO:</strong> {{ revision_detalle.resumen.malo|join:", " }}</p>
+    {% endif %}
+    
+    {% if revision_detalle.resumen.regular %}
+    <p><strong>REGULAR:</strong> {{ revision_detalle.resumen.regular|join:", " }}</p>
+    {% endif %}
+    
+    {% if revision_detalle.resumen.ok %}
+    <p><strong>OK:</strong> {{ revision_detalle.resumen.ok|join:", " }}</p>
+    {% endif %}
+    
+    <details>
+        <summary style="cursor:pointer;">Ver todos los componentes</summary>
+        <ul style="margin-top:8px; padding-left:20px;">
+            {% for comp in revision_detalle.componentes %}
+            <li>{{ comp.nombre }} - <strong>{{ comp.estado }}</strong></li>
+            {% endfor %}
+        </ul>
+    </details>
+</div>
+{% endif %}
+
+<!-- ====== MENSAJE DE VISITA (solo texto, sin fondo) ====== -->
+{% if orden_visita %}
+    {% if not es_nueva_visita %}
+    <div class="card">
+        <p><strong>Convirtiendo visita {{ orden_visita.id }}</strong></p>
+        <p style="margin:0;">Esta orden está en <strong>VISITA</strong>. Al guardar, pasará a <strong>PENDIENTE</strong>.</p>
+    </div>
+    {% else %}
+    <div class="card">
+        <p><strong>Revisión Rápida Guardada</strong></p>
+        <p style="margin:0;">Visita {{ orden_visita.id }} creada. Agrega servicios para convertirla en orden formal.</p>
+    </div>
+    {% endif %}
+{% endif %}
+
+
+
 
 <div class="card">
     <form method="POST" id="ordenForm">
@@ -20,12 +66,14 @@
             <div>
                 <label>Cliente</label>
                 <input type="text" name="cliente_nombre" id="cliente_nombre" maxlength="100" 
-                       oninput="validarNombre(this)" placeholder="Opcional...">
+                       oninput="validarNombre(this)" placeholder="Opcional..." 
+                       value="{{ cliente.nombre|default:'' }}">
             </div>
             <div>
                 <label>Teléfono</label>
                 <input type="tel" name="cliente_telefono" id="cliente_telefono" maxlength="8" 
-                       oninput="validarTelefono(this)" placeholder="Opcional...">
+                       oninput="validarTelefono(this)" placeholder="Opcional..." 
+                       value="{{ cliente.telefono|default:'' }}">
             </div>
         </div>
 
@@ -51,7 +99,7 @@
             </div>
             <div>
                 <label>Kilometraje</label>
-                <input type="number" name="kilometraje" value="0" min="0">
+                <input type="number" name="kilometraje" value="{{ vehiculo.kilometraje_actual|default:'0' }}" min="0">
             </div>
             <div style="display:flex; align-items:flex-end;">
                 <button type="button" onclick="toggleExtra()" class="btn btn-warning btn-sm">+ Más datos</button>
@@ -62,20 +110,20 @@
             <div class="grid grid-2">
                 <div>
                     <label>Año del Vehículo</label>
-                    <input type="number" name="anio" min="1950" max="2026">
+                    <input type="number" name="anio" min="1950" max="2026" value="{{ vehiculo.anio|default:'' }}">
                 </div>
                 <div>
                     <label>Color</label>
-                    <input type="text" name="color" maxlength="30">
+                    <input type="text" name="color" maxlength="30" value="{{ vehiculo.color|default:'' }}">
                 </div>
                 <div>
                     <label>VIN (Chasis)</label>
                     <input type="text" name="vin" maxlength="17" style="text-transform:uppercase;" 
-                           oninput="this.value = this.value.toUpperCase()">
+                           oninput="this.value = this.value.toUpperCase()" value="{{ vehiculo.vin|default:'' }}">
                 </div>
                 <div>
                     <label>Observaciones</label>
-                    <textarea name="observacion" rows="2" maxlength="500"></textarea>
+                    <textarea name="observacion" rows="2" maxlength="500">{{ orden_visita.observacion_general|default:'' }}</textarea>
                 </div>
             </div>
         </div>
@@ -105,7 +153,9 @@
         <!-- BOTONES -->
         <div class="flex mt-20" style="justify-content:flex-end;">
             <button type="button" onclick="cancelarVisita()" class="btn btn-danger">Guardar y Salir</button>
-            <button type="submit" class="btn btn-primary btn-lg">Crear Orden</button>
+            <button type="submit" class="btn btn-primary btn-lg">
+                {% if orden_visita %}Convertir en Orden{% else %}Crear Orden{% endif %}
+            </button>
         </div>
     </form>
 </div>
@@ -141,6 +191,16 @@
         } else {
             extra.classList.add('hidden');
             btn.textContent = '+ Más datos';
+        }
+    }
+
+    // ============ MOSTRAR/OCULTAR REVISIÓN ============
+    function toggleRevision() {
+        var container = document.getElementById('revisionContainer');
+        if (container.style.display === 'none') {
+            container.style.display = 'block';
+        } else {
+            container.style.display = 'none';
         }
     }
 

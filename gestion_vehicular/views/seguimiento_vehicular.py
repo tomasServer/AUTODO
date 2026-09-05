@@ -173,7 +173,7 @@ def guardar_revision_rapida(request):
         placa = request.POST.get('placa', '').upper()
         componentes = Componente.objects.filter(en_visita=True).order_by('orden')
         
-        # Buscar o crear vehículo (solo placa)
+        # Crear vehículo si no existe
         vehiculo, created = Vehiculo.objects.get_or_create(
             placa=placa,
             defaults={}
@@ -195,15 +195,30 @@ def guardar_revision_rapida(request):
         )
         
         # Guardar componentes
+        detalles = []
+        estados = {'MALO': [], 'REGULAR': [], 'OK': []}
+        
         for componente in componentes:
             estado = request.POST.get(f'comp_{componente.id}', 'OK')
+            nota = request.POST.get(f'nota_{componente.id}', '')
+            
             DetalleRevision.objects.create(
                 id_revision=revision,
                 id_componente=componente,
                 estado=estado,
+                nota=nota,
             )
+            
+            detalles.append({
+                'nombre': componente.nombre,
+                'estado': estado,
+                'nota': nota
+            })
+            
+            if estado in estados:
+                estados[estado].append(componente.nombre)
         
-        # Calcular estado del vehículo
+        # Calcular porcentaje
         total = revision.detalles.count()
         ok = revision.detalles.filter(estado='OK').count()
         regular = revision.detalles.filter(estado='REGULAR').count()
@@ -211,11 +226,17 @@ def guardar_revision_rapida(request):
         revision.isv_porcentaje = estado_porcentaje
         revision.save()
         
-        messages.success(request, f'Revision guardada. Estado del vehiculo: {estado_porcentaje}%')
-        return redirect(f'/orden/crear/?placa={placa}')
+        # Guardar en sesión
+        request.session['revision_detalle'] = {
+            'porcentaje': estado_porcentaje,
+            'resumen': estados,
+            'componentes': detalles,
+        }
+        
+        messages.success(request, f"Revisión guardada. Estado del vehículo: {estado_porcentaje}%")
+        return redirect(f'/orden/crear/?visita_id={orden.id}&nueva_visita=1')
     
     return redirect('buscar_vehiculo')
-
 
 
 

@@ -1,0 +1,47 @@
+{% extends 'gestion_vehicular/admin/base_admin.html' %}
+{% block title %}Convertir Visita en Orden{% endblock %}
+
+{% block content %}
+
+<h2>Convertir Visita en Orden</h2>
+
+<div class="card">
+    <div style="margin-bottom:15px;">
+        <p><strong>Orden #{{ orden.id }}</strong> - Vehículo: {{ orden.id_vehiculo.placa }}</p>
+        <p>Cliente: {{ orden.id_vehiculo.id_cliente.nombre|default:"Sin cliente" }}</p>
+        <p>Revisión: {{ orden.revisiones.first.fecha_revision|date:"d/m/Y H:i"|default:"Sin revisión" }}</p>
+    </div>
+    
+    <form method="POST">
+        {% csrf_token %}
+        
+        <div style="margin-bottom:15px;">
+            <label for="mecanico_id" style="font-weight:600; display:block; margin-bottom:5px;">
+                Encargado de la orden (Jefe Técnico)
+            </label>
+            <select name="mecanico_id" id="mecanico_id" style="padding:8px 12px; width:100%; max-width:400px; border:1px solid #bdc3c7; border-radius:4px;">
+                <option value="">Seleccione un mecánico...</option>
+                {% for mec in mecanicos %}
+                <option value="{{ mec.id }}">{{ mec.nombre_completo }} ({{ mec.id_rol.nombre }})</option>
+                {% endfor %}
+            </select>
+            <small style="color:#7f8c8d; display:block; margin-top:4px;">
+                Si no selecciona, se asignará automáticamente a {{ request.user.nombre_completo }}.
+            </small>
+        </div>
+        
+        <div style="padding:12px; background:#d6eaf8; border-radius:4px; margin-bottom:15px;">
+            <p style="margin:0;">
+                Al convertir, la orden pasará a estado <strong>PENDIENTE</strong> 
+                y podrás agregar servicios y productos.
+            </p>
+        </div>
+        
+        <div style="display:flex; gap:10px; margin-top:15px;">
+            <button type="submit" class="btn btn-success">Convertir en Orden</button>
+            <a href="{% url 'modo_taller' %}" class="btn btn-gray">Cancelar</a>
+        </div>
+    </form>
+</div>
+
+{% endblock %}

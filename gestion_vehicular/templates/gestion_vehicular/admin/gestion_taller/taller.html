@@ -1,4 +1,5 @@
 {% extends 'gestion_vehicular/admin/base_admin.html' %}
+
 {% block title %}Modo Taller{% endblock %}
 
 {% block content %}
@@ -16,34 +17,48 @@
                     <th>Orden</th>
                     <th>Placa</th>
                     <th>Cliente</th>
-                    <th>Mecánico</th>
+                    <th>Encargado</th>
                     <th>Estado</th>
                     <th>Acciones</th>
                 </tr>
             </thead>
             <tbody>
                 {% for orden in ordenes_trabajo %}
-                <tr style="border-left: 4px solid {% if orden.estado_orden == 'EN_PROCESO' %}#f39c12{% else %}#e74c3c{% endif %};">
+                <tr style="border-left: 4px solid 
+                    {% if orden.estado_orden == 'EN_PROCESO' %}#f39c12
+                    {% elif orden.estado_orden == 'VISITA' %}#2980b9
+                    {% else %}#e74c3c{% endif %};">
                     <td><strong>{{ orden.id }}</strong></td>
                     <td>{{ orden.id_vehiculo.placa }}</td>
                     <td>{{ orden.id_vehiculo.id_cliente.nombre|default:"Sin cliente" }}</td>
                     <td>
-                        {% with mecanico=orden.detalles_servicio.first.id_mecanico %}
-                            {% if mecanico %}
-                                {{ mecanico.nombre_completo }}
-                            {% else %}
-                                <span style="color:#7f8c8d;">Sin asignar</span>
-                            {% endif %}
-                        {% endwith %}
+                        {% if orden.id_jefe_tecnico %}
+                            {{ orden.id_jefe_tecnico.nombre_completo }}
+                        {% else %}
+                            <span style="color:#7f8c8d;">Sin asignar</span>
+                        {% endif %}
                     </td>
                     <td>
-                        <span class="badge {% if orden.estado_orden == 'EN_PROCESO' %}badge-warning{% else %}badge-danger{% endif %}">
+                        <span class="badge 
+                            {% if orden.estado_orden == 'EN_PROCESO' %}badge-warning
+                            {% elif orden.estado_orden == 'VISITA' %}badge-info
+                            {% else %}badge-danger{% endif %}">
                             {{ orden.estado_orden }}
                         </span>
                     </td>
                     <td>
-                        <a href="{% url 'detalle_orden' orden.id %}" class="btn btn-gray btn-sm">Detalle</a>
-                        <a href="{% url 'taller_detalle' orden.id %}" class="btn btn-warning btn-sm">Trabajar</a>
+                        {% if orden.estado_orden == 'VISITA' %}
+                            {% if user.id_rol_id == 1 or user.id_rol_id == 2 %}
+                            <a href="{% url 'convertir_visita_en_orden' orden.id %}" class="btn btn-primary btn-sm" 
+                               onclick="return confirm('¿Convertir esta visita en una orden formal?')">
+                                Convertir en Orden
+                            </a>
+                            {% endif %}
+                            <a href="{% url 'detalle_orden' orden.id %}" class="btn btn-gray btn-sm">Ver</a>
+                        {% else %}
+                            <a href="{% url 'detalle_orden' orden.id %}" class="btn btn-gray btn-sm">Detalle</a>
+                            <a href="{% url 'taller_detalle' orden.id %}" class="btn btn-warning btn-sm">Trabajar</a>
+                        {% endif %}
                     </td>
                 </tr>
                 {% endfor %}
@@ -66,7 +81,7 @@
                     <th>Orden</th>
                     <th>Placa</th>
                     <th>Cliente</th>
-                    <th>Mecánico</th>
+                    <th>Encargado</th>
                     <th>Estado</th>
                     <th>Acciones</th>
                 </tr>
@@ -78,18 +93,16 @@
                     <td>{{ orden.id_vehiculo.placa }}</td>
                     <td>{{ orden.id_vehiculo.id_cliente.nombre|default:"Sin cliente" }}</td>
                     <td>
-                        {% with mecanico=orden.detalles_servicio.first.id_mecanico %}
-                            {% if mecanico %}
-                                {{ mecanico.nombre_completo }}
-                            {% else %}
-                                <span style="color:#7f8c8d;">Sin asignar</span>
-                            {% endif %}
-                        {% endwith %}
+                        {% if orden.id_jefe_tecnico %}
+                            {{ orden.id_jefe_tecnico.nombre_completo }}
+                        {% else %}
+                            <span style="color:#7f8c8d;">Sin asignar</span>
+                        {% endif %}
                     </td>
                     <td><span class="badge badge-success">POR COBRAR</span></td>
                     <td>
                         <a href="{% url 'detalle_orden' orden.id %}" class="btn btn-gray btn-sm">Detalle</a>
-                        <a href="{% url 'registrar_pago' orden.id %}" class="btn btn-warning btn-sm" style="background:#e67e22; color:#fff;">Cobrar</a>
+                        <a href="{% url 'registrar_pago' orden.id %}" class="btn btn-success btn-sm">Cobrar</a>
                     </td>
                 </tr>
                 {% endfor %}
