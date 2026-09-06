@@ -2,8 +2,8 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.utils import timezone
 from django.contrib import messages
 from django.db import connection
-from ..models import Producto, VentaRapida, DetalleVentaRapida, Usuario
-
+from ..models import Producto, VentaRapida, DetalleVentaRapida, Usuario, ClienteVenta
+from decimal import Decimal
 
 def venta_rapida(request):
     """Muestra el formulario de venta rápida"""
@@ -26,9 +26,35 @@ def venta_rapida(request):
 def guardar_venta_rapida(request):
     """Guarda la venta rápida y descuenta stock"""
     if request.method == 'POST':
+        # entrada de datos 
+        cliente_nombre = request.POST.get('cliente_nombre').strip()
+        cliente_telefono = request.POST.get('cliente_telefono').strip()
+        cliente_ci = request.POST.get('cliente_ci').strip()
+        sin_registrar = request.POST.get('sin_registrar') == 'true'
+
+        #BUSCAR
+        cliente_venta = None
+
+        if not sin_registrar:
+            if cliente_telefono:
+                cliente_venta = ClienteVenta.objects.filter(telefono=cliente_telefono).first()
+
+                if not cliente_venta and (cliente_nombre or cliente_telefono):
+                    cliente_venta = ClienteVenta.objects.create(
+                        nombre=cliente_nombre if cliente_nombre else None,
+                        telefono=cliente_telefono if cliente_telefono else None,
+                        ci=cliente_ci if cliente_ci else None,
+                    )
+
+
+
+
+
+
         venta = VentaRapida.objects.create(
             fecha_venta=timezone.now(),
             registrado_por=request.user if request.user.is_authenticated else None,
+            id_cliente_venta=cliente_venta  #puede ser nulo
         )
         
         total = 0

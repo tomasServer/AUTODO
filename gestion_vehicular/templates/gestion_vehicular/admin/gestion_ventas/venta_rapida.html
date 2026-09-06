@@ -2,16 +2,17 @@
 {% block title %}Venta Rapida{% endblock %}
 
 {% block content %}
-<h2 style="color:#1a252f; margin-bottom:15px;">Venta Rapida de Productos</h2>
+<h2 style="color:#1a252f; margin-bottom:15px;">Venta Rápida de Productos</h2>
 
 <div class="card" style="padding:20px;">
-    <form method="POST" action="{% url 'guardar_venta_rapida' %}">
+    <form method="POST" action="{% url 'guardar_venta_rapida' %}" id="ventaForm">
         {% csrf_token %}
         
+        <!-- PRODUCTOS -->
         <div id="productosVenta">
             <div style="display:grid; grid-template-columns:1fr 0.3fr 0.5fr auto; gap:8px; margin-bottom:5px;">
                 <select name="producto_1" onchange="actualizarPrecioVenta(this, 1)">
-                    <option value="">Seleccione producto...</option>
+                    <option value="">Seleccione producto</option>
                     {% for p in productos %}
                     <option value="{{ p.id }}" data-precio="{{ p.precio_venta }}">{{ p.nombre }} - Bs. {{ p.precio_venta }} (Stock: {{ p.stock_actual }})</option>
                     {% endfor %}
@@ -24,6 +25,7 @@
         
         <button type="button" onclick="agregarProductoVenta()" style="background:#2980b9; color:white; border:none; padding:6px 15px; border-radius:4px; cursor:pointer; margin-top:5px;">+ Agregar Producto</button>
         
+        <!-- TOTAL -->
         <div style="margin-top:15px; padding:15px; background:#fef9e7; border-radius:4px; border-left:4px solid #e67e22;">
             <div style="display:flex; justify-content:space-between; font-size:1.2rem;">
                 <span>Total:</span>
@@ -31,15 +33,48 @@
             </div>
         </div>
         
-        <div style="margin-top:15px; display:flex; justify-content:flex-end;">
-            <button type="submit" class="btn btn-success">Registrar Venta</button>
+        <!-- BOTONES -->
+        <div style="margin-top:15px; display:flex; justify-content:flex-end; gap:10px;">
+            <button type="button" onclick="abrirModalCliente()" class="btn btn-success">Registrar Venta</button>
         </div>
     </form>
+</div>
+
+<!-- ====== MODAL PARA DATOS DEL CLIENTE (corregido) ====== -->
+<div id="modalCliente" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:9999; justify-content:center; align-items:center;">
+    <div id="modalContent" style="background:#fff; padding:25px; border-radius:8px; max-width:500px; width:90%; box-shadow:0 4px 20px rgba(0,0,0,0.3); position:relative; z-index:10000;">
+        <h3 style="margin:0 0 5px 0; color:#1a252f;">Datos del Cliente</h3>
+        <p style="color:#7f8c8d; font-size:0.9rem; margin-bottom:15px;">Ingresa los datos del cliente o selecciona "Sin Registrar"</p>
+        
+        <div style="margin-bottom:12px;">
+            <label style="display:block; font-weight:600; margin-bottom:4px;">Nombre</label>
+            <input type="text" id="cliente_nombre" placeholder="Ej: Juan Pérez" style="width:100%; padding:8px 12px; border:1px solid #bdc3c7; border-radius:4px;">
+        </div>
+        
+        <div style="margin-bottom:12px;">
+            <label style="display:block; font-weight:600; margin-bottom:4px;">Teléfono</label>
+            <input type="tel" id="cliente_telefono" placeholder="Ej: 77712345" style="width:100%; padding:8px 12px; border:1px solid #bdc3c7; border-radius:4px;">
+        </div>
+        
+        <div style="margin-bottom:20px;">
+            <label style="display:block; font-weight:600; margin-bottom:4px;">CI (Carnet)</label>
+            <input type="text" id="cliente_ci" placeholder="Ej: 1234567" style="width:100%; padding:8px 12px; border:1px solid #bdc3c7; border-radius:4px;">
+        </div>
+        
+        <div style="display:flex; gap:10px; justify-content:flex-end; flex-wrap:wrap;">
+            <button type="button" onclick="cerrarModalCliente()" class="btn btn-gray">Cancelar</button>
+            <button type="button" onclick="ventaSinRegistrar()" class="btn btn-warning">Sin Registrar</button>
+            <button type="button" onclick="confirmarVenta()" class="btn btn-success">Confirmar Venta</button>
+        </div>
+    </div>
 </div>
 
 <script>
     var contadorVentas = 1;
     
+    // =============================================
+    // FUNCIONES DE PRODUCTOS
+    // =============================================
     function agregarProductoVenta() {
         contadorVentas++;
         var div = document.createElement('div');
@@ -87,5 +122,153 @@
         });
         document.getElementById('totalVenta').textContent = 'Bs. ' + total.toFixed(2);
     }
+    
+    // =============================================
+    // FUNCIONES DEL MODAL
+    // =============================================
+    
+    // Abrir modal
+    function abrirModalCliente() {
+        // Validar que haya al menos un producto seleccionado
+        var hayProducto = false;
+        document.querySelectorAll('select[name^="producto_"]').forEach(function(select) {
+            if (select.value) hayProducto = true;
+        });
+        
+        if (!hayProducto) {
+            alert('Debes seleccionar al menos un producto.');
+            return;
+        }
+        
+        // Limpiar campos del modal
+        document.getElementById('cliente_nombre').value = '';
+        document.getElementById('cliente_telefono').value = '';
+        document.getElementById('cliente_ci').value = '';
+        
+        // Mostrar modal
+        document.getElementById('modalCliente').style.display = 'flex';
+    }
+    
+    // Cerrar modal
+    function cerrarModalCliente() {
+        document.getElementById('modalCliente').style.display = 'none';
+    }
+    
+    // Venta sin registrar cliente
+    function ventaSinRegistrar() {
+        if (confirm('¿Estás seguro de que no quieres registrar los datos del cliente?')) {
+            var form = document.getElementById('ventaForm');
+            
+            // Eliminar campos ocultos anteriores
+            var camposAnteriores = form.querySelectorAll('input[name="cliente_nombre"], input[name="cliente_telefono"], input[name="cliente_ci"], input[name="sin_registrar"]');
+            camposAnteriores.forEach(function(input) {
+                input.remove();
+            });
+            
+            // Crear campo oculto para indicar que es sin registrar
+            var inputSinRegistrar = document.createElement('input');
+            inputSinRegistrar.type = 'hidden';
+            inputSinRegistrar.name = 'sin_registrar';
+            inputSinRegistrar.value = 'true';
+            form.appendChild(inputSinRegistrar);
+            
+            cerrarModalCliente();
+            form.submit();
+        }
+    }
+    
+    // Confirmar venta con datos del cliente
+    function confirmarVenta() {
+        var nombre = document.getElementById('cliente_nombre').value.trim();
+        var telefono = document.getElementById('cliente_telefono').value.trim();
+        var ci = document.getElementById('cliente_ci').value.trim();
+        
+        // Si no hay datos, preguntar si quiere continuar
+        if (!nombre && !telefono && !ci) {
+            if (!confirm('No has ingresado ningún dato del cliente. ¿Quieres continuar sin registrar?')) {
+                return;
+            }
+        }
+        
+        var form = document.getElementById('ventaForm');
+        
+        // Eliminar campos ocultos anteriores
+        var camposAnteriores = form.querySelectorAll('input[name="cliente_nombre"], input[name="cliente_telefono"], input[name="cliente_ci"], input[name="sin_registrar"]');
+        camposAnteriores.forEach(function(input) {
+            input.remove();
+        });
+        
+        // Crear nuevos campos ocultos con los datos
+        if (nombre) {
+            var inputNombre = document.createElement('input');
+            inputNombre.type = 'hidden';
+            inputNombre.name = 'cliente_nombre';
+            inputNombre.value = nombre;
+            form.appendChild(inputNombre);
+        }
+        
+        if (telefono) {
+            var inputTelefono = document.createElement('input');
+            inputTelefono.type = 'hidden';
+            inputTelefono.name = 'cliente_telefono';
+            inputTelefono.value = telefono;
+            form.appendChild(inputTelefono);
+        }
+        
+        if (ci) {
+            var inputCi = document.createElement('input');
+            inputCi.type = 'hidden';
+            inputCi.name = 'cliente_ci';
+            inputCi.value = ci;
+            form.appendChild(inputCi);
+        }
+        
+        cerrarModalCliente();
+        form.submit();
+    }
+    
+    // Cerrar modal al hacer clic fuera de él
+    window.onclick = function(event) {
+        var modal = document.getElementById('modalCliente');
+        if (event.target == modal) {
+            modal.style.display = 'none';
+        }
+    }
 </script>
+
+<style>
+    /* Estilos para el modal - centrado correctamente */
+    #modalCliente {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.5);
+        z-index: 9999;
+        justify-content: center;
+        align-items: center;
+    }
+    
+    /* El contenido del modal debe tener un z-index más alto */
+    #modalContent {
+        background: #fff;
+        padding: 25px;
+        border-radius: 8px;
+        max-width: 500px;
+        width: 90%;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        position: relative;
+        z-index: 10000;
+    }
+    
+    /* Asegurar que los botones sean clickeables */
+    #modalContent .btn {
+        cursor: pointer;
+        position: relative;
+        z-index: 10001;
+    }
+</style>
+
 {% endblock %}

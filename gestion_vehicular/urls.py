@@ -72,10 +72,15 @@ urlpatterns = [
     path('ayudante/taller/', gestion_taller.modo_taller, name='modo_taller_ayudante'),
     path('ayudante/orden/<int:orden_id>/', gestion_taller.taller_detalle, name='trabajar_orden_ayudante'),
     path('ayudante/servicio/<int:detalle_id>/cambiar/', gestion_taller.cambiar_estado_servicio, name='cambiar_estado_servicio_ayudante'),
+
+    #ventas rapidas
     path('ayudante/venta-rapida/', gestion_ventas.venta_rapida, name='venta_rapida_ayudante'),
 
 
     #5/9/2026 mejoras
     path('orden/<int:orden_id>/convertir-visita/', gestion_taller.convertir_visita_en_orden, name='convertir_visita_en_orden'),
+
+
+  
     
 ]
