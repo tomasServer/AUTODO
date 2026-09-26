@@ -2,57 +2,78 @@
 {% block title %}Panel Ayudante{% endblock %}
 
 {% block content %}
-<h2 style="color:#1a252f; margin-bottom:15px;">Panel de Ayudante</h2>
 
-<!-- ORDENES PENDIENTES -->
-<div class="card" style="padding:15px 20px; margin-bottom:15px;">
-    <h3 style="margin:0 0 12px 0; color:#2c3e50;">Mis Ordenes Pendientes</h3>
+<h2>Panel de Ayudante</h2>
+
+<!-- ============ ÓRDENES PENDIENTES ============ -->
+<div class="card">
+    <h3>Mis Órdenes Pendientes</h3>
     {% if ordenes_trabajo %}
-    <div style="max-height:250px; overflow-y:auto;">
-        <table style="width:100%; font-size:0.85rem;">
-            <thead style="position:sticky; top:0; background:#1a252f; color:white;">
-                <tr><th style="padding:8px;">Orden</th><th style="padding:8px;">Placa</th><th style="padding:8px;">Vehículo</th><th style="padding:8px;">Estado</th><th style="padding:8px;"></th></tr>
+    <div class="table-responsive scroll-y" style="max-height:250px;">
+        <table>
+            <thead>
+                <tr>
+                    <th>Orden</th>
+                    <th>Placa</th>
+                    <th>Vehículo</th>
+                    <th>Estado</th>
+                    <th>Acción</th>
+                </tr>
             </thead>
             <tbody>
                 {% for orden in ordenes_trabajo %}
-                <tr style="border-bottom:1px solid #ecf0f1;">
-                    <td style="padding:8px;"><strong>#{{ orden.id }}</strong></td>
-                    <td style="padding:8px;">{{ orden.id_vehiculo.placa }}</td>
-                    <td style="padding:8px;">{{ orden.id_vehiculo.marca|default:"" }} {{ orden.id_vehiculo.modelo|default:"" }}</td>
-                    <td style="padding:8px;"><span class="badge {% if orden.estado_orden == 'EN_PROCESO' %}badge-info{% else %}badge-warning{% endif %}">{{ orden.estado_orden }}</span></td>
-                    <td style="padding:8px;"><a href="{% url 'taller_detalle' orden.id %}" class="btn btn-primary" style="padding:3px 10px; font-size:0.7rem;">Trabajar</a></td>
+                <tr>
+                    <td><strong>Nº {{ orden.id }}</strong></td>
+                    <td>{{ orden.id_vehiculo.placa }}</td>
+                    <td>{{ orden.id_vehiculo.marca|default:"" }} {{ orden.id_vehiculo.modelo|default:"" }}</td>
+                    <td>
+                        <span class="badge 
+                            {% if orden.estado_orden == 'EN_PROCESO' %}badge-info
+                            {% elif orden.estado_orden == 'VISITA' %}badge-info
+                            {% else %}badge-warning{% endif %}">
+                            {{ orden.estado_orden }}
+                        </span>
+                    </td>
+                    <td>
+                        <a href="{% url 'taller_detalle' orden.id %}" class="btn btn-warning btn-sm">Trabajar</a>
+                    </td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
     </div>
     {% else %}
-    <p style="color:#7f8c8d;">No hay ordenes pendientes.</p>
+    <p class="text-muted">No hay órdenes pendientes.</p>
     {% endif %}
 </div>
 
-<!-- VENTAS RAPIDAS DE HOY -->
-<div class="card" style="padding:15px 20px;">
-    <h3 style="margin:0 0 12px 0; color:#2c3e50;">Mis Ventas Rapidas de Hoy</h3>
+<!-- ============ VENTAS RÁPIDAS DE HOY ============ -->
+<div class="card">
+    <h3>Mis Ventas Rápidas de Hoy</h3>
     {% if ventas_rapidas_lista %}
-    <div style="max-height:250px; overflow-y:auto;">
-        <table style="width:100%; font-size:0.85rem;">
-            <thead style="position:sticky; top:0; background:#1a252f; color:white;">
-                <tr><th style="padding:8px;">Venta</th><th style="padding:8px;">Hora</th><th style="padding:8px;">Total</th></tr>
+    <div class="table-responsive scroll-y" style="max-height:250px;">
+        <table>
+            <thead>
+                <tr>
+                    <th>Venta</th>
+                    <th>Hora</th>
+                    <th>Total</th>
+                </tr>
             </thead>
             <tbody>
                 {% for v in ventas_rapidas_lista %}
-                <tr style="border-bottom:1px solid #ecf0f1;">
-                    <td style="padding:8px;">#{{ v.id }}</td>
-                    <td style="padding:8px;">{{ v.fecha_venta|date:"H:i" }}</td>
-                    <td style="padding:8px;"><strong>Bs. {{ v.total|floatformat:2 }}</strong></td>
+                <tr>
+                    <td>#{{ v.id }}</td>
+                    <td>{{ v.fecha_venta|date:"H:i" }}</td>
+                    <td><strong>Bs. {{ v.total|floatformat:2 }}</strong></td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
     </div>
     {% else %}
-    <p style="color:#7f8c8d;">No has vendido productos hoy.</p>
+    <p class="text-muted">No has vendido productos hoy.</p>
     {% endif %}
 </div>
+
 {% endblock %}

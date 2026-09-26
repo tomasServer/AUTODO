@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Recibo Orden {{ orden.id }}</title>
+    <style>
+        @page {
+            size: letter;
+            margin: 2cm;
+        }
+        body {
+            font-family: Helvetica, Arial, sans-serif;
+            font-size: 12px;
+            color: #1a252f;
+        }
+        .header {
+            text-align: center;
+            border-bottom: 2px solid #1a252f;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+        .header h1 {
+            color: #e67e22;
+            margin: 0;
+            font-size: 24px;
+        }
+        .header h2 {
+            margin: 5px 0 0 0;
+            font-size: 14px;
+            color: #1a252f;
+        }
+        .info {
+            margin-bottom: 20px;
+            font-size: 13px;
+        }
+        .info p {
+            margin: 5px 0;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        th {
+            background: #ecf0f1;
+            color: #1a252f;
+            padding: 8px;
+            text-align: left;
+            border: 1px solid #bdc3c7;
+            font-size: 11px;
+        }
+        td {
+            padding: 8px;
+            border: 1px solid #bdc3c7;
+            font-size: 11px;
+        }
+        .text-right {
+            text-align: right;
+        }
+        .subtotal {
+            background: #f8f9fa;
+            font-weight: bold;
+        }
+        .total-final {
+            background: #1a252f;
+            color: white;
+            font-weight: bold;
+            font-size: 14px;
+        }
+        .total-final td {
+            color: white;
+            padding: 12px;
+        }
+        .pie {
+            margin-top: 40px;
+            text-align: center;
+            font-size: 9px;
+            color: #7f8c8d;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ENCABEZADO -->
+    <div class="header">
+        <h1>TALLER AUTODO</h1>
+        <h2>Recibo de Orden N° {{ orden.id }}</h2>
+    </div>
+
+    <!-- INFO -->
+    <div class="info">
+        <p><strong>Placa:</strong> {{ orden.id_vehiculo.placa }}</p>
+        <p><strong>Fecha:</strong> {{ orden.fecha_ingreso|date:"d/m/Y H:i" }}</p>
+    </div>
+
+    <!-- SERVICIOS -->
+    <h3>Servicios</h3>
+    <table>
+        <thead>
+            <tr>
+                <th width="70%">Servicio</th>
+                <th width="30%" class="text-right">Precio</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for detalle in orden.detalles_servicio.all %}
+            <tr>
+                <td>{{ detalle.id_servicio.nombre }}</td>
+                <td class="text-right">Bs. {{ detalle.precio_cobrado|floatformat:2 }}</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="2" style="text-align:center;">No hay servicios registrados.</td></tr>
+            {% endfor %}
+            <tr class="subtotal">
+                <td class="text-right">TOTAL SERVICIOS:</td>
+                <td class="text-right">Bs. {{ total_servicios|floatformat:2 }}</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <!-- INSUMOS -->
+    <h3>Insumos</h3>
+    <table>
+        <thead>
+            <tr>
+                <th width="50%">Insumo</th>
+                <th width="15%">Cant.</th>
+                <th width="35%" class="text-right">Subtotal</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for detalle in orden.detalles_producto.all %}
+            <tr>
+                <td>{{ detalle.id_producto.nombre }}</td>
+                <td>{{ detalle.cantidad }}</td>
+                <td class="text-right">Bs. {{ detalle.subtotal_precio|floatformat:2 }}</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="3" style="text-align:center;">No hay insumos registrados.</td></tr>
+            {% endfor %}
+            <tr class="subtotal">
+                <td colspan="2" class="text-right">TOTAL INSUMOS:</td>
+                <td class="text-right">Bs. {{ total_productos|floatformat:2 }}</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <!-- TOTAL GENERAL -->
+    <table>
+        <tr class="total-final">
+            <td class="text-right" width="70%">TOTAL GENERAL:</td>
+            <td class="text-right" width="30%">Bs. {{ total_general|floatformat:2 }}</td>
+        </tr>
+    </table>
+
+    <!-- PIE -->
+    <div class="pie">
+        Generado el {% now "d/m/Y H:i" %} | Sistema AUTODO
+    </div>
+
+</body>
+</html>

@@ -5,6 +5,7 @@
 
 <h2>Orden #{{ orden.id }}</h2>
 
+<!-- ============ INFO DE LA ORDEN ============ -->
 <div class="card">
     <div class="grid grid-2">
         <div><strong>Placa:</strong> {{ orden.id_vehiculo.placa }}</div>
@@ -12,12 +13,13 @@
     </div>
 </div>
 
+<!-- ============ MIS SERVICIOS ============ -->
 <h3 style="margin:15px 0 10px 0;">Mis Servicios</h3>
 
 {% if servicios_detalle %}
-<div style="display:grid; gap:10px;">
+<div class="grid" style="gap:10px;">
     {% for servicio in servicios_detalle %}
-    <div class="card" style="padding:12px 15px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+    <div class="card" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
         <div>
             <strong>{{ servicio.id_servicio.nombre }}</strong>
             <span class="badge 
@@ -52,21 +54,9 @@
 <p class="text-muted">No tienes servicios asignados en esta orden.</p>
 {% endif %}
 
-<div style="margin-top:20px;">
+<!-- ============ BOTÓN VOLVER ============ -->
+<div class="mt-20">
     <a href="{% url 'modo_taller' %}" class="btn btn-gray">Volver</a>
 </div>
-
-<style>
-    .grid-2 {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 10px;
-    }
-    @media (max-width: 768px) {
-        .grid-2 {
-            grid-template-columns: 1fr;
-        }
-    }
-</style>
 
 {% endblock %}

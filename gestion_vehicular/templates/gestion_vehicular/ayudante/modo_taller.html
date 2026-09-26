@@ -5,20 +5,23 @@
 
 <h2>Mis Trabajos</h2>
 
-<!-- ÓRDENES PARA TRABAJAR -->
+<!-- ============ ÓRDENES PARA TRABAJAR ============ -->
 <div class="card">
     <h3>Órdenes para Trabajar</h3>
     {% if ordenes_trabajo %}
-    <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(260px, 1fr)); gap:12px;">
+    <div class="grid" style="grid-template-columns:repeat(auto-fill, minmax(260px, 1fr));">
         {% for orden in ordenes_trabajo %}
         <a href="{% url 'taller_detalle' orden.id %}" style="text-decoration:none; color:inherit;">
             <div style="background:#fff; padding:12px 16px; border:1px solid #bdc3c7; border-radius:4px;">
                 <div style="font-weight:600; font-size:1rem;">#{{ orden.id }} - {{ orden.id_vehiculo.placa }}</div>
-                <div style="font-size:0.85rem; color:#7f8c8d; margin-top:4px;">
+                <div class="text-muted" style="font-size:0.85rem; margin-top:4px;">
                     {{ orden.id_vehiculo.marca|default:"" }} {{ orden.id_vehiculo.modelo|default:"" }}
                 </div>
                 <div style="margin-top:6px;">
-                    <span class="badge {% if orden.estado_orden == 'EN_PROCESO' %}badge-info{% else %}badge-warning{% endif %}">
+                    <span class="badge 
+                        {% if orden.estado_orden == 'EN_PROCESO' %}badge-info
+                        {% elif orden.estado_orden == 'VISITA' %}badge-info
+                        {% else %}badge-warning{% endif %}">
                         {{ orden.estado_orden }}
                     </span>
                 </div>
@@ -31,7 +34,8 @@
     {% endif %}
 </div>
 
-<div style="margin-top:20px;">
+<!-- ============ BOTÓN VOLVER ============ -->
+<div class="mt-20">
     <a href="{% url 'dashboard_ayudante' %}" class="btn btn-gray">Volver al Panel</a>
 </div>
 

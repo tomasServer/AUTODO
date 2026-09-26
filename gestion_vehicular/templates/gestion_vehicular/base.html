@@ -1,415 +1,125 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AUTODO | {% block title %}Taller Automotriz{% endblock %}</title>
-    <!-- Select2 CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+{% extends 'gestion_vehicular/jefe_mecanico/base_jefe.html' %}
+{% block title %}Panel Jefe{% endblock %}
 
-    <!-- jQuery (necesario para Select2) -->
-    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-    <!-- Select2 JS -->
-    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        
-        body { 
-            font-family: 'Segoe UI', system-ui, sans-serif; 
-            background: #d5d8dc;
-            min-height: 100vh;
-            color: #1a1a1a;
-        }
-        
-        /* ========== NAVBAR ========== */
-        .navbar { 
-            background: #1a252f;
-            color: #ffffff;
-            padding: 0 1.5rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            height: 55px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
-            position: sticky;
-            top: 0;
-            z-index: 100;
-        }
-        
-        .navbar .logo { 
-            font-size: 1.3rem;
-            font-weight: 700;
-            letter-spacing: 1px;
-            color: #e67e22;
-        }
-        
-        .navbar-links {
-            display: flex;
-            gap: 4px;
-            align-items: center;
-            flex-wrap: wrap;
-        }
-        
-        .navbar a { 
-            color: #bdc3c7;
-            text-decoration: none;
-            padding: 8px 14px;
-            border-radius: 4px;
-            font-size: 0.85rem;
-            transition: all 0.2s;
-        }
-        
-        .navbar a:hover { 
-            background: #2c3e50;
-            color: #ffffff;
-        }
-        
-        .navbar .btn-salir {
-            background: #c0392b;
-            color: #ffffff;
-        }
-        
-        .navbar .btn-salir:hover {
-            background: #922b21;
-        }
-        
-        /* ========== LAYOUT PRINCIPAL ========== */
-        .main-layout { 
-            display: flex;
-            min-height: calc(100vh - 55px);
-        }
-        
-        /* ========== SIDEBAR ========== */
-        .sidebar { 
-            width: 220px;
-            background: #1a252f;
-            color: #bdc3c7;
-            padding: 1.2rem 0.8rem;
-            flex-shrink: 0;
-        }
-        
-        .sidebar h3 { 
-            color: #e67e22;
-            margin-bottom: 0.8rem;
-            font-size: 0.85rem;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            padding: 0 8px;
-        }
-        
-        .sidebar a { 
-            display: block;
-            color: #bdc3c7;
-            text-decoration: none;
-            padding: 8px 12px;
-            border-radius: 4px;
-            margin-bottom: 3px;
-            font-size: 0.85rem;
-            transition: all 0.2s;
-        }
-        
-        .sidebar a:hover { 
-            background: #2c3e50;
-            color: #ffffff;
-        }
-        
-        .sidebar .user-info { 
-            margin-top: 1.5rem;
-            padding: 0.8rem 8px 0;
-            border-top: 1px solid #2c3e50;
-            font-size: 0.75rem;
-        }
-        
-        .sidebar .user-info strong { 
-            color: #ffffff;
-            display: block;
-            font-size: 0.85rem;
-        }
-        
-        .sidebar .btn-salir { 
-            display: block;
-            text-align: center;
-            margin-top: 1rem;
-            padding: 8px;
-            background: #c0392b;
-            color: #ffffff;
-            border-radius: 4px;
-            text-decoration: none;
-        }
-        
-        .sidebar .btn-salir:hover { 
-            background: #922b21;
-        }
-        
-        /* ========== CONTENIDO ========== */
-        .content { 
-            flex: 1;
-            padding: 1.2rem;
-            min-width: 0;
-        }
-        
-        /* ========== MENSAJES ========== */
-        .messages { 
-            list-style: none;
-            margin-bottom: 1rem;
-        }
-        
-        .messages li { 
-            padding: 12px 18px;
-            margin: 5px 0;
-            border-radius: 4px;
-            font-weight: 500;
-        }
-        
-        .success { background: #d5f5e3; color: #1e8449; border-left: 4px solid #1e8449; }
-        .error { background: #fadbd8; color: #922b21; border-left: 4px solid #c0392b; }
-        .warning { background: #fdebd0; color: #d35400; border-left: 4px solid #e67e22; }
-        .info { background: #d6eaf8; color: #1a5276; border-left: 4px solid #2980b9; }
-        
-        /* ========== TARJETAS ========== */
-        .card { 
-            background: #ffffff;
-            padding: 18px;
-            border-radius: 6px;
-            box-shadow: 0 1px 6px rgba(0,0,0,0.08);
-            margin-bottom: 15px;
-            border: 1px solid #bdc3c7;
-        }
-        
-        .card h2, .card h3 { 
-            margin-bottom: 12px;
-            color: #1a252f;
-        }
-        
-        .card h2 { font-size: 1.1rem; border-bottom: 2px solid #e8edf2; padding-bottom: 8px; }
-        .card h3 { font-size: 0.95rem; }
-        
-        /* ========== BOTONES ========== */
-        .btn { 
-            display: inline-block;
-            padding: 8px 16px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            text-decoration: none;
-            font-size: 0.85rem;
-            font-weight: 600;
-            transition: all 0.2s;
-            white-space: nowrap;
-        }
-        
-        .btn:hover { opacity: 0.9; }
-        
-        .btn-primary { background: #1a252f; color: #ffffff; }  /* Azul - acción principal */
-        .btn-warning { background: #e67e22; color: #ffffff; }  /* Naranja - destacado */
-        .btn-danger { background: #c0392b; color: #ffffff; }   /* Rojo - peligro/cancelar */
-        .btn-gray { background: #95a5a6; color: #ffffff; }     /* Plomo - neutro */
-        .btn-info { background: #2980b9; color: #ffffff; }    /* Azul - info */
-        .btn-success { background: #d5f5e3; color: #1e8449; }  /* Verde - OK */
-        .btn-sm { padding: 5px 10px; font-size: 0.75rem; }
-        .btn-lg { padding: 12px 24px; font-size: 1rem; }
-        .btn-block { width: 100%; text-align: center; }
-        
-        /* ========== TABLAS ========== */
-        .table-responsive {
-            overflow-x: auto;
-            margin-top: 0.5rem;
-        }
-        
-        table { 
-            width: 100%;
-            border-collapse: collapse;
-        }
-        
-        th, td { 
-            padding: 8px 10px;
-            text-align: left;
-            border-bottom: 1px solid #bdc3c7;
-            font-size: 0.85rem;
-        }
-        
-        th { 
-            background: #1a252f;
-            color: #ffffff;
-            font-weight: 600;
-            white-space: nowrap;
-        }
-        
-        tr:hover { background: #eaf2f8; }
-        
-        /* ========== GRID ========== */
-        .grid { display: grid; gap: 12px; }
-        .grid-2 { grid-template-columns: repeat(2, 1fr); }
-        .grid-3 { grid-template-columns: repeat(3, 1fr); }
-        .grid-4 { grid-template-columns: repeat(4, 1fr); }
-        
-        /* ========== TARJETAS ESTADÍSTICAS ========== */
-        .stat-card { 
-            padding: 15px;
-            border-radius: 6px;
-            color: #ffffff;
-            text-align: center;
-        }
-        
-        .stat-card .number { 
-            font-size: 1.5rem;
-            font-weight: 700;
-            display: block;
-        }
-        
-        .stat-card .label { 
-            font-size: 0.75rem;
-            opacity: 0.9;
-        }
-        
-        .bg-dark { background: #1a252f; }    /* Azul */
-        .bg-orange { background: #e67e22; }  /* Naranja */
-        .bg-red { background: #c0392b; }     /* Rojo */
-        
-        /* ========== FORMULARIOS ========== */
-        input, select, textarea { 
-            width: 100%;
-            padding: 8px 10px;
-            border: 1px solid #bdc3c7;
-            border-radius: 4px;
-            font-size: 0.9rem;
-            background: #ffffff;
-        }
-        
-        input:focus, select:focus, textarea:focus { 
-            border-color: #e67e22;
-            outline: none;
-            box-shadow: 0 0 0 2px rgba(230,126,34,0.15);
-        }
-        
-        label { 
-            display: block;
-            margin-bottom: 4px;
-            font-weight: 600;
-            color: #1a252f;
-            font-size: 0.85rem;
-        }
-        
-        fieldset { 
-            border: 1px solid #bdc3c7;
-            border-radius: 6px;
-            padding: 15px;
-            margin-bottom: 12px;
-        }
-        
-        legend { 
-            font-weight: 700;
-            color: #1a252f;
-            padding: 0 8px;
-            font-size: 0.9rem;
-        }
-        
-        /* ========== BADGES ========== */
-        .badge { 
-            display: inline-block;
-            padding: 3px 8px;
-            border-radius: 3px;
-            font-weight: 600;
-            font-size: 0.7rem;
-            white-space: nowrap;
-        }
-        
-        .badge-success { background: #d5f5e3; color: #1e8449; }  /* Verde - OK */
-        .badge-warning { background: #fdebd0; color: #d35400; }  /* Naranja - pendiente */
-        .badge-danger { background: #fadbd8; color: #922b21; }   /* Rojo - crítico */
-        .badge-info { background: #d6eaf8; color: #1a5276; }     /* Azul - info */
-        
-        /* ========== UTILIDADES ========== */
-        .text-center { text-align: center; }
-        .text-right { text-align: right; }
-        .mt-10 { margin-top: 10px; }
-        .mt-20 { margin-top: 20px; }
-        .mb-10 { margin-bottom: 10px; }
-        .mb-20 { margin-bottom: 20px; }
-        .flex { display: flex; gap: 10px; align-items: center; }
-        .flex-between { display: flex; justify-content: space-between; align-items: center; }
-        .flex-wrap { flex-wrap: wrap; }
-        .hidden { display: none; }
-        .w-100 { width: 100%; }
-        
-        /* ========== SCROLL EN TABLAS ========== */
-        .scroll-y {
-            max-height: 300px;
-            overflow-y: auto;
-        }
-        
-        .scroll-y thead {
-            position: sticky;
-            top: 0;
-            z-index: 10;
-        }
-        
-        /* ========== RESPONSIVE ========== */
-        
-        /* Tablets */
-        @media (max-width: 1024px) {
-            .grid-4 { grid-template-columns: repeat(2, 1fr); }
-            .grid-3 { grid-template-columns: repeat(2, 1fr); }
-            .sidebar { width: 180px; }
-        }
-        
-        /* Móvil horizontal */
-        @media (max-width: 768px) {
-            .main-layout { flex-direction: column; }
-            .sidebar { width: 100%; padding: 0.8rem; }
-            .sidebar a { display: inline-block; margin-right: 5px; }
-            .sidebar h3 { display: inline-block; margin-right: 10px; }
-            .sidebar .user-info { display: none; }
-            .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
-            .navbar { flex-direction: column; height: auto; padding: 8px; gap: 5px; }
-            .navbar-links { justify-content: center; }
-            .content { padding: 0.8rem; }
-            .card { padding: 12px; }
-            .flex, .flex-between { flex-direction: column; align-items: stretch; }
-        }
-        
-        /* Móvil vertical */
-        @media (max-width: 480px) {
-            .navbar a { padding: 6px 10px; font-size: 0.75rem; }
-            .stat-card .number { font-size: 1.2rem; }
-            .stat-card { padding: 10px; }
-            .btn { padding: 6px 12px; font-size: 0.75rem; }
-            th, td { padding: 5px 6px; font-size: 0.75rem; }
-        }
-    </style>
-    {% block extra_css %}{% endblock %}
-</head>
-<body>
-    <nav class="navbar">
-        <div><span class="logo">AUTODO</span></div>
-        <div class="navbar-links">
-            {% block navbar %}{% endblock %}
-        </div>
-    </nav>
+{% block content %}
 
-    <div class="main-layout">
-        <div class="sidebar">
-            {% block sidebar %}{% endblock %}
-            <div class="user-info">
-                <strong>{{ user.nombre|default:user.usuario_login }}</strong>
-                {{ user.id_rol.nombre }}
+<h1 style="color:#1a252f; font-size:1.3rem;">Panel de Jefe Mecánico</h1>
+<p class="text-muted" style="margin-bottom:15px; font-size:0.85rem;">{{ hoy|date:"l d \d\e F \d\e Y" }}</p>
+
+<!-- ============ GRID PRINCIPAL ============ -->
+<div class="grid grid-2">
+
+    <!-- Hallazgos Pendientes -->
+    <div class="card">
+        <h3>Hallazgos Pendientes</h3>
+        {% if hallazgos_pendientes %}
+        <div class="scroll-y" style="max-height:200px;">
+            {% for h in hallazgos_pendientes %}
+            <div class="flex-between" style="padding:8px 0; border-bottom:1px solid #ecf0f1;">
+                <div>
+                    <strong>#{{ h.id_orden.id }}</strong> - {{ h.id_orden.id_vehiculo.placa }}
+                    <span class="text-muted">| {{ h.descripcion|truncatechars:30 }}</span>
+                </div>
+                <strong style="color:#d35400;">Bs. {{ h.costo_estimado|default:"0" }}</strong>
             </div>
+            {% endfor %}
         </div>
+        {% else %}
+        <p class="text-muted">No hay hallazgos pendientes.</p>
+        {% endif %}
+    </div>
 
-        <div class="content">
-            {% if messages %}
-            <ul class="messages">
-                {% for message in messages %}
-                <li class="{{ message.tags }}">{{ message }}</li>
-                {% endfor %}
-            </ul>
-            {% endif %}
-            
-            {% block content %}
-            {% endblock %}
+    <!-- 4 Tarjetas de Resumen -->
+    <div class="grid grid-2">
+        <div class="stat-card bg-orange">
+            <span class="number">{{ pendientes_count }}</span>
+            <span class="label">Pendientes</span>
+        </div>
+        <div class="stat-card bg-orange">
+            <span class="number">{{ por_cobrar_count }}</span>
+            <span class="label">Por Cobrar</span>
+        </div>
+        <div class="stat-card bg-orange">
+            <span class="number">Bs. {{ cobrado_hoy|floatformat:2 }}</span>
+            <span class="label">Cobrado Hoy</span>
+        </div>
+        <div class="stat-card bg-orange">
+            <span class="number">Bs. {{ ventas_rapidas_hoy|floatformat:2 }}</span>
+            <span class="label">Ventas Rápidas</span>
         </div>
     </div>
-    
-    {% block extra_js %}{% endblock %}
-</body>
-</html>
+</div>
+
+<!-- ============ ÓRDENES RECIENTES ============ -->
+<div class="card">
+    <h3>Órdenes Recientes</h3>
+    {% if ultimas_ordenes %}
+    <div class="scroll-y" style="max-height:250px;">
+        <table>
+            <thead>
+                <tr>
+                    <th>Orden</th>
+                    <th>Placa</th>
+                    <th>Vehículo</th>
+                    <th>Estado</th>
+                    <th>Total</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for o in ultimas_ordenes %}
+                <tr>
+                    <td><strong>Nº {{ o.id }}</strong></td>
+                    <td>{{ o.id_vehiculo.placa }}</td>
+                    <td>{{ o.id_vehiculo.marca|default:"" }} {{ o.id_vehiculo.modelo|default:"" }}</td>
+                    <td>
+                        <span class="badge 
+                            {% if o.estado_orden == 'COBRADA' %}badge-success
+                            {% elif o.estado_orden == 'EN_PROCESO' %}badge-info
+                            {% elif o.estado_orden == 'POR_COBRAR' %}badge-warning
+                            {% else %}badge-danger{% endif %}">
+                            {{ o.estado_orden }}
+                        </span>
+                    </td>
+                    <td><strong>{% if o.pago %}Bs. {{ o.pago.monto_total }}{% else %}-{% endif %}</strong></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p class="text-muted">No hay órdenes registradas.</p>
+    {% endif %}
+</div>
+
+<!-- ============ VENTAS RÁPIDAS DE HOY ============ -->
+<div class="card">
+    <h3>Ventas Rápidas de Hoy</h3>
+    {% if ventas_rapidas_lista %}
+    <div class="scroll-y" style="max-height:200px;">
+        <table>
+            <thead>
+                <tr>
+                    <th>Venta</th>
+                    <th>Hora</th>
+                    <th>Registrado</th>
+                    <th>Total</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for v in ventas_rapidas_lista %}
+                <tr>
+                    <td>#{{ v.id }}</td>
+                    <td>{{ v.fecha_venta|date:"H:i" }}</td>
+                    <td>{{ v.registrado_por.nombre|default:"-" }}</td>
+                    <td><strong>Bs. {{ v.total|floatformat:2 }}</strong></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p class="text-muted">No hay ventas rápidas hoy.</p>
+    {% endif %}
+</div>
+
+{% endblock %}

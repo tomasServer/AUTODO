@@ -1,12 +1,33 @@
 {% extends 'gestion_vehicular/jefe_mecanico/base_jefe.html' %}
 {% block title %}Nueva Orden{% endblock %}
 
+{% block extra_css %}
+<!-- Select2 CSS -->
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<style>
+    .select2-container {
+        min-width: 150px;
+    }
+    .select2-container .select2-selection--single {
+        height: 38px;
+        padding: 5px;
+        border: 1px solid #bdc3c7;
+    }
+    .select2-container--default .select2-selection--single .select2-selection__rendered {
+        line-height: 26px;
+    }
+    .select2-container--default .select2-selection--single .select2-selection__arrow {
+        height: 36px;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 
 <h2>Nueva Orden de Trabajo</h2>
 
 <div class="card">
-    <form method="POST" id="ordenForm">
+    <form method="POST" id="ordenForm" autocomplete="off">
         {% csrf_token %}
 
         <!-- FILA 1: Placa + Cliente + Teléfono -->
@@ -18,22 +39,22 @@
                        value="{{ placa|default:'' }}">
             </div>
             <div>
-                <label>Cliente</label>
-                <input type="text" name="cliente_nombre" id="cliente_nombre" maxlength="100" 
-                       oninput="validarNombre(this)" placeholder="Opcional...">
+                <label>Cliente *</label>
+                <input type="text" name="cliente_nombre" id="cliente_nombre" maxlength="100" required
+                       oninput="validarNombre(this)" placeholder="Nombre del cliente...">
             </div>
             <div>
-                <label>Teléfono</label>
-                <input type="tel" name="cliente_telefono" id="cliente_telefono" maxlength="8" 
-                       oninput="validarTelefono(this)" placeholder="Opcional...">
+                <label>Teléfono *</label>
+                <input type="tel" name="cliente_telefono" id="cliente_telefono" maxlength="8" required
+                       oninput="validarTelefono(this)" placeholder="Ej: 77712345">
             </div>
         </div>
 
         <!-- FILA 2: Supervisor + Complejidad + Kilometraje + Más datos -->
         <div class="grid grid-4 mt-10">
             <div>
-                <label>Encargado de Revisión</label>
-                <select name="supervisor_id">
+                <label>Encargado de Revisión *</label>
+                <select name="supervisor_id" id="supervisor_id" required>
                     <option value="">Seleccione...</option>
                     {% for sup in supervisores %}
                     <option value="{{ sup.id }}">{{ sup.nombre_completo }}</option>
@@ -41,8 +62,8 @@
                 </select>
             </div>
             <div>
-                <label>Complejidad</label>
-                <select name="complejidad_id">
+                <label>Complejidad *</label>
+                <select name="complejidad_id" id="complejidad_id" required>
                     <option value="">Seleccione...</option>
                     {% for comp in complejidades %}
                     <option value="{{ comp.id }}">{{ comp.nombre }}</option>
@@ -50,8 +71,8 @@
                 </select>
             </div>
             <div>
-                <label>Kilometraje</label>
-                <input type="number" name="kilometraje" value="0" min="0">
+                <label>Kilometraje *</label>
+                <input type="number" name="kilometraje" id="kilometraje" value="0" min="0" required>
             </div>
             <div style="display:flex; align-items:flex-end;">
                 <button type="button" onclick="toggleExtra()" class="btn btn-warning btn-sm">+ Más datos</button>
@@ -111,6 +132,10 @@
     </form>
 </div>
 
+<!-- ====== SELECT2 JS ====== -->
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
 <script>
     var contadorServicios = 0;
     var contadorProductos = 0;
@@ -160,14 +185,14 @@
         div.className = 'flex';
         div.style.marginTop = '8px';
         div.innerHTML = `
-            <select name="servicio_id_${contadorServicios}" style="flex:2; min-width:150px;">
+            <select name="servicio_id_${contadorServicios}" class="servicio-select" style="flex:2; min-width:150px;">
                 <option value="">Seleccione servicio...</option>
                 {% for s in servicios %}
                 <option value="{{ s.id }}" data-precio="{{ s.precio_mano_obra }}">{{ s.nombre }} - Bs. {{ s.precio_mano_obra }}</option>
                 {% endfor %}
             </select>
             <input type="number" name="precio_servicio_${contadorServicios}" step="0.01" value="0.00" placeholder="Precio" style="width:110px;">
-            <select name="mecanico_${contadorServicios}" style="flex:1; min-width:120px;">
+            <select name="mecanico_${contadorServicios}" class="mecanico-select" style="flex:1; min-width:120px;">
                 <option value="">Mecánico...</option>
                 {% for mec in mecanicos %}
                 <option value="{{ mec.id }}">{{ mec.nombre_completo }}</option>
@@ -177,14 +202,27 @@
         `;
         document.getElementById('serviciosAdicionales').appendChild(div);
         
-        div.querySelector('select').addEventListener('change', function() {
-            var precio = this.options[this.selectedIndex].getAttribute('data-precio') || '0';
-            div.querySelector('input').value = precio;
+        // ✅ Select2 en servicio
+        $(div).find('.servicio-select').select2({
+            placeholder: 'Buscar servicio...',
+            allowClear: true,
+            width: '100%',
+            language: {
+                noResults: function() { return "No se encontraron servicios"; },
+                searching: function() { return "Buscando..."; }
+            }
+        });
+        
+        // ✅ Evento de cambio en servicio
+        $(div).find('.servicio-select').on('change', function() {
+            var precio = $(this).find('option:selected').data('precio') || '0';
+            $(div).find('input[type="number"]').val(precio);
             actualizarTotal();
         });
-        div.querySelector('input').addEventListener('input', actualizarTotal);
-        div.querySelector('button').addEventListener('click', function() {
-            div.remove();
+        
+        $(div).find('input[type="number"]').on('input', actualizarTotal);
+        $(div).find('button').on('click', function() {
+            $(div).remove();
             actualizarTotal();
         });
     }
@@ -196,7 +234,7 @@
         div.className = 'flex';
         div.style.marginTop = '8px';
         div.innerHTML = `
-            <select name="producto_id_${contadorProductos}" style="flex:2; min-width:150px;">
+            <select name="producto_id_${contadorProductos}" class="producto-select" style="flex:2; min-width:150px;">
                 <option value="">Seleccione insumo...</option>
                 {% for p in productos %}
                 <option value="{{ p.id }}" data-precio="{{ p.precio_venta }}">{{ p.nombre }} - Bs. {{ p.precio_venta }}</option>
@@ -208,16 +246,27 @@
         `;
         document.getElementById('productosAdicionales').appendChild(div);
         
-        div.querySelector('select').addEventListener('change', function() {
-            var precio = this.options[this.selectedIndex].getAttribute('data-precio') || '0';
-            div.querySelectorAll('input')[1].value = precio;
+        // ✅ Select2 en producto
+        $(div).find('.producto-select').select2({
+            placeholder: 'Buscar insumo...',
+            allowClear: true,
+            width: '100%',
+            language: {
+                noResults: function() { return "No se encontraron insumos"; },
+                searching: function() { return "Buscando..."; }
+            }
+        });
+        
+        // ✅ Evento de cambio en producto
+        $(div).find('.producto-select').on('change', function() {
+            var precio = $(this).find('option:selected').data('precio') || '0';
+            $(div).find('input[type="number"]').eq(1).val(precio);
             actualizarTotal();
         });
-        div.querySelectorAll('input').forEach(function(input) {
-            input.addEventListener('input', actualizarTotal);
-        });
-        div.querySelector('button').addEventListener('click', function() {
-            div.remove();
+        
+        $(div).find('input[type="number"]').on('input', actualizarTotal);
+        $(div).find('button').on('click', function() {
+            $(div).remove();
             actualizarTotal();
         });
     }
@@ -226,15 +275,15 @@
     function actualizarTotal() {
         var total = 0;
         
-        document.querySelectorAll('input[name^="precio_servicio_"]').forEach(function(input) {
-            total += parseFloat(input.value) || 0;
+        $('input[name^="precio_servicio_"]').each(function() {
+            total += parseFloat($(this).val()) || 0;
         });
         
-        document.querySelectorAll('input[name^="precio_producto_"]').forEach(function(input) {
-            var num = input.name.split('_').pop();
-            var cantidad = document.querySelector(`input[name="cantidad_${num}"]`);
-            var cant = cantidad ? (parseFloat(cantidad.value) || 0) : 0;
-            total += (parseFloat(input.value) || 0) * cant;
+        $('input[name^="precio_producto_"]').each(function() {
+            var num = $(this).attr('name').split('_').pop();
+            var cantidad = $(`input[name="cantidad_${num}"]`);
+            var cant = cantidad.length ? (parseFloat(cantidad.val()) || 0) : 0;
+            total += (parseFloat($(this).val()) || 0) * cant;
         });
         
         document.getElementById('totalCotizacion').textContent = 'Bs. ' + total.toFixed(2);
@@ -245,8 +294,49 @@
         var placa = document.getElementById('placa');
         if (!placa.value.trim()) {
             e.preventDefault();
-            alert('La placa es obligatoria.');
+            alert('⚠️ La placa es obligatoria.');
             placa.focus();
+            return;
+        }
+        
+        var cliente = document.getElementById('cliente_nombre');
+        if (!cliente.value.trim()) {
+            e.preventDefault();
+            alert('⚠️ El nombre del cliente es obligatorio.');
+            cliente.focus();
+            return;
+        }
+        
+        var telefono = document.getElementById('cliente_telefono');
+        if (!telefono.value.trim()) {
+            e.preventDefault();
+            alert('⚠️ El teléfono del cliente es obligatorio.');
+            telefono.focus();
+            return;
+        }
+        
+        var supervisor = document.getElementById('supervisor_id');
+        if (!supervisor.value) {
+            e.preventDefault();
+            alert('⚠️ Debe seleccionar un Encargado de Revisión.');
+            supervisor.focus();
+            return;
+        }
+        
+        var complejidad = document.getElementById('complejidad_id');
+        if (!complejidad.value) {
+            e.preventDefault();
+            alert('⚠️ Debe seleccionar una Complejidad.');
+            complejidad.focus();
+            return;
+        }
+        
+        var kilometraje = document.getElementById('kilometraje');
+        if (!kilometraje.value || kilometraje.value === '') {
+            e.preventDefault();
+            alert('⚠️ El kilometraje es obligatorio.');
+            kilometraje.focus();
+            return;
         }
     });
 </script>

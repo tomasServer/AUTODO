@@ -1,42 +1,47 @@
 {% extends 'gestion_vehicular/jefe_mecanico/base_jefe.html' %}
-{% block title %}Revision Tecnica{% endblock %}
+{% block title %}Revisión Técnica{% endblock %}
 
 {% block content %}
-<h2 style="color:#1a252f; margin-bottom:15px;">Revision Tecnica</h2>
 
-<div class="card" style="padding:20px;">
+<h2>Revisión Técnica</h2>
+
+<div class="card">
     <form method="POST">
         {% csrf_token %}
         
-        <div style="margin-bottom:15px;">
-            <label>Tipo de Revision:</label>
+        <div class="mb-10">
+            <label>Tipo de Revisión</label>
             <select name="tipo_revision" style="width:auto;">
                 <option value="COMPLETA">Completa</option>
-                <option value="RAPIDA">Rapida</option>
+                <option value="RAPIDA">Rápida</option>
             </select>
         </div>
-        
+
+        <!-- Lista de componentes -->
         {% for c in componentes %}
-        <div style="display:flex; align-items:center; justify-content:space-between; padding:10px; border-bottom:1px solid #ecf0f1;">
+        <div class="flex-between" style="padding:10px 0; border-bottom:1px solid #ecf0f1;">
             <span style="font-weight:600;">{{ c.nombre }}</span>
-            <div style="display:flex; gap:8px;">
-                <label style="font-size:0.8rem; margin:0;">
-                    <input type="radio" name="comp_{{ c.id }}" value="OK" checked> OK
+            <div class="flex">
+                <label style="font-size:0.8rem; margin:0; display:flex; align-items:center; gap:4px;">
+                    <input type="radio" name="comp_{{ c.id }}" value="OK" checked style="width:auto;"> OK
                 </label>
-                <label style="font-size:0.8rem; margin:0;">
-                    <input type="radio" name="comp_{{ c.id }}" value="REGULAR"> REGULAR
+                <label style="font-size:0.8rem; margin:0; display:flex; align-items:center; gap:4px;">
+                    <input type="radio" name="comp_{{ c.id }}" value="REGULAR" style="width:auto;"> REGULAR
                 </label>
-                <label style="font-size:0.8rem; margin:0;">
-                    <input type="radio" name="comp_{{ c.id }}" value="CRITICO"> CRITICO
+                <label style="font-size:0.8rem; margin:0; display:flex; align-items:center; gap:4px;">
+                    <input type="radio" name="comp_{{ c.id }}" value="CRITICO" style="width:auto;"> CRÍTICO
                 </label>
             </div>
         </div>
+        {% empty %}
+        <p class="text-muted">No hay componentes configurados para revisión.</p>
         {% endfor %}
-        
-        <div style="margin-top:15px; display:flex; justify-content:flex-end; gap:10px;">
+
+        <div class="flex flex-wrap" style="margin-top:15px; justify-content:flex-end;">
             <a href="{% url 'detalle_orden' orden.id %}" class="btn btn-gray">Cancelar</a>
-            <button type="submit" class="btn btn-success">Guardar Revision</button>
+            <button type="submit" class="btn btn-success">Guardar Revisión</button>
         </div>
     </form>
 </div>
+
 {% endblock %}

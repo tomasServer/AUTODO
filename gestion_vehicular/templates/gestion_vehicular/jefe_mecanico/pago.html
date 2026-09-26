@@ -2,44 +2,54 @@
 {% block title %}Registrar Pago{% endblock %}
 
 {% block content %}
-<h2 style="color:#1a252f; margin-bottom:15px;">Registrar Pago</h2>
 
-<div class="card" style="padding:20px;">
-    <table style="font-size:0.9rem;">
-        <tr>
-            <td>Total Servicios:</td>
-            <td style="text-align:right;"><strong>Bs. {{ total_servicios|floatformat:2 }}</strong></td>
-        </tr>
-        <tr>
-            <td>Total Productos:</td>
-            <td style="text-align:right;"><strong>Bs. {{ total_productos|floatformat:2 }}</strong></td>
-        </tr>
-        {% if total_hallazgos > 0 %}
-        <tr>
-            <td>Hallazgos Autorizados:</td>
-            <td style="text-align:right;"><strong>Bs. {{ total_hallazgos|floatformat:2 }}</strong></td>
-        </tr>
-        {% endif %}
-        <tr style="background:#1a252f; color:white;">
-            <td>TOTAL A COBRAR:</td>
-            <td style="text-align:right;"><strong>Bs. {{ total_general|floatformat:2 }}</strong></td>
-        </tr>
+<h2>Registrar Pago</h2>
+
+<div class="card">
+    <h3>Resumen de Cobro</h3>
+    <table>
+        <tbody>
+            <tr>
+                <td><strong>Total Servicios</strong></td>
+                <td class="text-right"><strong>Bs. {{ total_servicios|floatformat:2 }}</strong></td>
+            </tr>
+            <tr>
+                <td><strong>Total Productos</strong></td>
+                <td class="text-right"><strong>Bs. {{ total_productos|floatformat:2 }}</strong></td>
+            </tr>
+            {% if total_hallazgos > 0 %}
+            <tr>
+                <td><strong>Hallazgos Autorizados</strong></td>
+                <td class="text-right"><strong>Bs. {{ total_hallazgos|floatformat:2 }}</strong></td>
+            </tr>
+            {% endif %}
+            <tr style="background:#1a252f; color:white;">
+                <td><strong>TOTAL A COBRAR:</strong></td>
+                <td class="text-right" style="font-size:1.3rem;"><strong>Bs. {{ total_general|floatformat:2 }}</strong></td>
+            </tr>
+        </tbody>
     </table>
-    
-    <form method="POST" style="margin-top:20px;">
+</div>
+
+<div class="card">
+    <form method="POST">
         {% csrf_token %}
-        <label>Metodo de Pago</label>
-        <select name="metodo_pago" required>
-            <option value="">Seleccione...</option>
-            <option value="EFECTIVO">Efectivo</option>
-            <option value="TRANSFERENCIA">Transferencia</option>
-            <option value="QR">Codigo QR</option>
-        </select>
         
-        <div style="margin-top:15px; display:flex; justify-content:flex-end; gap:10px;">
+        <div>
+            <label>Método de Pago *</label>
+            <select name="metodo_pago" required>
+                <option value="">Seleccione...</option>
+                <option value="EFECTIVO">Efectivo</option>
+                <option value="TRANSFERENCIA">Transferencia</option>
+                <option value="QR">Código QR</option>
+            </select>
+        </div>
+        
+        <div class="flex flex-wrap" style="margin-top:15px; justify-content:flex-end;">
             <a href="{% url 'detalle_orden' orden.id %}" class="btn btn-gray">Cancelar</a>
             <button type="submit" class="btn btn-success">Confirmar Pago</button>
         </div>
     </form>
 </div>
+
 {% endblock %}

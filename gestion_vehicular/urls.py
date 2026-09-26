@@ -93,4 +93,7 @@ urlpatterns = [
     path('servicio/<int:detalle_id>/eliminar/', gestion_taller.eliminar_servicio_orden, name='eliminar_servicio_orden'),
     path('producto/<int:detalle_id>/eliminar/', gestion_taller.eliminar_producto_orden, name='eliminar_producto_orden'),
 
+
+    #pdf
+    path('orden/<int:orden_id>/pdf/', gestion_taller.orden_pdf, name='orden_pdf'),
 ]

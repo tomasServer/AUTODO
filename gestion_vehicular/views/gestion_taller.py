@@ -5,6 +5,9 @@ from django.db.models import Q
 from django.contrib.auth.decorators import login_required
 from ..models import *
 from django.db import connection 
+from xhtml2pdf import pisa
+from django.template.loader import render_to_string
+from django.http import HttpResponse
 
 
 def _revisar_estado_orden(orden):
@@ -658,3 +661,44 @@ def convertir_visita_en_orden(request, orden_id):
         return redirect('modo_taller')
     
     return redirect(f'/orden/crear/?visita_id={orden.id}')
+
+
+
+    # ============================================================
+# GENERAR PDF DE LA ORDEN (xhtml2pdf)
+# ============================================================
+
+
+
+
+def orden_pdf(request, orden_id):
+    """Genera un PDF con los servicios, insumos y totales de la orden."""
+    orden = get_object_or_404(OrdenTrabajo, id=orden_id)
+    
+    # ✅ Calcular totales
+    total_servicios = sum(float(d.precio_cobrado or 0) for d in orden.detalles_servicio.all())
+    total_productos = sum(float(d.subtotal_precio or 0) for d in orden.detalles_producto.all())
+    total_general = total_servicios + total_productos
+    
+    # ✅ Renderizar el template HTML
+    html_string = render_to_string(
+        'gestion_vehicular/admin/gestion_taller/recibo_pdf.html',
+        {
+            'orden': orden,
+            'total_servicios': total_servicios,
+            'total_productos': total_productos,
+            'total_general': total_general,
+        }
+    )
+    
+    # ✅ Crear respuesta HTTP con tipo PDF
+    response = HttpResponse(content_type='application/pdf')
+    response['Content-Disposition'] = f'inline; filename="orden_{orden.id}.pdf"'
+    
+    # ✅ Convertir HTML a PDF
+    pisa_status = pisa.CreatePDF(html_string, dest=response)
+    
+    if pisa_status.err:
+        return HttpResponse('Error al generar el PDF', status=500)
+    
+    return response

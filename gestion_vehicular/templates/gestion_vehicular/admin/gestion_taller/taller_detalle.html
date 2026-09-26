@@ -208,8 +208,10 @@
 </div>
 
 <!-- BOTONES DE ACCIÓN -->
+<!-- BOTONES DE ACCIÓN -->
 <div class="flex flex-wrap" style="margin-top:15px;">
     <a href="{% url 'modo_taller' %}" class="btn btn-gray">Volver</a>
+    <a href="{% url 'orden_pdf' orden.id %}" class="btn btn-primary" target="_blank">📄 Recibo</a>
     {% if orden.estado_orden == 'POR_COBRAR' %}
     <a href="{% url 'detalle_orden' orden.id %}" class="btn btn-info">Ver Orden</a>
     <a href="{% url 'registrar_pago' orden.id %}" class="btn btn-success">Cobrar</a>

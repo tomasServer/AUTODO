@@ -3,75 +3,88 @@
 
 {% block content %}
 
-<h2 style="color:#1a252f; margin-bottom:15px;">Buscar Vehículo</h2>
+<h2>Buscar Vehículo</h2>
 
-<div class="card" style="padding:20px;">
+<!-- Formulario de búsqueda -->
+<div class="card">
     <form method="GET" action="{% url 'buscar_vehiculo' %}" style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
-        <input type="text" name="placa" placeholder="Ingrese placa..." value="{{ placa }}" style="flex:1; min-width:200px;">
+        <input type="text" name="placa" placeholder="Ingrese placa..." value="{{ placa }}" 
+               style="flex:1; min-width:200px; text-transform:uppercase;" 
+               oninput="this.value = this.value.toUpperCase()">
         <button type="submit" class="btn btn-primary">Buscar</button>
     </form>
 </div>
 
+<!-- SI SE ENCONTRÓ EL VEHÍCULO -->
 {% if vehiculo %}
-<div class="card" style="padding:20px;">
-    <h3 style="margin:0 0 15px 0; color:#e67e22;">Datos del Vehículo</h3>
-    <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px;">
+<div class="card">
+    <h3>Datos del Vehículo</h3>
+    <div class="grid grid-3">
         <div><strong>Placa:</strong> {{ vehiculo.placa }}</div>
-        <div><strong>Cliente:</strong> {{ vehiculo.id_cliente.nombre|default:"-" }}</div>
+        <div><strong>Cliente:</strong> {{ vehiculo.id_cliente.nombre|default:"Sin cliente" }} {{ vehiculo.id_cliente.apellido|default:"" }}</div>
         <div><strong>Teléfono:</strong> {{ vehiculo.id_cliente.telefono|default:"-" }}</div>
     </div>
     
-    <div style="margin-top:15px; display:flex; gap:10px; flex-wrap:wrap;">
+    <div class="flex flex-wrap mt-10">
         <a href="{% url 'crear_orden' %}?vehiculo_id={{ vehiculo.id }}" class="btn btn-success">+ Nueva Orden</a>
-        <a href="{% url 'revision_rapida_placa' %}?placa={{ vehiculo.placa }}" class="btn btn-warning">Revisión</a>
+        <a href="{% url 'revision_rapida_placa' %}?placa={{ vehiculo.placa }}" class="btn btn-warning">Revisión Rápida</a>
         <a href="{% url 'historial_vehiculo' vehiculo.placa %}" class="btn btn-info">Ver Historial</a>
     </div>
 </div>
 
+<!-- Últimas órdenes -->
 {% if ordenes %}
-<div class="card" style="padding:20px;">
-    <h3 style="margin:0 0 15px 0; color:#2c3e50;">Últimas Órdenes</h3>
-    <table style="font-size:0.85rem;">
-        <thead>
-            <tr>
-                <th>Orden</th>
-                <th>Fecha Ingreso</th>
-                <th>Estado</th>
-                <th>Total</th>
-                <th></th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for orden in ordenes %}
-            <tr>
-                <td><strong>{{ orden.id }}</strong></td>
-                <td>{{ orden.fecha_ingreso|date:"d/m/Y H:i" }}</td>
-                <td><span class="badge {% if orden.estado_orden == 'COBRADA' %}badge-success{% elif orden.estado_orden == 'EN_PROCESO' %}badge-info{% else %}badge-warning{% endif %}">{{ orden.estado_orden }}</span></td>
-                <td>Bs. {{ orden.total_orden|floatformat:2|default:"0.00" }}</td>
-                <td>
-                    <a href="{% url 'detalle_orden' orden.id %}" class="btn btn-primary" style="padding:2px 10px; font-size:0.7rem;">Ver</a>
-                    {% if orden.estado_orden == 'CANCELADA' %}
-                    <a href="{% url 'crear_orden' %}?orden_anterior_id={{ orden.id }}" class="btn btn-warning" style="padding:2px 10px; font-size:0.7rem;">Usar Cotización</a>
-                    {% endif %}
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+<div class="card">
+    <h3>Últimas Órdenes</h3>
+    <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th>Orden</th>
+                    <th>Fecha Ingreso</th>
+                    <th>Estado</th>
+                    <th>Total</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for orden in ordenes %}
+                <tr>
+                    <td><strong>Nº {{ orden.id }}</strong></td>
+                    <td>{{ orden.fecha_ingreso|date:"d/m/Y H:i" }}</td>
+                    <td>
+                        <span class="badge 
+                            {% if orden.estado_orden == 'COBRADA' %}badge-success
+                            {% elif orden.estado_orden == 'EN_PROCESO' %}badge-info
+                            {% elif orden.estado_orden == 'CANCELADA' %}badge-danger
+                            {% else %}badge-warning{% endif %}">
+                            {{ orden.estado_orden }}
+                        </span>
+                    </td>
+                    <td>Bs. {{ orden.total_orden|floatformat:2|default:"0.00" }}</td>
+                    <td>
+                        <a href="{% url 'detalle_orden' orden.id %}" class="btn btn-primary btn-sm">Ver</a>
+                        {% if orden.estado_orden == 'CANCELADA' %}
+                        <a href="{% url 'crear_orden' %}?orden_anterior_id={{ orden.id }}" class="btn btn-warning btn-sm">Usar Cotización</a>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
 </div>
 {% endif %}
 
+<!-- SI NO SE ENCONTRÓ Y HAY PLACA -->
 {% elif placa %}
-<p style="color:#e74c3c;">No se encontró el vehículo "{{ placa }}"</p>
-
-{% endif %}
-
-{% if not vehiculo and placa %}
-<div class="card" style="padding:20px; text-align:center;">
-    <p style="color:#7f8c8d; margin-bottom:15px;">No se encontro el vehiculo con placa <strong>{{ placa }}</strong></p>
-    <a href="{% url 'revision_rapida_placa' %}?placa={{ placa }}" class="btn btn-warning" style="padding:12px 24px;">
-        Revision
-    </a>
+<div class="card text-center">
+    <p class="text-muted">No se encontró el vehículo con placa <strong>{{ placa }}</strong></p>
+    <p class="text-muted" style="font-size:0.85rem;">¿Quieres registrar este vehículo por primera vez?</p>
+    <div class="flex flex-wrap" style="justify-content:center; margin-top:15px;">
+        <a href="{% url 'revision_rapida_placa' %}?placa={{ placa }}" class="btn btn-warning">Revisión Rápida</a>
+        <a href="{% url 'crear_orden' %}?placa={{ placa }}" class="btn btn-success">+ Nueva Orden</a>
+    </div>
 </div>
 {% endif %}
 

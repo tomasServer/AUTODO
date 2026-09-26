@@ -1,43 +1,142 @@
 {% extends 'gestion_vehicular/ayudante/base_ayudante.html' %}
-{% block title %}Venta Rapida{% endblock %}
+{% block title %}Venta Rápida{% endblock %}
+
+{% block extra_css %}
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<style>
+    #modalCliente {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.5);
+        z-index: 9999;
+        justify-content: center;
+        align-items: center;
+    }
+    #modalContent {
+        background: #fff;
+        padding: 25px;
+        border-radius: 8px;
+        max-width: 500px;
+        width: 90%;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        position: relative;
+        z-index: 10000;
+    }
+    #modalContent .btn {
+        cursor: pointer;
+        position: relative;
+        z-index: 10001;
+    }
+</style>
+{% endblock %}
 
 {% block content %}
-<h2 style="color:#1a252f; margin-bottom:15px;">Venta Rapida de Productos</h2>
 
-<div class="card" style="padding:20px;">
-    <form method="POST" action="{% url 'guardar_venta_rapida' %}">
+<h2>Venta Rápida de Productos</h2>
+
+<div class="card">
+    <form method="POST" action="{% url 'guardar_venta_rapida' %}" id="ventaForm">
         {% csrf_token %}
         
         <div id="productosVenta">
             <div style="display:grid; grid-template-columns:1fr 0.3fr 0.5fr auto; gap:8px; margin-bottom:5px;">
-                <select name="producto_1" onchange="actualizarPrecioVenta(this, 1)">
-                    <option value="">Seleccione producto...</option>
+                <select name="producto_1" class="producto-select" onchange="actualizarPrecioVenta(this, 1)">
+                    <option value="">Seleccione producto</option>
                     {% for p in productos %}
                     <option value="{{ p.id }}" data-precio="{{ p.precio_venta }}">{{ p.nombre }} - Bs. {{ p.precio_venta }} (Stock: {{ p.stock_actual }})</option>
                     {% endfor %}
                 </select>
                 <input type="number" name="cantidad_1" value="1" min="1" oninput="actualizarTotalVenta()">
                 <input type="number" name="precio_producto_1" step="0.01" value="0.00" oninput="actualizarTotalVenta()">
-                <button type="button" onclick="eliminarVenta(this)" style="background:#e74c3c; color:white; border:none; padding:5px 10px; border-radius:4px; cursor:pointer;">X</button>
+                <button type="button" onclick="eliminarVenta(this)" class="btn btn-danger btn-sm">X</button>
             </div>
         </div>
         
-        <button type="button" onclick="agregarProductoVenta()" style="background:#2980b9; color:white; border:none; padding:6px 15px; border-radius:4px; cursor:pointer; margin-top:5px;">+ Agregar Producto</button>
+        <button type="button" onclick="agregarProductoVenta()" class="btn btn-primary btn-sm mt-10">+ Agregar Producto</button>
         
         <div style="margin-top:15px; padding:15px; background:#fef9e7; border-radius:4px; border-left:4px solid #e67e22;">
-            <div style="display:flex; justify-content:space-between; font-size:1.2rem;">
+            <div class="flex-between" style="font-size:1.2rem;">
                 <span>Total:</span>
-                <span><strong id="totalVenta">Bs. 0.00</strong></span>
+                <strong id="totalVenta">Bs. 0.00</strong>
             </div>
         </div>
         
-        <div style="margin-top:15px; display:flex; justify-content:flex-end;">
-            <button type="submit" class="btn btn-success">Registrar Venta</button>
+        <div class="flex flex-wrap" style="margin-top:15px; justify-content:flex-end;">
+            <button type="button" onclick="abrirModalCliente()" class="btn btn-success">Registrar Venta</button>
         </div>
     </form>
 </div>
 
+<!-- ============ MODAL PARA DATOS DEL CLIENTE ============ -->
+<div id="modalCliente">
+    <div id="modalContent">
+        <h3 style="margin:0 0 5px 0; color:#1a252f;">Datos del Cliente</h3>
+        <p class="text-muted" style="font-size:0.9rem; margin-bottom:15px;">Busca un cliente existente o ingresa uno nuevo</p>
+        
+        <!-- Buscador de clientes -->
+        <div style="margin-bottom:12px; position:relative;">
+            <label>🔍 Buscar cliente existente</label>
+            <input type="text" id="buscador_cliente" placeholder="Escribe nombre, teléfono o CI..." 
+                   autocomplete="off" oninput="buscarClienteLocal(this.value)">
+            <div id="resultados_busqueda" style="display:none; position:absolute; top:100%; left:0; right:0; background:#fff; border:1px solid #bdc3c7; border-top:none; border-radius:0 0 4px 4px; max-height:200px; overflow-y:auto; z-index:10002; box-shadow:0 4px 6px rgba(0,0,0,0.1);"></div>
+        </div>
+        
+        <hr style="border:none; border-top:1px solid #ecf0f1; margin:15px 0;">
+        
+        <div style="margin-bottom:12px;">
+            <label>Nombre</label>
+            <input type="text" id="cliente_nombre" placeholder="Ej: Tomás López">
+        </div>
+        
+        <div style="margin-bottom:12px;">
+            <label>Teléfono</label>
+            <input type="tel" id="cliente_telefono" placeholder="Ej: 77712345">
+        </div>
+        
+        <div style="margin-bottom:20px;">
+            <label>CI (Carnet)</label>
+            <input type="text" id="cliente_ci" placeholder="Ej: 1234567">
+        </div>
+        
+        <div class="flex flex-wrap" style="justify-content:flex-end;">
+            <button type="button" onclick="cerrarModalCliente()" class="btn btn-gray">Cancelar</button>
+            <button type="button" onclick="ventaSinRegistrar()" class="btn btn-warning">Sin Registrar</button>
+            <button type="button" onclick="confirmarVenta()" class="btn btn-success">Confirmar Venta</button>
+        </div>
+    </div>
+</div>
+
+<!-- ============ SCRIPTS ============ -->
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
 <script>
+    // ============ LISTA DE CLIENTES (cargada desde el servidor) ============
+    var CLIENTES_VENTA = [
+        {% for c in clientes_venta %}
+        {
+            id: {{ c.id }},
+            nombre: "{{ c.nombre|escapejs }}",
+            telefono: "{{ c.telefono|default:''|escapejs }}",
+            ci: "{{ c.ci|default:''|escapejs }}"
+        }{% if not forloop.last %},{% endif %}
+        {% endfor %}
+    ];
+
+    // ============ SELECT2 ============
+    $(document).ready(function() {
+        $('.producto-select').select2({
+            placeholder: 'Buscar producto...',
+            allowClear: true,
+            width: '100%'
+        });
+    });
+
+    // ============ PRODUCTOS ============
     var contadorVentas = 1;
     
     function agregarProductoVenta() {
@@ -45,7 +144,7 @@
         var div = document.createElement('div');
         div.style.cssText = 'display:grid; grid-template-columns:1fr 0.3fr 0.5fr auto; gap:8px; margin-bottom:5px;';
         div.innerHTML = `
-            <select name="producto_${contadorVentas}">
+            <select name="producto_${contadorVentas}" class="producto-select">
                 <option value="">Seleccione producto...</option>
                 {% for p in productos %}
                 <option value="{{ p.id }}" data-precio="{{ p.precio_venta }}">{{ p.nombre }} - Bs. {{ p.precio_venta }}</option>
@@ -53,22 +152,25 @@
             </select>
             <input type="number" name="cantidad_${contadorVentas}" value="1" min="1">
             <input type="number" name="precio_producto_${contadorVentas}" step="0.01" value="0.00">
-            <button type="button" onclick="eliminarVenta(this)" style="background:#e74c3c; color:white; border:none; padding:5px 10px; border-radius:4px; cursor:pointer;">X</button>
+            <button type="button" onclick="eliminarVenta(this)" class="btn btn-danger btn-sm">X</button>
         `;
         document.getElementById('productosVenta').appendChild(div);
         
-        div.querySelector('select').addEventListener('change', function() {
+        $(div).find('.producto-select').select2({
+            placeholder: 'Buscar producto...',
+            allowClear: true,
+            width: '100%'
+        });
+        
+        $(div).find('.producto-select').on('change', function() {
             actualizarPrecioVenta(this, contadorVentas);
         });
-        div.querySelectorAll('input[type="number"]').forEach(function(input) {
-            input.addEventListener('input', actualizarTotalVenta);
-        });
+        $(div).find('input[type="number"]').on('input', actualizarTotalVenta);
     }
     
     function actualizarPrecioVenta(select, num) {
-        var precio = select.options[select.selectedIndex].getAttribute('data-precio') || '0';
-        var input = document.querySelector(`input[name="precio_producto_${num}"]`);
-        if (input) input.value = precio;
+        var precio = $(select).find('option:selected').data('precio') || '0';
+        $(`input[name="precio_producto_${num}"]`).val(precio);
         actualizarTotalVenta();
     }
     
@@ -79,13 +181,170 @@
     
     function actualizarTotalVenta() {
         var total = 0;
-        document.querySelectorAll('input[name^="precio_producto_"]').forEach(function(input) {
-            var num = input.name.split('_').pop();
-            var cantidad = document.querySelector(`input[name="cantidad_${num}"]`);
-            var cant = cantidad ? (parseFloat(cantidad.value) || 0) : 0;
-            total += (parseFloat(input.value) || 0) * cant;
+        $('input[name^="precio_producto_"]').each(function() {
+            var num = $(this).attr('name').split('_').pop();
+            var cantidad = $(`input[name="cantidad_${num}"]`);
+            var cant = cantidad.length ? (parseFloat(cantidad.val()) || 0) : 0;
+            total += (parseFloat($(this).val()) || 0) * cant;
         });
-        document.getElementById('totalVenta').textContent = 'Bs. ' + total.toFixed(2);
+        $('#totalVenta').text('Bs. ' + total.toFixed(2));
+    }
+
+    // ============ BUSCADOR DE CLIENTES ============
+    function buscarClienteLocal(termino) {
+        var divResultados = document.getElementById('resultados_busqueda');
+        var t = termino.toLowerCase().trim();
+        
+        if (t.length < 2) {
+            divResultados.style.display = 'none';
+            return;
+        }
+        
+        var encontrados = CLIENTES_VENTA.filter(function(c) {
+            return c.nombre.toLowerCase().includes(t) ||
+                   c.telefono.toLowerCase().includes(t) ||
+                   c.ci.toLowerCase().includes(t);
+        }).slice(0, 10);
+        
+        if (encontrados.length === 0) {
+            divResultados.innerHTML = '<div style="padding:10px; color:#7f8c8d; font-size:0.85rem;">No se encontraron clientes</div>';
+            divResultados.style.display = 'block';
+            return;
+        }
+        
+        var html = '';
+        encontrados.forEach(function(c) {
+            html += `
+                <div onclick="seleccionarClienteLocal(${c.id})" 
+                     style="padding:10px 12px; cursor:pointer; border-bottom:1px solid #ecf0f1; font-size:0.85rem;"
+                     onmouseover="this.style.background='#f8f9fa'" 
+                     onmouseout="this.style.background='#fff'">
+                    <strong>${c.nombre}</strong>
+                    ${c.telefono ? '<span style="color:#7f8c8d; margin-left:8px;">📞 ' + c.telefono + '</span>' : ''}
+                    ${c.ci ? '<span style="color:#7f8c8d; margin-left:8px;">🆔 ' + c.ci + '</span>' : ''}
+                </div>
+            `;
+        });
+        divResultados.innerHTML = html;
+        divResultados.style.display = 'block';
+    }
+
+    function seleccionarClienteLocal(id) {
+        var cliente = CLIENTES_VENTA.find(function(c) { return c.id === id; });
+        if (!cliente) return;
+        
+        document.getElementById('cliente_nombre').value = cliente.nombre;
+        document.getElementById('cliente_telefono').value = cliente.telefono;
+        document.getElementById('cliente_ci').value = cliente.ci;
+        
+        document.getElementById('resultados_busqueda').style.display = 'none';
+        document.getElementById('buscador_cliente').value = '';
+    }
+
+    // Cerrar resultados al hacer clic fuera
+    document.addEventListener('click', function(e) {
+        var buscador = document.getElementById('buscador_cliente');
+        var resultados = document.getElementById('resultados_busqueda');
+        if (buscador && resultados && !buscador.contains(e.target) && !resultados.contains(e.target)) {
+            resultados.style.display = 'none';
+        }
+    });
+
+    // ============ MODAL ============
+    function abrirModalCliente() {
+        var hayProducto = false;
+        $('select[name^="producto_"]').each(function() {
+            if ($(this).val()) hayProducto = true;
+        });
+        
+        if (!hayProducto) {
+            alert('Debes seleccionar al menos un producto.');
+            return;
+        }
+        
+        document.getElementById('cliente_nombre').value = '';
+        document.getElementById('cliente_telefono').value = '';
+        document.getElementById('cliente_ci').value = '';
+        document.getElementById('buscador_cliente').value = '';
+        
+        document.getElementById('modalCliente').style.display = 'flex';
+    }
+    
+    function cerrarModalCliente() {
+        document.getElementById('modalCliente').style.display = 'none';
+    }
+    
+    function ventaSinRegistrar() {
+        if (confirm('¿Estás seguro de que no quieres registrar los datos del cliente?')) {
+            var form = document.getElementById('ventaForm');
+            
+            form.querySelectorAll('input[name="cliente_nombre"], input[name="cliente_telefono"], input[name="cliente_ci"], input[name="sin_registrar"]').forEach(function(input) {
+                input.remove();
+            });
+            
+            var inputSinRegistrar = document.createElement('input');
+            inputSinRegistrar.type = 'hidden';
+            inputSinRegistrar.name = 'sin_registrar';
+            inputSinRegistrar.value = 'true';
+            form.appendChild(inputSinRegistrar);
+            
+            cerrarModalCliente();
+            form.submit();
+        }
+    }
+    
+    function confirmarVenta() {
+        var nombre = document.getElementById('cliente_nombre').value.trim();
+        var telefono = document.getElementById('cliente_telefono').value.trim();
+        var ci = document.getElementById('cliente_ci').value.trim();
+        
+        if (!nombre && !telefono && !ci) {
+            if (!confirm('No has ingresado ningún dato del cliente. ¿Quieres continuar sin registrar?')) {
+                return;
+            }
+        }
+        
+        var form = document.getElementById('ventaForm');
+        
+        form.querySelectorAll('input[name="cliente_nombre"], input[name="cliente_telefono"], input[name="cliente_ci"], input[name="sin_registrar"]').forEach(function(input) {
+            input.remove();
+        });
+        
+        if (nombre) {
+            var inputNombre = document.createElement('input');
+            inputNombre.type = 'hidden';
+            inputNombre.name = 'cliente_nombre';
+            inputNombre.value = nombre;
+            form.appendChild(inputNombre);
+        }
+        
+        if (telefono) {
+            var inputTelefono = document.createElement('input');
+            inputTelefono.type = 'hidden';
+            inputTelefono.name = 'cliente_telefono';
+            inputTelefono.value = telefono;
+            form.appendChild(inputTelefono);
+        }
+        
+        if (ci) {
+            var inputCi = document.createElement('input');
+            inputCi.type = 'hidden';
+            inputCi.name = 'cliente_ci';
+            inputCi.value = ci;
+            form.appendChild(inputCi);
+        }
+        
+        cerrarModalCliente();
+        form.submit();
+    }
+    
+    // Cerrar modal al hacer clic fuera
+    window.onclick = function(event) {
+        var modal = document.getElementById('modalCliente');
+        if (event.target == modal) {
+            modal.style.display = 'none';
+        }
     }
 </script>
+
 {% endblock %}

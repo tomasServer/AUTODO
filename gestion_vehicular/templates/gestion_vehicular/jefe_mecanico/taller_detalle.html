@@ -1,6 +1,25 @@
 {% extends 'gestion_vehicular/jefe_mecanico/base_jefe.html' %}
 {% block title %}Taller - Orden {{ orden.id }}{% endblock %}
 
+{% block extra_css %}
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<style>
+    .inline-form { display: inline; }
+    .inline-form .btn { margin-right: 4px; }
+    .select2-container { min-width: 0 !important; }
+    .select2-container--default .select2-selection--single {
+        height: 38px;
+        border: 1px solid #bdc3c7;
+    }
+    .select2-container--default .select2-selection--single .select2-selection__rendered {
+        line-height: 36px;
+    }
+    .select2-container--default .select2-selection--single .select2-selection__arrow {
+        height: 36px;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 
 <h2>Taller - Orden {{ orden.id }}</h2>
@@ -9,13 +28,14 @@
 <div class="card">
     <div class="grid grid-4">
         <div><strong>Placa:</strong> {{ orden.id_vehiculo.placa }}</div>
-        <div><strong>Vehículo:</strong> {{ orden.id_vehiculo.marca }} {{ orden.id_vehiculo.modelo }}</div>
-        <div><strong>Cliente:</strong> {{ orden.id_vehiculo.id_cliente.nombre|default:"Sin cliente" }}</div>
+        <div><strong>Complejidad:</strong> {{ orden.id_complejidad.nombre|default:"No asignado" }}</div>
+        <div><strong>Cliente:</strong> {{ orden.id_vehiculo.id_cliente.nombre|default:"Sin cliente" }} {{ orden.id_vehiculo.id_cliente.telefono|default:"No registrado" }}</div>
         <div>
             <strong>Estado:</strong>
             <span class="badge 
                 {% if orden.estado_orden == 'POR_COBRAR' %}badge-success
                 {% elif orden.estado_orden == 'EN_PROCESO' %}badge-info
+                {% elif orden.estado_orden == 'VISITA' %}badge-info
                 {% else %}badge-warning{% endif %}">
                 {{ orden.estado_orden }}
             </span>
@@ -29,13 +49,13 @@
     <a href="{% url 'revision_tecnica' orden.id %}?tipo=COMPLETA" class="btn btn-primary">Revisión Completa</a>
 </div>
 
-<!-- SERVICIOS -->
+<!-- ============ SERVICIOS ============ -->
 <div class="card">
     <h3>Servicios</h3>
     {% if servicios_detalle %}
     <div class="table-responsive scroll-y" style="max-height:300px;">
         {% for detalle in servicios_detalle %}
-        <div style="padding:10px 0;">
+        <div style="padding:10px 0; border-bottom:1px solid #ecf0f1;">
             <div class="flex-between flex-wrap">
                 <div>
                     <strong>{{ detalle.id_servicio.nombre }}</strong>
@@ -43,7 +63,7 @@
                     {% if detalle.id_mecanico %}
                     <span style="font-size:12px; color:#2c3e50; margin-left:10px;">{{ detalle.id_mecanico.nombre_completo }}</span>
                     {% else %}
-                    <span style="font-size:12px; color:#95a5a6; margin-left:10px;">Sin asignar</span>
+                    <span class="text-muted" style="font-size:12px; margin-left:10px;">Sin asignar</span>
                     {% endif %}
                 </div>
                 <div class="flex">
@@ -53,14 +73,13 @@
                         {% else %}badge-success{% endif %}">
                         {{ detalle.estado }}
                     </span>
-                    <!-- Solo mostrar botón Editar si es admin o el mecánico asignado -->
                     {% if user.id_rol_id == 1 or detalle.id_mecanico_id == user.id %}
                     <button onclick="editarPrecio({{ detalle.id }})" class="btn btn-gray btn-sm">Editar</button>
                     {% endif %}
                 </div>
             </div>
 
-            <!-- Formulario para editar precio (oculto) - solo para admin o mecánico asignado -->
+            <!-- Formulario para editar precio (oculto) -->
             <div id="editarPrecio-{{ detalle.id }}" style="display:none; margin-top:8px;">
                 <form method="POST" action="{% url 'editar_precio_servicio' detalle.id %}" class="flex flex-wrap">
                     {% csrf_token %}
@@ -71,7 +90,7 @@
                 </form>
             </div>
 
-            <!-- Botones para cambiar estado - solo para admin o mecánico asignado -->
+            <!-- Botones para cambiar estado -->
             {% if user.id_rol_id == 1 or detalle.id_mecanico_id == user.id %}
             <div class="flex flex-wrap" style="margin-top:8px;">
                 <form method="POST" action="{% url 'cambiar_estado_servicio' detalle.id %}" class="inline-form">
@@ -91,9 +110,8 @@
                 </form>
             </div>
             {% else %}
-            <!-- Si no tiene permiso, mostrar solo el estado (sin botones) -->
-            <div style="margin-top:8px; font-size:12px; color:#ff0000;">
-                <em>No puedes modificar este servicio</em>
+            <div style="margin-top:8px; font-size:12px; color:#c0392b;">
+                <em>No puedes modificar este servicio (asignado a otro mecánico)</em>
             </div>
             {% endif %}
 
@@ -110,45 +128,44 @@
     <p class="text-muted">No hay servicios asignados.</p>
     {% endif %}
 
-    <!-- AGREGAR SERVICIO (con mecánico) -->
+    <!-- AGREGAR SERVICIO -->
     <div style="margin-top:15px;">
         <h4 style="font-size:14px; margin-bottom:8px;">Agregar servicio</h4>
-        <form method="POST" action="{% url 'agregar_servicio_orden' orden.id %}" class="flex flex-wrap" style="gap:10px; align-items:center;">
+        <form method="POST" action="{% url 'agregar_servicio_orden' orden.id %}" style="display:flex; gap:8px; align-items:center;">
             {% csrf_token %}
-            <select name="servicio_id" id="servicioSelect" class="form-control" style="flex:2; min-width:150px;" onchange="actualizarPrecio()">
-                <option value="">-- Seleccionar servicio --</option>
+            <select name="servicio_id" id="servicioSelect" style="flex:2; min-width:0;">
+                <option value="">-- Servicio --</option>
                 {% for s in servicios %}
                 <option value="{{ s.id }}" data-precio="{{ s.precio_mano_obra }}">{{ s.nombre }} - Bs. {{ s.precio_mano_obra }}</option>
                 {% endfor %}
             </select>
-            <label style="font-weight:600; font-size:13px; margin:0;">Precio:</label>
-            <input type="number" name="precio_cobrado" id="precioInput" step="0.01" style="width:100px; padding:5px 10px;">
-            <label style="font-weight:600; font-size:13px; margin:0;">Mecánico:</label>
-            <select name="mecanico_id" class="form-control" style="flex:1; min-width:120px;">
-                <option value="">-- Seleccionar --</option>
+            <input type="number" name="precio_cobrado" id="precioInput" step="0.01" placeholder="Precio" style="flex:1; min-width:0;">
+            <select name="mecanico_id" id="mecanicoSelect" style="flex:1; min-width:0;">
+                <option value="">-- Mecánico --</option>
                 {% for mec in mecanicos %}
                 <option value="{{ mec.id }}">{{ mec.nombre_completo }}</option>
                 {% endfor %}
             </select>
-            <button type="submit" class="btn btn-warning">+ Agregar</button>
+            <button type="submit" class="btn btn-warning" style="white-space:nowrap;">+ Agregar</button>
         </form>
     </div>
 </div>
 
-<!-- PRODUCTOS -->
+<!-- ============ PRODUCTOS ============ -->
 <div class="card">
     <h3>Productos</h3>
     {% if orden.detalles_producto.all %}
     <div class="table-responsive scroll-y" style="max-height:200px;">
         <table>
             <thead>
-                <tr><th>Producto</th><th>Cantidad</th><th>Subtotal</th></tr>
+                <tr><th>Producto</th><th>Cantidad</th><th>Precio</th><th>Subtotal</th></tr>
             </thead>
             <tbody>
                 {% for detalle in orden.detalles_producto.all %}
                 <tr>
                     <td>{{ detalle.id_producto.nombre }}</td>
                     <td>{{ detalle.cantidad }}</td>
+                    <td>Bs. {{ detalle.precio_unitario|default:"0.00" }}</td>
                     <td><strong>Bs. {{ detalle.subtotal_precio|default:"0.00" }}</strong></td>
                 </tr>
                 {% endfor %}
@@ -162,28 +179,28 @@
     <!-- AGREGAR PRODUCTO -->
     <div style="margin-top:15px;">
         <h4 style="font-size:14px; margin-bottom:8px;">Agregar producto</h4>
-        <form method="POST" action="{% url 'agregar_producto_orden' orden.id %}" class="flex flex-wrap" style="gap:10px; align-items:center;">
+        <form method="POST" action="{% url 'agregar_producto_orden' orden.id %}" style="display:flex; gap:8px; align-items:center;">
             {% csrf_token %}
-            <select name="producto_id" class="form-control" style="flex:2; min-width:150px;">
-                <option value="">-- Seleccionar producto --</option>
+            <select name="producto_id" id="productoSelect" style="flex:2; min-width:0;">
+                <option value="">-- Producto --</option>
                 {% for p in productos %}
-                <option value="{{ p.id }}">{{ p.nombre }} (Stock: {{ p.stock_actual }})</option>
+                <option value="{{ p.id }}" data-precio="{{ p.precio_venta }}">{{ p.nombre }} - Bs. {{ p.precio_venta }} (Stock: {{ p.stock_actual }})</option>
                 {% endfor %}
             </select>
-            <label style="font-weight:600; font-size:13px; margin:0;">Cantidad:</label>
-            <input type="number" name="cantidad" value="1" min="1" style="width:70px; padding:5px 10px;">
-            <button type="submit" class="btn btn-warning">+ Agregar</button>
+            <input type="number" name="cantidad" id="cantidadInput" value="1" min="1" placeholder="Cant." style="flex:1; min-width:0;">
+            <input type="number" name="precio_unitario" id="precioProductoInput" step="0.01" placeholder="Precio" style="flex:1; min-width:0;">
+            <button type="submit" class="btn btn-warning" style="white-space:nowrap;">+ Agregar</button>
         </form>
     </div>
 </div>
 
-<!-- HALLAZGOS -->
+<!-- ============ HALLAZGOS ============ -->
 <div class="card">
     <h3>Hallazgos</h3>
     {% if orden.hallazgos.all %}
     <div class="scroll-y" style="max-height:200px;">
         {% for h in orden.hallazgos.all %}
-        <div style="padding:6px 0; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:5px;">
+        <div class="flex-between flex-wrap" style="padding:6px 0; gap:5px;">
             <span>{{ h.descripcion|truncatechars:50 }}</span>
             <span style="color:#e67e22; font-weight:600;">Bs. {{ h.costo_estimado|default:"0.00" }}</span>
             <span class="badge badge-warning">{{ h.estado_autorizacion }}</span>
@@ -199,30 +216,62 @@
         <h4 style="font-size:14px; margin-bottom:8px;">Agregar hallazgo</h4>
         <form method="POST" action="{% url 'agregar_hallazgo_orden' orden.id %}" class="grid grid-3" style="align-items:center;">
             {% csrf_token %}
-            <input type="text" name="descripcion" placeholder="Descripción del hallazgo..." class="form-control">
-            <input type="number" name="costo_estimado" placeholder="Costo estimado" step="0.01" class="form-control">
+            <input type="text" name="descripcion" placeholder="Descripción del hallazgo...">
+            <input type="number" name="costo_estimado" placeholder="Costo estimado" step="0.01">
             <button type="submit" class="btn btn-warning">+ Agregar</button>
         </form>
     </div>
 </div>
 
-<!-- BOTONES DE ACCIÓN -->
+<!-- ============ BOTONES DE ACCIÓN ============ -->
 <div class="flex flex-wrap" style="margin-top:15px;">
     <a href="{% url 'modo_taller' %}" class="btn btn-gray">Volver</a>
+    <a href="{% url 'orden_pdf' orden.id %}" class="btn btn-primary" target="_blank">📄 Recibo</a>
     {% if orden.estado_orden == 'POR_COBRAR' %}
     <a href="{% url 'detalle_orden' orden.id %}" class="btn btn-info">Ver Orden</a>
     <a href="{% url 'registrar_pago' orden.id %}" class="btn btn-success">Cobrar</a>
     {% endif %}
 </div>
 
+<!-- ============ SCRIPTS ============ -->
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
 <script>
-    function actualizarPrecio() {
-        var select = document.getElementById('servicioSelect');
-        var precioInput = document.getElementById('precioInput');
-        var selectedOption = select.options[select.selectedIndex];
-        var precio = selectedOption.getAttribute('data-precio');
-        precioInput.value = precio || '';
-    }
+    $(document).ready(function() {
+        // Select2 en servicios
+        $('#servicioSelect').select2({
+            placeholder: '-- Servicio --',
+            allowClear: true,
+            width: '100%'
+        });
+        
+        // Select2 en productos
+        $('#productoSelect').select2({
+            placeholder: '-- Producto --',
+            allowClear: true,
+            width: '100%'
+        });
+        
+        // Select2 en mecánicos
+        $('#mecanicoSelect').select2({
+            placeholder: '-- Mecánico --',
+            allowClear: true,
+            width: '100%'
+        });
+        
+        // Autocompletar precio servicio
+        $('#servicioSelect').on('change', function() {
+            var precio = $(this).find('option:selected').data('precio') || '';
+            $('#precioInput').val(precio);
+        });
+        
+        // Autocompletar precio producto
+        $('#productoSelect').on('change', function() {
+            var precio = $(this).find('option:selected').data('precio') || '';
+            $('#precioProductoInput').val(precio);
+        });
+    });
 
     function editarPrecio(detalleId) {
         var div = document.getElementById('editarPrecio-' + detalleId);
@@ -233,24 +282,5 @@
         document.getElementById('editarPrecio-' + detalleId).style.display = 'none';
     }
 </script>
-
-<style>
-    .inline-form {
-        display: inline;
-    }
-    .inline-form .btn {
-        margin-right: 4px;
-    }
-    .grid-4 {
-        display: grid;
-        grid-template-columns: repeat(4, 1fr);
-        gap: 10px;
-    }
-    @media (max-width: 768px) {
-        .grid-4 {
-            grid-template-columns: 1fr 1fr;
-        }
-    }
-</style>
 
 {% endblock %}
