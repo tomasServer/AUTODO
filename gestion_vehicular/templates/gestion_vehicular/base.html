@@ -4,6 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AUTODO | {% block title %}Taller Automotriz{% endblock %}</title>
+    <!-- Select2 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+
+    <!-- jQuery (necesario para Select2) -->
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <!-- Select2 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         
@@ -197,7 +204,8 @@
         .btn-warning { background: #e67e22; color: #ffffff; }  /* Naranja - destacado */
         .btn-danger { background: #c0392b; color: #ffffff; }   /* Rojo - peligro/cancelar */
         .btn-gray { background: #95a5a6; color: #ffffff; }     /* Plomo - neutro */
-        
+        .btn-info { background: #2980b9; color: #ffffff; }    /* Azul - info */
+        .btn-success { background: #d5f5e3; color: #1e8449; }  /* Verde - OK */
         .btn-sm { padding: 5px 10px; font-size: 0.75rem; }
         .btn-lg { padding: 12px 24px; font-size: 1rem; }
         .btn-block { width: 100%; text-align: center; }

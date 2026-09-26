@@ -9,7 +9,7 @@
 <div class="card" style="padding:15px 20px; margin-bottom:20px;">
     <h2 style="font-size:1rem; margin-bottom:10px;">Productos Vendidos</h2>
     
-    <form method="GET" style="display:flex; gap:10px; align-items:end; margin-bottom:10px;">
+    <form method="GET" class="form-filtro" style="display:flex; gap:10px; align-items:end; margin-bottom:10px;">
         <div>
             <label style="font-size:0.8rem;">Desde</label>
             <input type="date" name="fecha_inicio_p" value="{{ fecha_inicio_p }}" style="padding:8px; font-size:0.85rem;">
@@ -25,8 +25,7 @@
         <button type="submit" class="btn btn-primary" style="padding:8px 16px;">Buscar</button>
     </form>
     
-    <!-- TABLA CON SCROLL -->
-    <div style="max-height:300px; overflow-y:auto; border:1px solid #ddd;">
+    <div id="tabla-productos" style="max-height:340px; overflow-y:auto; border:1px solid #ddd;">
         <table style="font-size:0.85rem; width:100%; border-collapse:collapse;">
             <thead style="position:sticky; top:0; background:#1a252f; color:white; z-index:1;">
                 <tr><th style="padding:8px;">Fecha</th><th style="padding:8px;">Orden</th><th style="padding:8px;">Placa</th><th style="padding:8px;">Producto</th><th style="padding:8px;">Cant.</th><th style="padding:8px;">Precio</th><th style="padding:8px;">Subtotal</th></tr>
@@ -47,6 +46,12 @@
                 {% endfor %}
             </tbody>
         </table>
+        
+        <!-- ✅ TOTAL DENTRO DEL CONTENEDOR -->
+        <div style="background:#1a252f; color:white; padding:10px 15px; display:flex; justify-content:space-between; position:sticky; bottom:0;">
+            <span><strong>Total de productos vendidos:</strong></span>
+            <span><strong>Bs. {{ total_productos_vendidos|floatformat:2 }}</strong></span>
+        </div>
     </div>
 </div>
 
@@ -54,7 +59,7 @@
 <div class="card" style="padding:15px 20px; margin-bottom:20px;">
     <h2 style="font-size:1rem; margin-bottom:10px;">Servicios Realizados</h2>
     
-    <form method="GET" style="display:flex; gap:10px; align-items:end; margin-bottom:10px;">
+    <form method="GET" class="form-filtro" style="display:flex; gap:10px; align-items:end; margin-bottom:10px;">
         <div>
             <label style="font-size:0.8rem;">Desde</label>
             <input type="date" name="fecha_inicio_s" value="{{ fecha_inicio_s }}" style="padding:8px; font-size:0.85rem;">
@@ -70,8 +75,7 @@
         <button type="submit" class="btn btn-primary" style="padding:8px 16px;">Buscar</button>
     </form>
     
-    <!-- TABLA CON SCROLL -->
-    <div style="max-height:300px; overflow-y:auto; border:1px solid #ddd;">
+    <div id="tabla-servicios" style="max-height:340px; overflow-y:auto; border:1px solid #ddd;">
         <table style="font-size:0.85rem; width:100%; border-collapse:collapse;">
             <thead style="position:sticky; top:0; background:#1a252f; color:white; z-index:1;">
                 <tr><th style="padding:8px;">Fecha</th><th style="padding:8px;">Orden</th><th style="padding:8px;">Placa</th><th style="padding:8px;">Servicio</th><th style="padding:8px;">Mecánico</th><th style="padding:8px;">Precio</th></tr>
@@ -80,11 +84,7 @@
                 {% for s in servicios_detalle %}
                 <tr style="border-bottom:1px solid #eee;">
                     <td style="padding:8px;">{{ s.fecha_fin|date:"d/m/Y" }}</td>
-                    <td style="padding:8px;">
-                        <a href="{% url 'detalle_orden' s.id_orden.id %}" style="color:#2980b9; text-decoration:none; font-weight:600;">
-                            Nº {{ s.id_orden.id }}
-                        </a>
-                    </td>
+                    <td style="padding:8px;"><a href="{% url 'detalle_orden' s.id_orden.id %}" style="color:#2980b9; text-decoration:none; font-weight:600;">Nº {{ s.id_orden.id }}</a></td>
                     <td style="padding:8px;">{{ s.id_orden.id_vehiculo.placa }}</td>
                     <td style="padding:8px;">{{ s.id_servicio.nombre }}</td>
                     <td style="padding:8px;">{{ s.id_mecanico.nombre|default:"No asignado" }}</td>
@@ -95,6 +95,11 @@
                 {% endfor %}
             </tbody>
         </table>
+        
+        <div style="background:#1a252f; color:white; padding:10px 15px; display:flex; justify-content:space-between; position:sticky; bottom:0;">
+            <span><strong>Total de servicios realizados:</strong></span>
+            <span><strong>Bs. {{ total_servicios_realizados|floatformat:2 }}</strong></span>
+        </div>
     </div>
 </div>
 
@@ -102,7 +107,7 @@
 <div class="card" style="padding:15px 20px; margin-bottom:20px;">
     <h2 style="font-size:1rem; margin-bottom:10px;">Servicios por Mecánico</h2>
     
-    <form method="GET" style="display:flex; gap:10px; align-items:end; margin-bottom:10px;">
+    <form method="GET" class="form-filtro" style="display:flex; gap:10px; align-items:end; margin-bottom:10px;">
         <div>
             <label style="font-size:0.8rem;">Desde</label>
             <input type="date" name="fecha_inicio_m" value="{{ fecha_inicio_m }}" style="padding:8px; font-size:0.85rem;">
@@ -114,11 +119,10 @@
         <button type="submit" class="btn btn-primary" style="padding:8px 16px;">Buscar</button>
     </form>
     
-    <!-- TABLA CON SCROLL -->
-    <div style="max-height:300px; overflow-y:auto; border:1px solid #ddd;">
+    <div id="tabla-mecanicos" style="max-height:340px; overflow-y:auto; border:1px solid #ddd;">
         <table style="font-size:0.85rem; width:100%; border-collapse:collapse;">
             <thead style="position:sticky; top:0; background:#1a252f; color:white; z-index:1;">
-                <tr><th style="padding:8px;">Mecánico</th><th style="padding:8px;">Servicios</th></tr>
+                <tr><th style="padding:8px;">Mecánico</th><th style="padding:8px;">Servicios</th><th style="padding:8px;">Total cobrado</th></tr>
             </thead>
             <tbody>
                 {% for m in servicios_por_mecanico %}
@@ -131,50 +135,131 @@
                         {% else %}No asignado{% endif %}
                     </td>
                     <td style="padding:8px;"><strong>{{ m.total }}</strong></td>
+                    <td style="padding:8px;">Bs. {{ m.total_cobrado|default:"0.00"|floatformat:2 }}</td>
                 </tr>
                 {% empty %}
-                <tr><td colspan="2" style="padding:15px; text-align:center; color:#7f8c8d;">No hay datos</td></tr>
+                <tr><td colspan="3" style="padding:15px; text-align:center; color:#7f8c8d;">No hay datos</td></tr>
                 {% endfor %}
             </tbody>
         </table>
-
-    </div>
-        <!-- ============ SECCIÓN 4: VENTAS RÁPIDAS ============ -->
-    <div class="card" style="padding:15px 20px; margin-bottom:20px;">
-        <h2 style="font-size:1rem; margin-bottom:10px;">Ventas Rapidas</h2>
         
-        <form method="GET" style="display:flex; gap:10px; align-items:end; margin-bottom:10px;">
-            <div>
-                <label style="font-size:0.8rem;">Desde</label>
-                <input type="date" name="fecha_inicio_v" value="{{ fecha_inicio_v }}" style="padding:8px; font-size:0.85rem;">
-            </div>
-            <div>
-                <label style="font-size:0.8rem;">Hasta</label>
-                <input type="date" name="fecha_fin_v" value="{{ fecha_fin_v }}" style="padding:8px; font-size:0.85rem;">
-            </div>
-            <button type="submit" class="btn btn-primary" style="padding:8px 16px;">Buscar</button>
-        </form>
-        
-        <div style="max-height:300px; overflow-y:auto; border:1px solid #ddd;">
-            <table style="font-size:0.85rem; width:100%; border-collapse:collapse;">
-                <thead style="position:sticky; top:0; background:#1a252f; color:white; z-index:1;">
-                    <tr><th style="padding:8px;">Fecha</th><th style="padding:8px;">Venta</th><th style="padding:8px;">Registrado</th><th style="padding:8px;">Total</th></tr>
-                </thead>
-                <tbody>
-                    {% for v in ventas_rapidas %}
-                    <tr style="border-bottom:1px solid #eee;">
-                        <td style="padding:8px;">{{ v.fecha_venta|date:"d/m/Y H:i" }}</td>
-                        <td style="padding:8px;"><a href="{% url 'detalle_venta' v.id %}" style="color:#2980b9; text-decoration:none; font-weight:600;">#{{ v.id }}</a></td>
-                        <td style="padding:8px;">{{ v.registrado_por.nombre|default:"-" }}</td>
-                        <td style="padding:8px;"><strong>Bs. {{ v.total|floatformat:2 }}</strong></td>
-                    </tr>
-                    {% empty %}
-                    <tr><td colspan="4" style="padding:15px; text-align:center; color:#7f8c8d;">No hay ventas rapidas</td></tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+        <div style="background:#1a252f; color:white; padding:10px 15px; display:flex; justify-content:space-between; position:sticky; bottom:0;">
+            <span><strong>Total de servicios por mecánicos:</strong></span>
+            <span><strong>{{ total_servicios_mecanico }}</strong></span>
         </div>
     </div>
+</div>
 
+<!-- ============ SECCIÓN 4: VENTAS RÁPIDAS ============ -->
+<div class="card" style="padding:15px 20px; margin-bottom:20px;">
+    <h2 style="font-size:1rem; margin-bottom:10px;">Ventas Rápidas</h2>
+    
+    <form method="GET" class="form-filtro" style="display:flex; gap:10px; align-items:end; margin-bottom:10px;">
+        <div>
+            <label style="font-size:0.8rem;">Desde</label>
+            <input type="date" name="fecha_inicio_v" value="{{ fecha_inicio_v }}" style="padding:8px; font-size:0.85rem;">
+        </div>
+        <div>
+            <label style="font-size:0.8rem;">Hasta</label>
+            <input type="date" name="fecha_fin_v" value="{{ fecha_fin_v }}" style="padding:8px; font-size:0.85rem;">
+        </div>
+        <button type="submit" class="btn btn-primary" style="padding:8px 16px;">Buscar</button>
+    </form>
+    
+    <div id="tabla-ventas" style="max-height:340px; overflow-y:auto; border:1px solid #ddd;">
+        <table style="font-size:0.85rem; width:100%; border-collapse:collapse;">
+            <thead style="position:sticky; top:0; background:#1a252f; color:white; z-index:1;">
+                <tr>
+                    <th style="padding:8px;">Fecha</th>
+                    <th style="padding:8px;">Venta</th>
+                    <th style="padding:8px;">Cliente</th>
+                    <th style="padding:8px;">Producto</th>
+                    <th style="padding:8px;">Cant.</th>
+                    <th style="padding:8px;">Precio</th>
+                    <th style="padding:8px;">Subtotal</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for d in ventas_detalle %}
+                <tr style="border-bottom:1px solid #eee;">
+                    <td style="padding:8px;">{{ d.id_venta.fecha_venta|date:"d/m/Y H:i" }}</td>
+                    <td style="padding:8px;">
+                        <a href="{% url 'detalle_venta' d.id_venta.id %}" style="color:#2980b9; text-decoration:none; font-weight:600;">
+                            N°{{ d.id_venta.id }}
+                        </a>
+                    </td>
+                    <td style="padding:8px;">
+                        {% if d.id_venta.id_cliente_venta %}
+                            {{ d.id_venta.id_cliente_venta.nombre }}
+                        {% else %}
+                            <span style="color:#7f8c8d;">Sin registrar</span>
+                        {% endif %}
+                    </td>
+                    <td style="padding:8px;"><strong>{{ d.id_producto.nombre }}</strong></td>
+                    <td style="padding:8px;">{{ d.cantidad }}</td>
+                    <td style="padding:8px;">Bs. {{ d.precio_venta }}</td>
+                    <td style="padding:8px;"><strong>Bs. {% widthratio d.precio_venta 1 d.cantidad %}</strong></td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="7" style="padding:15px; text-align:center; color:#7f8c8d;">No hay ventas rápidas</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        
+        <!-- ✅ TOTAL DENTRO DEL CONTENEDOR -->
+        <div style="background:#1a252f; color:white; padding:10px 15px; display:flex; justify-content:space-between; position:sticky; bottom:0;">
+            <span><strong>Total de ventas rápidas:</strong></span>
+            <span><strong>Bs. {{ total_ventas_rapidas|floatformat:2 }}</strong></span>
+        </div>
+    </div>
+</div>
+
+<!-- ====== SCRIPT AJAX ====== -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const formularios = document.querySelectorAll('.form-filtro');
+    
+    formularios.forEach(function(form) {
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(form);
+            const params = new URLSearchParams(formData).toString();
+            
+            ['productos', 'servicios', 'mecanicos', 'ventas'].forEach(function(sec) {
+                var cont = document.getElementById('tabla-' + sec);
+                if (cont) cont.style.opacity = '0.5';
+            });
+            
+            fetch(window.location.pathname + '?' + params, {
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            })
+            .then(response => response.text())
+            .then(html => {
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(html, 'text/html');
+                
+                ['productos', 'servicios', 'mecanicos', 'ventas'].forEach(function(sec) {
+                    var nuevo = doc.getElementById('tabla-' + sec);
+                    var actual = document.getElementById('tabla-' + sec);
+                    if (nuevo && actual) {
+                        actual.innerHTML = nuevo.innerHTML;
+                        actual.style.opacity = '1';
+                    }
+                });
+                
+                window.history.pushState({}, '', window.location.pathname + '?' + params);
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                ['productos', 'servicios', 'mecanicos', 'ventas'].forEach(function(sec) {
+                    var cont = document.getElementById('tabla-' + sec);
+                    if (cont) cont.style.opacity = '1';
+                });
+            });
+        });
+    });
+});
+</script>
 
 {% endblock %}

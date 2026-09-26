@@ -3,8 +3,8 @@ from .views import gestion_basica, gestion_taller, seguimiento_vehicular, gestio
 
 urlpatterns = [
 
-    #fecha: 30/may/2026
-    # primer incremeto 
+    # ============ INCREMENTO 1: SEGURIDAD Y CATÁLOGOS ============
+    # fecha: 30/may/2026
     path('login/', gestion_basica.login_view, name='login'),
     path('logout/', gestion_basica.logout_view, name='logout'),
     path('', gestion_basica.dashboard, name='dashboard'),
@@ -12,8 +12,8 @@ urlpatterns = [
     path('usuarios/crear/', gestion_basica.crear_usuario, name='crear_usuario'),
     path('usuarios/<int:usuario_id>/editar/', gestion_basica.editar_usuario, name='editar_usuario'),
 
-    #fecha 15 de junio de 2026
-    # segun incremente
+    # ============ INCREMENTO 2: GESTIÓN TALLER ============
+    # fecha 15 de junio de 2026
     path('orden/crear/', gestion_taller.crear_orden, name='crear_orden'),
     path('orden/<int:orden_id>/', gestion_taller.detalle_orden, name='detalle_orden'),
     path('orden/<int:orden_id>/agregar-servicio/', gestion_taller.agregar_servicio_orden, name='agregar_servicio_orden'),
@@ -21,66 +21,76 @@ urlpatterns = [
     path('taller/editar-precio-servicio/<int:detalle_id>/', gestion_taller.editar_precio_servicio, name='editar_precio_servicio'),
     path('taller/', gestion_taller.modo_taller, name='modo_taller'),
     path('taller/<int:orden_id>/', gestion_taller.taller_detalle, name='taller_detalle'),
-    path('orden/<int:orden_id>/cambiar-estado/', gestion_taller.cambiar_estado_orden, name='cambiar_estado_orden'),
+    
+    # ❌ ELIMINADO: cambiar_estado_orden (función obsoleta)
+    # path('orden/<int:orden_id>/cambiar-estado/', gestion_taller.cambiar_estado_orden, name='cambiar_estado_orden'),
+    
     path('servicio/<int:detalle_id>/cambiar-estado/', gestion_taller.cambiar_estado_servicio, name='cambiar_estado_servicio'),
     
     path('taller/hallazgo/agregar/<int:orden_id>/', gestion_taller.agregar_hallazgo_orden, name='agregar_hallazgo_orden'),
-    
-    # 3er incremt
-    #fecha 2 de julio de 2026
+
+    # ============ INCREMENTO 3: SEGUIMIENTO VEHICULAR ============
+    # fecha 2 de julio de 2026
     path('buscar/', seguimiento_vehicular.buscar_vehiculo, name='buscar_vehiculo'),
     path('historial/<str:placa>/', seguimiento_vehicular.historial_vehiculo, name='historial_vehiculo'),
     path('orden/<int:orden_id>/revision/', seguimiento_vehicular.revision_tecnica, name='revision_tecnica'),
     path('orden/<int:orden_id>/hallazgo/', seguimiento_vehicular.registrar_hallazgo, name='registrar_hallazgo'),
     path('hallazgo/autorizar/<int:hallazgo_id>/', seguimiento_vehicular.autorizar_hallazgo, name='autorizar_hallazgo'),
-    path('hallazgo/rechazar/<int:hallazgo_id>/', seguimiento_vehicular.rechazar_hallazgo, name='rechazar_hallazgo'), 
+    path('hallazgo/rechazar/<int:hallazgo_id>/', seguimiento_vehicular.rechazar_hallazgo, name='rechazar_hallazgo'),
 
-    # ultimo aministrativo
-    #fecha: 17 de julio de 2026
+    # ============ INCREMENTO 4: GESTIÓN ADMINISTRATIVA ============
+    # fecha: 17 de julio de 2026
     path('admin-dashboard/', gestion_administrativa.dashboard_admin, name='dashboard_admin'),
     path('jefe-dashboard/', gestion_administrativa.dashboard_jefe, name='dashboard_jefe'),
-
     path('orden/<int:orden_id>/pago/', gestion_administrativa.registrar_pago, name='registrar_pago'),
+    
+    # Insumos
     path('insumos/', gestion_administrativa.lista_insumos, name='lista_insumos'),
     path('insumos/crear/', gestion_administrativa.crear_insumo, name='crear_insumo'),
     path('insumos/<int:producto_id>/editar/', gestion_administrativa.editar_insumo, name='editar_insumo'),
     path('insumos/<int:producto_id>/desactivar/', gestion_administrativa.desactivar_insumo, name='desactivar_insumo'),
-    #8/8/2026
+    
+    # Servicios
+    # 8/8/2026
     path('servicios/', gestion_administrativa.lista_servicios, name='lista_servicios'),
     path('servicios/crear/', gestion_administrativa.crear_servicio, name='crear_servicio'),
     path('servicios/<int:servicio_id>/editar/', gestion_administrativa.editar_servicio, name='editar_servicio'),
     path('servicios/<int:servicio_id>/desactivar/', gestion_administrativa.desactivar_servicio, name='desactivar_servicio'),
+    
+    # Reportes
     path('reportes/', gestion_administrativa.reportes, name='reportes'),
     path('reportes/producto/<int:producto_id>/', gestion_administrativa.detalle_producto_vendido, name='detalle_producto_vendido'),
     path('reportes/mecanico/<int:mecanico_id>/', gestion_administrativa.detalle_mecanico, name='detalle_mecanico'),
+    
+    # Revisiones
+    path('reviciones/', gestion_administrativa.gestionar_revisiones, name='gestionar_revisiones'),
 
-    #22/08/2026 para atencion
+    # ============ INCREMENTO 5: ATENCIÓN Y VENTAS ============
+    # 22/08/2026 para atencion
     path('revision-rapida/', seguimiento_vehicular.revision_rapida_placa, name='revision_rapida_placa'),
     path('revision-rapida/guardar/', seguimiento_vehicular.guardar_revision_rapida, name='guardar_revision_rapida'),
     path('orden/cancelar-visita/', gestion_taller.cancelar_visita, name='cancelar_visita'),
 
-    #ventas
+    # Ventas
     path('venta-rapida/', gestion_ventas.venta_rapida, name='venta_rapida'),
     path('venta-rapida/guardar/', gestion_ventas.guardar_venta_rapida, name='guardar_venta_rapida'),
     path('ventas/', gestion_ventas.lista_ventas_rapidas, name='lista_ventas_rapidas'),
     path('ventas/<int:venta_id>/', gestion_ventas.detalle_venta, name='detalle_venta'),
 
-    path('reviciones/', gestion_administrativa.gestionar_revisiones, name='gestionar_revisiones'),
-
-    #25/08/2026 ayudante (usa gestion_taller y gestion_ventas)
+    # ============ AYUDANTE ============
+    # 25/08/2026 ayudante (usa gestion_taller y gestion_ventas)
     path('ayudante-dashboard/', gestion_administrativa.dashboard_ayudante, name='dashboard_ayudante'),
     path('ayudante/taller/', gestion_taller.modo_taller, name='modo_taller_ayudante'),
     path('ayudante/orden/<int:orden_id>/', gestion_taller.taller_detalle, name='trabajar_orden_ayudante'),
     path('ayudante/servicio/<int:detalle_id>/cambiar/', gestion_taller.cambiar_estado_servicio, name='cambiar_estado_servicio_ayudante'),
-
-    #ventas rapidas
     path('ayudante/venta-rapida/', gestion_ventas.venta_rapida, name='venta_rapida_ayudante'),
 
-
-    #5/9/2026 mejoras
+    # ============ MEJORAS ============
+    # 5/9/2026 mejoras
     path('orden/<int:orden_id>/convertir-visita/', gestion_taller.convertir_visita_en_orden, name='convertir_visita_en_orden'),
 
+    # Eliminar en modo taller
+    path('servicio/<int:detalle_id>/eliminar/', gestion_taller.eliminar_servicio_orden, name='eliminar_servicio_orden'),
+    path('producto/<int:detalle_id>/eliminar/', gestion_taller.eliminar_producto_orden, name='eliminar_producto_orden'),
 
-  
-    
 ]

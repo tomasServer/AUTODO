@@ -342,8 +342,15 @@ def reportes(request):
     if producto_buscar:
         productos_detalle = productos_detalle.filter(id_producto__nombre__icontains=producto_buscar)
     if fecha_inicio_p and fecha_fin_p:
-        productos_detalle = productos_detalle.filter(id_orden__fecha_ingreso__date__gte=fecha_inicio_p, id_orden__fecha_ingreso__date__lte=fecha_fin_p)
-
+        productos_detalle = productos_detalle.filter(
+            id_orden__fecha_ingreso__date__gte=fecha_inicio_p, 
+            id_orden__fecha_ingreso__date__lte=fecha_fin_p
+        )
+    
+    # ✅ TOTAL DE PRODUCTOS VENDIDOS
+    total_productos_vendidos = productos_detalle.aggregate(
+        total=Sum('subtotal_precio')
+    )['total'] or 0
     
     # === SERVICIOS ===
     fecha_inicio_s = request.GET.get('fecha_inicio_s', '')
@@ -355,7 +362,15 @@ def reportes(request):
     if servicio_buscar:
         servicios_detalle = servicios_detalle.filter(id_servicio__nombre__icontains=servicio_buscar)
     if fecha_inicio_s and fecha_fin_s:
-        servicios_detalle = servicios_detalle.filter(id_orden__fecha_ingreso__date__gte=fecha_inicio_s, id_orden__fecha_ingreso__date__lte=fecha_fin_s)
+        servicios_detalle = servicios_detalle.filter(
+            id_orden__fecha_ingreso__date__gte=fecha_inicio_s, 
+            id_orden__fecha_ingreso__date__lte=fecha_fin_s
+        )
+    
+    # ✅ TOTAL DE SERVICIOS REALIZADOS
+    total_servicios_realizados = servicios_detalle.aggregate(
+        total=Sum('precio_cobrado')
+    )['total'] or 0
     
     # === MECÁNICOS ===
     fecha_inicio_m = request.GET.get('fecha_inicio_m', '')
@@ -363,31 +378,62 @@ def reportes(request):
     
     servicios_por_mecanico = DetalleServicio.objects.filter(estado='FINALIZADO').values(
         'id_mecanico__id', 'id_mecanico__nombre', 'id_mecanico__apellido'
-    ).annotate(total=Count('id')).order_by('-total')
+    ).annotate(
+        total=Count('id'),
+        total_cobrado=Sum('precio_cobrado')  # ✅ Total cobrado por mecánico
+    ).order_by('-total')
     
     if fecha_inicio_m and fecha_fin_m:
-        servicios_por_mecanico = servicios_por_mecanico.filter(id_orden__fecha_ingreso__date__gte=fecha_inicio_m, id_orden__fecha_ingreso__date__lte=fecha_fin_m)
-
+        servicios_por_mecanico = servicios_por_mecanico.filter(
+            id_orden__fecha_ingreso__date__gte=fecha_inicio_m, 
+            id_orden__fecha_ingreso__date__lte=fecha_fin_m
+        )
+    
+    # ✅ TOTAL DE SERVICIOS POR MECÁNICO
+    total_servicios_mecanico = sum(m['total'] for m in servicios_por_mecanico) if servicios_por_mecanico else 0
+    
     # === VENTAS RAPIDAS ===
     fecha_inicio_v = request.GET.get('fecha_inicio_v', '')
     fecha_fin_v = request.GET.get('fecha_fin_v', '')
-
-    ventas_rapidas = VentaRapida.objects.all().order_by('-fecha_venta')
-
+    
+    ventas_detalle = DetalleVentaRapida.objects.all().select_related(
+        'id_venta', 'id_producto', 'id_venta__id_cliente_venta'
+    ).order_by('-id_venta__fecha_venta')
+    
     if fecha_inicio_v and fecha_fin_v:
-        ventas_rapidas = ventas_rapidas.filter(fecha_venta__date__gte=fecha_inicio_v, fecha_venta__date__lte=fecha_fin_v)
-        
+        ventas_detalle = ventas_detalle.filter(
+            id_venta__fecha_venta__date__gte=fecha_inicio_v,
+            id_venta__fecha_venta__date__lte=fecha_fin_v
+        )
+    
+    # ✅ Total de ventas rápidas
+    total_ventas_rapidas = ventas_detalle.aggregate(
+        total=Sum('precio_venta')
+    )['total'] or 0
+    
     contexto = {
-        'fecha_inicio_p': fecha_inicio_p, 'fecha_fin_p': fecha_fin_p, 'producto_buscar': producto_buscar,
-        'fecha_inicio_s': fecha_inicio_s, 'fecha_fin_s': fecha_fin_s, 'servicio_buscar': servicio_buscar,
-        'fecha_inicio_m': fecha_inicio_m, 'fecha_fin_m': fecha_fin_m,
+        'fecha_inicio_p': fecha_inicio_p, 
+        'fecha_fin_p': fecha_fin_p, 
+        'producto_buscar': producto_buscar,
+        'fecha_inicio_s': fecha_inicio_s, 
+        'fecha_fin_s': fecha_fin_s, 
+        'servicio_buscar': servicio_buscar,
+        'fecha_inicio_m': fecha_inicio_m, 
+        'fecha_fin_m': fecha_fin_m,
+        'fecha_inicio_v': fecha_inicio_v, 
+        'fecha_fin_v': fecha_fin_v,
         'productos_detalle': productos_detalle,
         'servicios_detalle': servicios_detalle,
         'servicios_por_mecanico': servicios_por_mecanico,
-
-        'ventas_rapidas': ventas_rapidas,
-        'fecha_inicio_v': fecha_inicio_v, 'fecha_fin_v': fecha_fin_v,
+    
+        # ✅ TOTALES
+        'total_productos_vendidos': total_productos_vendidos,
+        'total_servicios_realizados': total_servicios_realizados,
+        'total_servicios_mecanico': total_servicios_mecanico,
+        'ventas_detalle': ventas_detalle,
+        'total_ventas_rapidas': total_ventas_rapidas,
     }
+    
     return render(request, 'gestion_vehicular/admin/gestion_administrativa/reportes.html', contexto)
 
 def detalle_producto_vendido(request, producto_id):

@@ -79,15 +79,27 @@
     <div class="scroll-y" style="max-height:300px;">
         <table>
             <thead>
-                <tr><th>Orden</th><th>Placa</th><th>Vehiculo</th><th>Estado</th><th>Total</th></tr>
+                <tr>
+                    <th>N° Orden</th>
+                    <th>Placa</th>
+                    <th>Estado</th>
+                    <th>Total</th>
+                </tr>
             </thead>
             <tbody>
                 {% for o in ultimas_ordenes %}
                 <tr>
                     <td><strong>Nº {{ o.id }}</strong></td>
                     <td>{{ o.id_vehiculo.placa }}</td>
-                    <td>{{ o.id_vehiculo.marca|default:"" }} {{ o.id_vehiculo.modelo|default:"" }}</td>
-                    <td><span class="badge {% if o.estado_orden == 'COBRADA' %}badge-success{% elif o.estado_orden == 'POR_COBRAR' %}badge-warning{% elif o.estado_orden == 'EN_PROCESO' %}badge-info{% else %}badge-danger{% endif %}">{{ o.estado_orden }}</span></td>
+                    <td>
+                        <span class="badge 
+                            {% if o.estado_orden == 'COBRADA' %}badge-success
+                            {% elif o.estado_orden == 'POR_COBRAR' %}badge-warning
+                            {% elif o.estado_orden == 'EN_PROCESO' %}badge-info
+                            {% else %}badge-danger{% endif %}">
+                            {{ o.estado_orden }}
+                        </span>
+                    </td>
                     <td><strong>{% if o.pago %}Bs. {{ o.pago.monto_total }}{% else %}-{% endif %}</strong></td>
                 </tr>
                 {% endfor %}

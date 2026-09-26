@@ -2,7 +2,7 @@
 {% block title %}Venta Rapida{% endblock %}
 
 {% block content %}
-<h2 style="color:#1a252f; margin-bottom:15px;">Venta Rápida de Productos</h2>
+<h2 style="color:#1a252f; margin-bottom:15px;">Venta Rapida de Productos</h2>
 
 <div class="card" style="padding:20px;">
     <form method="POST" action="{% url 'guardar_venta_rapida' %}" id="ventaForm">
@@ -40,15 +40,26 @@
     </form>
 </div>
 
-<!-- ====== MODAL PARA DATOS DEL CLIENTE (corregido) ====== -->
+<!-- ====== MODAL PARA DATOS DEL CLIENTE ====== -->
 <div id="modalCliente" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:9999; justify-content:center; align-items:center;">
     <div id="modalContent" style="background:#fff; padding:25px; border-radius:8px; max-width:500px; width:90%; box-shadow:0 4px 20px rgba(0,0,0,0.3); position:relative; z-index:10000;">
         <h3 style="margin:0 0 5px 0; color:#1a252f;">Datos del Cliente</h3>
-        <p style="color:#7f8c8d; font-size:0.9rem; margin-bottom:15px;">Ingresa los datos del cliente o selecciona "Sin Registrar"</p>
+        <p style="color:#7f8c8d; font-size:0.9rem; margin-bottom:15px;">Busca un cliente existente o ingresa uno nuevo</p>
+        
+        <!-- ✅ BUSCADOR DE CLIENTES -->
+        <div style="margin-bottom:12px; position:relative;">
+            <label style="display:block; font-weight:600; margin-bottom:4px;">🔍 Buscar cliente existente</label>
+            <input type="text" id="buscador_cliente" placeholder="Escribe nombre, teléfono o CI..." 
+                   style="width:100%; padding:8px 12px; border:1px solid #bdc3c7; border-radius:4px;"
+                   autocomplete="off" oninput="buscarClienteLocal(this.value)">
+            <div id="resultados_busqueda" style="display:none; position:absolute; top:100%; left:0; right:0; background:#fff; border:1px solid #bdc3c7; border-top:none; border-radius:0 0 4px 4px; max-height:200px; overflow-y:auto; z-index:10002; box-shadow:0 4px 6px rgba(0,0,0,0.1);"></div>
+        </div>
+        
+        <hr style="border:none; border-top:1px solid #ecf0f1; margin:15px 0;">
         
         <div style="margin-bottom:12px;">
             <label style="display:block; font-weight:600; margin-bottom:4px;">Nombre</label>
-            <input type="text" id="cliente_nombre" placeholder="Ej: Juan Pérez" style="width:100%; padding:8px 12px; border:1px solid #bdc3c7; border-radius:4px;">
+            <input type="text" id="cliente_nombre" placeholder="Ej: Tomás López" style="width:100%; padding:8px 12px; border:1px solid #bdc3c7; border-radius:4px;">
         </div>
         
         <div style="margin-bottom:12px;">
@@ -70,6 +81,83 @@
 </div>
 
 <script>
+    // =============================================
+    // LISTA DE CLIENTES (cargada desde el servidor)
+    // =============================================
+    var CLIENTES_VENTA = [
+        {% for c in clientes_venta %}
+        {
+            id: {{ c.id }},
+            nombre: "{{ c.nombre|escapejs }}",
+            telefono: "{{ c.telefono|default:''|escapejs }}",
+            ci: "{{ c.ci|default:''|escapejs }}"
+        }{% if not forloop.last %},{% endif %}
+        {% endfor %}
+    ];
+
+    // =============================================
+    // BUSCADOR DE CLIENTES (100% local)
+    // =============================================
+    function buscarClienteLocal(termino) {
+        var divResultados = document.getElementById('resultados_busqueda');
+        var t = termino.toLowerCase().trim();
+        
+        if (t.length < 2) {
+            divResultados.style.display = 'none';
+            return;
+        }
+        
+        // Filtrar clientes localmente
+        var encontrados = CLIENTES_VENTA.filter(function(c) {
+            return c.nombre.toLowerCase().includes(t) ||
+                c.telefono.toLowerCase().includes(t) ||
+                c.ci.toLowerCase().includes(t);
+        }).slice(0, 10); // máximo 10 resultados
+        
+        if (encontrados.length === 0) {
+            divResultados.innerHTML = '<div style="padding:10px; color:#7f8c8d; font-size:0.85rem;">No se encontraron clientes</div>';
+            divResultados.style.display = 'block';
+            return;
+        }
+        
+        var html = '';
+        encontrados.forEach(function(c) {
+            html += `
+                <div onclick="seleccionarClienteLocal(${c.id})" 
+                    style="padding:10px 12px; cursor:pointer; border-bottom:1px solid #ecf0f1; font-size:0.85rem;"
+                    onmouseover="this.style.background='#f8f9fa'" 
+                    onmouseout="this.style.background='#fff'">
+                    <strong>${c.nombre}</strong>
+                    ${c.telefono ? '<span style="color:#7f8c8d; margin-left:8px;">📞 ' + c.telefono + '</span>' : ''}
+                    ${c.ci ? '<span style="color:#7f8c8d; margin-left:8px;">🆔 ' + c.ci + '</span>' : ''}
+                </div>
+            `;
+        });
+        divResultados.innerHTML = html;
+        divResultados.style.display = 'block';
+    }
+
+    function seleccionarClienteLocal(id) {
+        var cliente = CLIENTES_VENTA.find(function(c) { return c.id === id; });
+        if (!cliente) return;
+        
+        document.getElementById('cliente_nombre').value = cliente.nombre;
+        document.getElementById('cliente_telefono').value = cliente.telefono;
+        document.getElementById('cliente_ci').value = cliente.ci;
+        
+        // Ocultar resultados
+        document.getElementById('resultados_busqueda').style.display = 'none';
+        document.getElementById('buscador_cliente').value = '';
+    }
+
+    // Cerrar resultados al hacer clic fuera
+    document.addEventListener('click', function(e) {
+        var buscador = document.getElementById('buscador_cliente');
+        var resultados = document.getElementById('resultados_busqueda');
+        if (buscador && resultados && !buscador.contains(e.target) && !resultados.contains(e.target)) {
+            resultados.style.display = 'none';
+        }
+    });
     var contadorVentas = 1;
     
     // =============================================

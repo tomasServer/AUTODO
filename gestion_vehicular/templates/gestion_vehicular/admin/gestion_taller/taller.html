@@ -102,7 +102,7 @@
                     <td><span class="badge badge-success">POR COBRAR</span></td>
                     <td>
                         <a href="{% url 'detalle_orden' orden.id %}" class="btn btn-gray btn-sm">Detalle</a>
-                        <a href="{% url 'registrar_pago' orden.id %}" class="btn btn-success btn-sm">Cobrar</a>
+                        <a href="{% url 'taller_detalle' orden.id %}" class="btn btn-success btn-sm">Cobrar</a>
                     </td>
                 </tr>
                 {% endfor %}

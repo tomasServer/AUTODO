@@ -16,21 +16,38 @@
         </div>
     </div>
 
-    <!-- DATOS DEL VEHICULO -->
+    <!-- DATOS DEL VEHÍCULO -->
     <div class="mb-10">
-        <h3>Datos del Vehículo</h3>
-        <div class="grid grid-2">
+        <div class="flex-between" style="cursor:pointer;" onclick="toggleVehiculo()">
+            <h3 style="margin:0;">
+                <span id="flecha-vehiculo" style="display:inline-block; transition:transform 0.3s;">▶</span>
+                Datos del Vehículo
+            </h3>
+            <span class="text-muted" style="font-size:0.8rem;">{{ orden.id_vehiculo.placa }} - Click para ver más</span>
+        </div>
+
+        <!-- Datos BÁSICOS (siempre visibles) -->
+        <div class="grid grid-2" style="margin-top:10px;">
             <div><strong>Placa:</strong> {{ orden.id_vehiculo.placa }}</div>
-            <div><strong>Marca:</strong> {{ orden.id_vehiculo.marca|default:"-" }}</div>
-            <div><strong>Modelo:</strong> {{ orden.id_vehiculo.modelo|default:"-" }}</div>
-            <div><strong>Año:</strong> {{ orden.id_vehiculo.anio|default:"-" }}</div>
-            <div><strong>Color:</strong> {{ orden.id_vehiculo.color|default:"-" }}</div>
-            <div><strong>VIN:</strong> {{ orden.id_vehiculo.vin|default:"-" }}</div>
-            <div><strong>Kilometraje:</strong> {{ orden.id_vehiculo.kilometraje_actual|default:"-" }}</div>
             <div><strong>Estado:</strong> 
                 <span class="badge {% if orden.estado_orden == 'COBRADA' or orden.estado_orden == 'POR_COBRAR' %}badge-success{% elif orden.estado_orden == 'EN_PROCESO' %}badge-info{% elif orden.estado_orden == 'VISITA' %}badge-warning{% else %}badge-danger{% endif %}">
                     {{ orden.estado_orden }}
                 </span>
+            </div>
+        </div>
+
+        <!-- Datos ADICIONALES (ocultos por defecto) -->
+        <div id="vehiculo-extra" style="display:none; margin-top:10px; padding:10px; background:#f8f9fa; border-radius:4px;">
+            <div class="grid grid-2">
+                <div><strong>Marca:</strong> {{ orden.id_vehiculo.marca|default:"-" }}</div>
+                <div><strong>Modelo:</strong> {{ orden.id_vehiculo.modelo|default:"-" }}</div>
+                <div><strong>Año:</strong> {{ orden.id_vehiculo.anio|default:"-" }}</div>
+                <div><strong>Color:</strong> {{ orden.id_vehiculo.color|default:"-" }}</div>
+                <div><strong>VIN:</strong> {{ orden.id_vehiculo.vin|default:"-" }}</div>
+                <div><strong>Kilometraje:</strong> {{ orden.id_vehiculo.kilometraje_actual|default:"-" }}</div>
+            </div>
+            <div style="margin-top:8px;">
+                <strong>Observaciones:</strong> {{ orden.id_vehiculo.observaciones|default:"-" }}
             </div>
         </div>
     </div>
@@ -130,5 +147,21 @@
     <a href="{% url 'registrar_pago' orden.id %}" class="btn btn-primary">Cobrar</a>
     {% endif %}
 </div>
+
+<!-- ====== SCRIPT PARA MOSTRAR/OCULTAR ====== -->
+<script>
+    function toggleVehiculo() {
+        var extra = document.getElementById('vehiculo-extra');
+        var flecha = document.getElementById('flecha-vehiculo');
+        
+        if (extra.style.display === 'none') {
+            extra.style.display = 'block';
+            flecha.style.transform = 'rotate(90deg)';
+        } else {
+            extra.style.display = 'none';
+            flecha.style.transform = 'rotate(0deg)';
+        }
+    }
+</script>
 
 {% endblock %}

@@ -25,3 +25,5 @@ admin.site.register(NotaPredefinida)
 admin.site.register(VentaRapida)
 admin.site.register(DetalleVentaRapida)
 admin.site.register(ClienteVenta)
+
+

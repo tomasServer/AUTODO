@@ -1,10 +1,41 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.utils import timezone
 from django.contrib import messages
-from django.db import connection
-from ..models import *
+from django.db.models import Q
 from django.contrib.auth.decorators import login_required
+from ..models import *
+from django.db import connection 
 
+
+def _revisar_estado_orden(orden):
+    """
+    Revisa el estado de la orden según sus servicios:
+    - Si TODOS están FINALIZADOS → POR_COBRAR
+    - Si alguno está EN_PROCESO o PENDIENTE → EN_PROCESO
+    - Si no hay servicios → no cambia nada
+    """
+    servicios = DetalleServicio.objects.filter(id_orden=orden)
+    
+    if not servicios.exists():
+        return
+    
+    todos_finalizados = all(s.estado == 'FINALIZADO' for s in servicios)
+    alguno_en_proceso = any(s.estado == 'EN_PROCESO' for s in servicios)
+    
+    if todos_finalizados:
+        if orden.estado_orden != 'POR_COBRAR':
+            orden.estado_orden = 'POR_COBRAR'
+            orden.fecha_finalizacion = timezone.now()
+            orden.save()
+    elif alguno_en_proceso or orden.estado_orden == 'POR_COBRAR':
+        if orden.estado_orden != 'EN_PROCESO':
+            orden.estado_orden = 'EN_PROCESO'
+            orden.save()
+
+
+# ============================================================
+# CREAR ORDEN
+# ============================================================
 
 def crear_orden(request):
     # ============ DETECTAR SI VIENE DE UNA VISITA ============
@@ -16,7 +47,6 @@ def crear_orden(request):
     revision_detalle = None
     
     # ============ OBTENER DETALLE DE REVISIÓN ============
-    # 1️⃣ Primero desde la sesión (visita nueva)
     if request.session.get('revision_detalle'):
         revision_detalle = request.session.pop('revision_detalle')
     
@@ -26,19 +56,16 @@ def crear_orden(request):
             messages.error(request, 'Esta orden no está en estado VISITA.')
             return redirect('modo_taller')
         
-        # Usar los datos de la visita
         placa = orden_visita.id_vehiculo.placa
         vehiculo = orden_visita.id_vehiculo
         cliente = vehiculo.id_cliente
         
-        # Obtener la revisión asociada a la visita (para mostrar detalles)
         revision_existente = RevisionTecnica.objects.filter(id_orden=orden_visita).first()
         if revision_existente:
             detalle_revision = DetalleRevision.objects.filter(
                 id_revision=revision_existente
             ).select_related('id_componente')
             
-            # 2️⃣ Si no hay sesión, construir desde la BD
             if not revision_detalle and detalle_revision.exists():
                 estados = {'MALO': [], 'REGULAR': [], 'OK': []}
                 componentes = []
@@ -59,8 +86,8 @@ def crear_orden(request):
                     'resumen': estados,
                     'componentes': componentes,
                 }
-    # ============================================================
     
+    # ============ DETECTAR COTIZACIÓN ANTERIOR ============
     orden_anterior_id = request.GET.get('orden_anterior_id')
     cotizacion_anterior = None
     
@@ -70,7 +97,7 @@ def crear_orden(request):
             estado_orden='CANCELADA'
         ).first()
     
-    # Si no hay visita, buscar por placa o vehiculo_id (comportamiento normal)
+    # ============ SI NO ES VISITA, BUSCAR POR PLACA O VEHICULO_ID ============
     if not visita_id:
         placa = request.GET.get('placa', '')
         vehiculo_id = request.GET.get('vehiculo_id')
@@ -81,13 +108,15 @@ def crear_orden(request):
             try:
                 vehiculo = Vehiculo.objects.get(id=vehiculo_id)
                 cliente = vehiculo.id_cliente
+                placa = vehiculo.placa
             except Vehiculo.DoesNotExist:
                 pass
     
+    # ============ PROCESAR POST ============
     if request.method == 'POST':
-        placa = request.POST.get('placa').upper()
-        cliente_nombre = request.POST.get('cliente_nombre')
-        cliente_telefono = request.POST.get('cliente_telefono')
+        placa = request.POST.get('placa', '').upper().strip()
+        cliente_nombre = (request.POST.get('cliente_nombre') or '').strip()
+        cliente_telefono = (request.POST.get('cliente_telefono') or '').strip()
         supervisor_id = request.POST.get('supervisor_id')
         complejidad_id = request.POST.get('complejidad_id')
         observacion = request.POST.get('observacion', '')
@@ -96,16 +125,28 @@ def crear_orden(request):
         color = request.POST.get('color')
         vin = request.POST.get('vin')
         
-        # Crear o obtener cliente
-        if cliente_telefono:
-            cliente, _ = Cliente.objects.get_or_create(
-                telefono=cliente_telefono,
-                defaults={'nombre': cliente_nombre}
-            )
-        else:
-            cliente = None
+        # ============ GESTIÓN DEL CLIENTE ============
+        cliente = None
         
-        # Crear o obtener vehículo
+        if cliente_telefono:
+            cliente = Cliente.objects.filter(telefono=cliente_telefono).first()
+            
+            if cliente:
+                if cliente_nombre and cliente.nombre != cliente_nombre:
+                    cliente.nombre = cliente_nombre
+                    cliente.save()
+            else:
+                cliente = Cliente.objects.create(
+                    nombre=cliente_nombre or 'Cliente sin nombre',
+                    telefono=cliente_telefono,
+                )
+        elif cliente_nombre:
+            cliente = Cliente.objects.create(
+                nombre=cliente_nombre,
+                telefono=None,
+            )
+        
+        # ============ CREAR O ACTUALIZAR VEHÍCULO ============
         vehiculo, created = Vehiculo.objects.get_or_create(
             placa=placa,
             defaults={
@@ -116,7 +157,6 @@ def crear_orden(request):
             }
         )
         
-        # Actualizar datos del vehículo si ya existía
         if not created:
             if cliente:
                 vehiculo.id_cliente = cliente
@@ -132,17 +172,16 @@ def crear_orden(request):
             vehiculo.kilometraje_actual = int(kilometraje)
             vehiculo.save()
         
-        # ============ SI ES UNA VISITA, ACTUALIZAR EN LUGAR DE CREAR ============
+        # ============ CREAR O CONVERTIR ORDEN ============
         if orden_visita:
             orden = orden_visita
             orden.id_jefe_tecnico_id = supervisor_id if supervisor_id else None
             orden.id_complejidad_id = complejidad_id if complejidad_id else None
             orden.observacion_general = observacion
-            orden.estado_orden = 'PENDIENTE'  # Cambiar de VISITA a PENDIENTE
+            orden.estado_orden = 'PENDIENTE'
             orden.save()
             messages.info(request, f'Visita #{orden.id} convertida a PENDIENTE.')
         else:
-            # Crear nueva orden (comportamiento normal)
             orden = OrdenTrabajo.objects.create(
                 id_vehiculo=vehiculo,
                 id_jefe_tecnico_id=supervisor_id if supervisor_id else None,
@@ -152,9 +191,8 @@ def crear_orden(request):
                 fecha_ingreso=timezone.now(),
                 fecha_creacion=timezone.now(),
             )
-        # ===========================================================
-
-        # Guardar servicios (cada uno con su mecánico)
+        
+        # ============ GUARDAR SERVICIOS ============
         for key in request.POST:
             if key.startswith('servicio_id_'):
                 num = key.split('_')[-1]
@@ -173,8 +211,7 @@ def crear_orden(request):
                         estado='PENDIENTE',
                     )
         
-        # Guardar productos
-        from django.db import connection
+        # ============ GUARDAR PRODUCTOS (SQL CRUDO) ============
         for key in request.POST:
             if key.startswith('producto_id_'):
                 num = key.split('_')[-1]
@@ -185,43 +222,41 @@ def crear_orden(request):
                 if producto_id:
                     producto = get_object_or_404(Producto, id=producto_id)
                     cantidad_int = int(cantidad) if cantidad else 1
+                    precio_u = float(precio_producto) if precio_producto else float(producto.precio_venta)
                     
                     with connection.cursor() as cursor:
                         cursor.execute(
-                            "INSERT INTO detalle_producto (id_orden, id_producto, cantidad, costo_unitario, precio_unitario) "
-                            "VALUES (%s, %s, %s, %s, %s)",
+                            "INSERT INTO detalle_producto "
+                            "(id_orden, id_producto, cantidad, costo_unitario, precio_unitario, registrado_por) "
+                            "VALUES (%s, %s, %s, %s, %s, %s)",
                             [orden.id, producto.id, cantidad_int, 
                              producto.costo_unitario, 
-                             float(precio_producto) if precio_producto else producto.precio_venta]
+                             precio_u,
+                             request.user.id if request.user.is_authenticated else None]
                         )
                     
                     producto.stock_actual -= cantidad_int
                     producto.save()
         
-        messages.success(request, f'Orden #{orden.id} {"convertida de visita" if orden_visita else "creada"} para {placa}. Servicios y productos guardados.')
+        messages.success(request, f'Orden #{orden.id} {"convertida de visita" if orden_visita else "creada"} para {placa}.')
         return redirect('detalle_orden', orden_id=orden.id)
     
-    # Supervisores (Admin y Jefe Mecánico)
+    # ============ CONTEXTO PARA RENDERIZAR ============
     supervisores = Usuario.objects.filter(
         activo=True,
         id_rol_id__in=[1, 2]
     ).order_by('id_rol_id', 'nombre')
     
-    # Mecánicos (Admin, Jefe, Ayudante)
     mecanicos = Usuario.objects.filter(
         activo=True,
         id_rol_id__in=[1, 2, 3]
     ).order_by('id_rol_id', 'nombre')
     
-    # ============ FILTRO PARA AYUDANTE ============
     if request.user.id_rol_id == 3:  # AYUDANTE
-        # Solo servicios con tiempo estimado MENOS DE 30 minutos
         servicios = Servicio.objects.filter(activo=True, tiempo_estimado_minutos__lt=30)
     else:
         servicios = Servicio.objects.filter(activo=True)
-    # =============================================
     
-    # Elegir template según rol
     if request.user.id_rol_id == 1:  # ADMIN
         template = 'gestion_vehicular/admin/gestion_taller/crear_orden.html'
     elif request.user.id_rol_id == 2:  # JEFE
@@ -243,9 +278,13 @@ def crear_orden(request):
         'es_nueva_visita': es_nueva_visita,
         'revision_existente': revision_existente,
         'detalle_revision': detalle_revision,
-        'revision_detalle': revision_detalle,  # <-- Revisión formateada
+        'revision_detalle': revision_detalle,
     })
 
+
+# ============================================================
+# DETALLE DE ORDEN
+# ============================================================
 
 def detalle_orden(request, orden_id):
     orden = get_object_or_404(OrdenTrabajo, id=orden_id)
@@ -269,6 +308,10 @@ def detalle_orden(request, orden_id):
     })
 
 
+# ============================================================
+# AGREGAR SERVICIO / PRODUCTO
+# ============================================================
+
 def agregar_servicio_orden(request, orden_id):
     orden = get_object_or_404(OrdenTrabajo, id=orden_id)
     
@@ -289,6 +332,9 @@ def agregar_servicio_orden(request, orden_id):
                 costo_real=servicio.costo_mano_obra,
                 estado='PENDIENTE',
             )
+            
+            _revisar_estado_orden(orden)
+            
             messages.success(request, f'Servicio "{servicio.nombre}" agregado por Bs. {precio}')
     
     return redirect('taller_detalle', orden_id=orden.id)
@@ -300,32 +346,40 @@ def agregar_producto_orden(request, orden_id):
     if request.method == 'POST':
         producto_id = request.POST.get('producto_id')
         cantidad = request.POST.get('cantidad', 1)
+        precio_unitario = request.POST.get('precio_unitario')
         
         if producto_id and cantidad:
             producto = get_object_or_404(Producto, id=producto_id)
             cantidad_int = int(cantidad)
+            precio_u = float(precio_unitario) if precio_unitario else float(producto.precio_venta)
             
             with connection.cursor() as cursor:
                 cursor.execute(
-                    "INSERT INTO detalle_producto (id_orden, id_producto, cantidad, costo_unitario, precio_unitario) VALUES (%s, %s, %s, %s, %s)",
-                    [orden.id, producto.id, cantidad_int, producto.costo_unitario, producto.precio_venta]
+                    "INSERT INTO detalle_producto "
+                    "(id_orden, id_producto, cantidad, costo_unitario, precio_unitario, registrado_por) "
+                    "VALUES (%s, %s, %s, %s, %s, %s)",
+                    [orden.id, producto.id, cantidad_int, 
+                     producto.costo_unitario, 
+                     precio_u,
+                     request.user.id if request.user.is_authenticated else None]
                 )
             
             producto.stock_actual -= cantidad_int
             producto.save()
             
+            _revisar_estado_orden(orden)
             messages.success(request, f'Producto "{producto.nombre}" agregado')
         else:
             messages.error(request, 'Seleccione un producto y cantidad')
     
     return redirect('taller_detalle', orden_id=orden.id)
 
-
-from django.db.models import Q
+# ============================================================
+# MODO TALLER
+# ============================================================
 
 def modo_taller(request):
     if request.user.id_rol_id == 3:  # AYUDANTE
-        # Órdenes donde el ayudante tiene al menos un servicio asignado
         ordenes_ids = DetalleServicio.objects.filter(
             id_mecanico=request.user
         ).values_list('id_orden_id', flat=True).distinct()
@@ -340,7 +394,6 @@ def modo_taller(request):
             estado_orden='POR_COBRAR'
         ).order_by('fecha_ingreso')
     else:
-        # Admin o Jefe ven todas las órdenes
         ordenes_trabajo = OrdenTrabajo.objects.filter(
             estado_orden__in=['PENDIENTE', 'EN_PROCESO', 'VISITA']
         ).order_by('fecha_ingreso')
@@ -349,7 +402,6 @@ def modo_taller(request):
             estado_orden='POR_COBRAR'
         ).order_by('fecha_ingreso')
     
-    # Elegir template según rol
     if request.user.id_rol_id == 1:  # ADMIN
         template = 'gestion_vehicular/admin/gestion_taller/taller.html'
     elif request.user.id_rol_id == 2:  # JEFE
@@ -363,6 +415,10 @@ def modo_taller(request):
     })
 
 
+# ============================================================
+# TALLER DETALLE
+# ============================================================
+
 def taller_detalle(request, orden_id):
     orden = get_object_or_404(OrdenTrabajo, id=orden_id)
     
@@ -370,14 +426,11 @@ def taller_detalle(request, orden_id):
     productos_disponibles = Producto.objects.filter(activo=True, stock_actual__gt=0)
     mecanicos = Usuario.objects.filter(activo=True, id_rol_id__in=[1, 2, 3]).order_by('nombre')
 
-    # ============ FILTRO PARA AYUDANTE ============
+    # FILTRO PARA AYUDANTE
     if request.user.id_rol_id == 3:  # AYUDANTE
-        # Solo muestra los servicios donde el ayudante es el mecánico asignado
         servicios_detalle = orden.detalles_servicio.filter(id_mecanico=request.user)
     else:
-        # Admin y Jefe ven todos los servicios
         servicios_detalle = orden.detalles_servicio.all()
-    # =============================================
 
     if request.user.id_rol_id == 1:  # ADMIN
         template = 'gestion_vehicular/admin/gestion_taller/taller_detalle.html'
@@ -388,26 +441,16 @@ def taller_detalle(request, orden_id):
     
     return render(request, template, {
         'orden': orden,
-        'servicios_detalle': servicios_detalle,  # <--- AHORA FILTRADO
+        'servicios_detalle': servicios_detalle,
         'servicios': servicios_disponibles,
         'productos': productos_disponibles,
         'mecanicos': mecanicos,
     })
 
-def cambiar_estado_orden(request, orden_id):
-    orden = get_object_or_404(OrdenTrabajo, id=orden_id)
-    if request.method == 'POST':
-        nuevo = request.POST.get('nuevo_estado')
-        orden.estado_orden = nuevo
-        if nuevo == 'EN_PROCESO':
-            DetalleServicio.objects.filter(id_orden=orden, estado='PENDIENTE').update(estado='EN_PROCESO', fecha_inicio=timezone.now())
-        if nuevo == 'FINALIZADA':
-            orden.fecha_finalizacion = timezone.now()
-            DetalleServicio.objects.filter(id_orden=orden).update(estado='FINALIZADO', fecha_fin=timezone.now())
-        orden.save()
-        messages.success(request, f'Orden #{orden.id} cambiada a {nuevo}')
-    return redirect('modo_taller')
 
+# ============================================================
+# CAMBIAR ESTADO DE SERVICIO
+# ============================================================
 
 @login_required
 def cambiar_estado_servicio(request, detalle_id):
@@ -429,25 +472,19 @@ def cambiar_estado_servicio(request, detalle_id):
             detalle.fecha_fin = timezone.now()
         detalle.save()
         
-        servicios_orden = DetalleServicio.objects.filter(id_orden=orden)
-        todos_finalizados = all(s.estado == 'FINALIZADO' for s in servicios_orden)
+        # ✅ Usar función auxiliar para revisar el estado
+        _revisar_estado_orden(orden)
         
-        if todos_finalizados:
-            orden.estado_orden = 'POR_COBRAR'
-            orden.fecha_finalizacion = timezone.now()
-            orden.save()
-            messages.success(request, f'Todos los servicios finalizados. Orden #{orden.id} está lista para cobrar.')
-        else:
-            if any(s.estado == 'EN_PROCESO' for s in servicios_orden):
-                orden.estado_orden = 'EN_PROCESO'
-                orden.save()
-            messages.success(request, f'Servicio cambiado a {nuevo_estado}')
+        messages.success(request, f'Servicio cambiado a {nuevo_estado}')
         
         return redirect('taller_detalle', orden_id=orden.id)
     
-    # Si no es POST, redirigir al detalle de la orden
     return redirect('taller_detalle', orden_id=orden.id)
 
+
+# ============================================================
+# HALLAZGOS
+# ============================================================
 
 def agregar_hallazgo_orden(request, orden_id):
     orden = get_object_or_404(OrdenTrabajo, id=orden_id)
@@ -471,6 +508,10 @@ def agregar_hallazgo_orden(request, orden_id):
     return redirect('taller_detalle', orden_id=orden.id)
 
 
+# ============================================================
+# EDITAR PRECIO DE SERVICIO
+# ============================================================
+
 @login_required
 def editar_precio_servicio(request, detalle_id):
     detalle = get_object_or_404(DetalleServicio, id=detalle_id)
@@ -483,7 +524,7 @@ def editar_precio_servicio(request, detalle_id):
     if request.method == 'POST':
         nuevo_precio = request.POST.get('nuevo_precio')
         if nuevo_precio:
-            detalle.precio_cobrado = float(nuevo_precio)  # Considera usar Decimal para mayor precisión
+            detalle.precio_cobrado = float(nuevo_precio)
             detalle.save()
             messages.success(request, f'Precio actualizado a Bs. {nuevo_precio}')
         else:
@@ -492,6 +533,48 @@ def editar_precio_servicio(request, detalle_id):
     return redirect('taller_detalle', orden_id=detalle.id_orden.id)
 
 
+# ============================================================
+# ELIMINAR SERVICIO / PRODUCTO
+# ============================================================
+
+def eliminar_servicio_orden(request, detalle_id):
+    """Elimina un servicio de la orden (solo si está PENDIENTE)."""
+    detalle = get_object_or_404(DetalleServicio, id=detalle_id)
+    orden = detalle.id_orden
+    
+    if detalle.estado != 'PENDIENTE':
+        messages.error(request, 'No se puede eliminar un servicio que ya fue iniciado.')
+        return redirect('taller_detalle', orden_id=orden.id)
+    
+    nombre = detalle.id_servicio.nombre
+    detalle.delete()
+    
+    # ✅ Revisar estado de la orden después de eliminar
+    _revisar_estado_orden(orden)
+    
+    messages.success(request, f'Servicio "{nombre}" eliminado de la orden.')
+    return redirect('taller_detalle', orden_id=orden.id)
+
+
+def eliminar_producto_orden(request, detalle_id):
+    """Elimina un producto de la orden y devuelve el stock."""
+    detalle = get_object_or_404(DetalleProducto, id=detalle_id)
+    orden = detalle.id_orden
+    
+    producto = detalle.id_producto
+    if producto:
+        producto.stock_actual += detalle.cantidad
+        producto.save()
+    
+    nombre = producto.nombre if producto else 'Producto'
+    detalle.delete()
+    messages.success(request, f'Producto "{nombre}" eliminado. Stock devuelto.')
+    return redirect('taller_detalle', orden_id=orden.id)
+
+
+# ============================================================
+# CANCELAR VISITA
+# ============================================================
 
 def cancelar_visita(request):
     if request.method == 'POST':
@@ -505,6 +588,7 @@ def cancelar_visita(request):
             ).order_by('-fecha_creacion').first()
             
             if orden:
+                # Guardar servicios adicionales
                 for key in request.POST:
                     if key.startswith('servicio_adicional_'):
                         num = key.split('_')[-1]
@@ -521,6 +605,7 @@ def cancelar_visita(request):
                                 estado='PENDIENTE',
                             )
                 
+                # Guardar productos adicionales (SQL crudo)
                 for key in request.POST:
                     if key.startswith('producto_') and not key.startswith('precio_producto_'):
                         num = key.split('_')[-1]
@@ -530,14 +615,22 @@ def cancelar_visita(request):
                         
                         if producto_id:
                             producto = get_object_or_404(Producto, id=producto_id)
+                            cantidad_int = int(cantidad) if cantidad else 1
+                            precio_u = float(precio) if precio else float(producto.precio_venta)
+                            
                             with connection.cursor() as cursor:
                                 cursor.execute(
-                                    "INSERT INTO detalle_producto (id_orden, id_producto, cantidad, costo_unitario, precio_unitario) "
-                                    "VALUES (%s, %s, %s, %s, %s)",
-                                    [orden.id, producto.id, int(cantidad), 
+                                    "INSERT INTO detalle_producto "
+                                    "(id_orden, id_producto, cantidad, costo_unitario, precio_unitario, registrado_por) "
+                                    "VALUES (%s, %s, %s, %s, %s, %s)",
+                                    [orden.id, producto.id, cantidad_int, 
                                      producto.costo_unitario, 
-                                     float(precio) if precio else producto.precio_venta]
+                                     precio_u,
+                                     request.user.id if request.user.is_authenticated else None]
                                 )
+                            
+                            producto.stock_actual -= cantidad_int
+                            producto.save()
                 
                 orden.estado_orden = 'CANCELADA'
                 orden.save()
@@ -550,7 +643,9 @@ def cancelar_visita(request):
     return redirect('buscar_vehiculo')
 
 
-#5/9/2026 mejoras convertir visita en orden
+# ============================================================
+# CONVERTIR VISITA EN ORDEN
+# ============================================================
 
 def convertir_visita_en_orden(request, orden_id):
     """
@@ -558,10 +653,8 @@ def convertir_visita_en_orden(request, orden_id):
     """
     orden = get_object_or_404(OrdenTrabajo, id=orden_id)
     
-    # Verificar que la orden esté en estado VISITA
     if orden.estado_orden != 'VISITA':
         messages.error(request, 'Esta orden no está en estado VISITA.')
         return redirect('modo_taller')
     
-    # Redirigir a crear_orden con el ID de la visita
     return redirect(f'/orden/crear/?visita_id={orden.id}')

@@ -8,7 +8,8 @@ from decimal import Decimal
 def venta_rapida(request):
     """Muestra el formulario de venta rápida"""
     productos = Producto.objects.filter(activo=True, stock_actual__gt=0).order_by('nombre')
-    
+
+    clientes_venta = ClienteVenta.objects.all().order_by('nombre') # Obtener todos los clientes de venta rápida
     # Elegir template según rol
     if request.user.id_rol_id == 1:  # ADMIN
         template = 'gestion_vehicular/admin/gestion_ventas/venta_rapida.html'
@@ -19,6 +20,7 @@ def venta_rapida(request):
     
     return render(request, template, {
         'productos': productos,
+        'clientes_venta': clientes_venta,
     })
 
 
@@ -26,39 +28,46 @@ def venta_rapida(request):
 def guardar_venta_rapida(request):
     """Guarda la venta rápida y descuenta stock"""
     if request.method == 'POST':
-        # entrada de datos 
-        cliente_nombre = request.POST.get('cliente_nombre').strip()
-        cliente_telefono = request.POST.get('cliente_telefono').strip()
-        cliente_ci = request.POST.get('cliente_ci').strip()
-        sin_registrar = request.POST.get('sin_registrar') == 'true'
-
-        #BUSCAR
+        # ====== DATOS DEL CLIENTE ======
+        cliente_nombre = (request.POST.get('cliente_nombre') or '').strip()
+        cliente_telefono = (request.POST.get('cliente_telefono') or '').strip()
+        cliente_ci = (request.POST.get('cliente_ci') or '').strip()
+        sin_registrar = (request.POST.get('sin_registrar') or '') == 'true'
+        
+        # ====== BUSCAR O CREAR CLIENTE ======
         cliente_venta = None
-
+        
         if not sin_registrar:
-            if cliente_telefono:
-                cliente_venta = ClienteVenta.objects.filter(telefono=cliente_telefono).first()
-
-                if not cliente_venta and (cliente_nombre or cliente_telefono):
-                    cliente_venta = ClienteVenta.objects.create(
-                        nombre=cliente_nombre if cliente_nombre else None,
-                        telefono=cliente_telefono if cliente_telefono else None,
-                        ci=cliente_ci if cliente_ci else None,
-                    )
-
-
-
-
-
-
+            # 1️⃣ BUSCAR POR CI (identificador único del cliente)
+            if cliente_ci:
+                cliente_venta = ClienteVenta.objects.filter(ci=cliente_ci).first()
+                
+                # ✅ Si existe, ACTUALIZAR sus datos (nombre y teléfono)
+                if cliente_venta:
+                    if cliente_nombre:
+                        cliente_venta.nombre = cliente_nombre
+                    if cliente_telefono:
+                        cliente_venta.telefono = cliente_telefono
+                    cliente_venta.save()
+            
+            # 2️⃣ Si no existe el CI, CREAR nueva fila
+            if not cliente_venta and (cliente_nombre or cliente_telefono or cliente_ci):
+                cliente_venta = ClienteVenta.objects.create(
+                    nombre=cliente_nombre or 'Cliente sin nombre',
+                    telefono=cliente_telefono if cliente_telefono else None,
+                    ci=cliente_ci if cliente_ci else None,
+                )
+        
+        # ====== CREAR LA VENTA ======
         venta = VentaRapida.objects.create(
             fecha_venta=timezone.now(),
             registrado_por=request.user if request.user.is_authenticated else None,
-            id_cliente_venta=cliente_venta  #puede ser nulo
+            id_cliente_venta=cliente_venta,
         )
         
-        total = 0
+        total = Decimal('0.00')
         
+        # ====== GUARDAR PRODUCTOS ======
         for key in request.POST:
             if key.startswith('producto_') and not key.startswith('precio_producto_'):
                 num = key.split('_')[-1]
@@ -69,26 +78,28 @@ def guardar_venta_rapida(request):
                 if producto_id and cantidad:
                     producto = get_object_or_404(Producto, id=producto_id)
                     cantidad_int = int(cantidad)
-                    precio_float = float(precio) if precio else float(producto.precio_venta)
+                    precio_decimal = Decimal(precio) if precio else producto.precio_venta
                     
                     DetalleVentaRapida.objects.create(
                         id_venta=venta,
                         id_producto=producto,
                         cantidad=cantidad_int,
-                        precio_venta=precio_float,
+                        precio_venta=precio_decimal,
                     )
                     
+                    # Descontar stock
                     producto.stock_actual -= cantidad_int
                     producto.save()
                     
-                    total += precio_float * cantidad_int
+                    total += precio_decimal * cantidad_int
         
+        # ====== ACTUALIZAR TOTAL DE LA VENTA ======
         if total > 0:
             venta.total = total
             venta.save()
-            messages.success(request, f'Venta registrada. Total: Bs. {total}')
+            messages.success(request, f'✅ Venta registrada. Total: Bs. {total}')
         else:
-            messages.warning(request, 'No se seleccionaron productos')
+            messages.warning(request, '⚠️ No se seleccionaron productos')
         
         return redirect('venta_rapida')
     

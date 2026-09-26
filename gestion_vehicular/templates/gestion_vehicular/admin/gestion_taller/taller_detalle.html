@@ -1,4 +1,4 @@
-{% extends 'gestion_vehicular/jefe_mecanico/base_jefe.html' %}
+{% extends 'gestion_vehicular/admin/base_admin.html' %}
 {% block title %}Taller - Orden {{ orden.id }}{% endblock %}
 
 {% block content %}
@@ -9,13 +9,14 @@
 <div class="card">
     <div class="grid grid-4">
         <div><strong>Placa:</strong> {{ orden.id_vehiculo.placa }}</div>
-        <div><strong>Vehículo:</strong> {{ orden.id_vehiculo.marca }} {{ orden.id_vehiculo.modelo }}</div>
-        <div><strong>Cliente:</strong> {{ orden.id_vehiculo.id_cliente.nombre|default:"Sin cliente" }}</div>
+        <div><strong>Complejidad:</strong> {{ orden.id_complejidad.nombre|default:"No asignado" }}</div>
+        <div><strong>Cliente:</strong> {{ orden.id_vehiculo.id_cliente.nombre|default:"Sin cliente" }} {{ orden.id_vehiculo.id_cliente.telefono|default:"No registrado" }}</div>
         <div>
             <strong>Estado:</strong>
             <span class="badge 
                 {% if orden.estado_orden == 'POR_COBRAR' %}badge-success
                 {% elif orden.estado_orden == 'EN_PROCESO' %}badge-info
+                {% elif orden.estado_orden == 'VISITA' %}badge-primary
                 {% else %}badge-warning{% endif %}">
                 {{ orden.estado_orden }}
             </span>
@@ -52,10 +53,15 @@
                         {{ detalle.estado }}
                     </span>
                     <button onclick="editarPrecio({{ detalle.id }})" class="btn btn-gray btn-sm">Editar</button>
+                    {% if detalle.estado == 'PENDIENTE' %}
+                    <form method="POST" action="{% url 'eliminar_servicio_orden' detalle.id %}" style="display:inline;" onsubmit="return confirm('¿Eliminar este servicio?')">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-danger btn-sm" title="Eliminar servicio">✕</button>
+                    </form>
+                    {% endif %}
                 </div>
             </div>
 
-            <!-- Formulario para editar precio (oculto) -->
             <div id="editarPrecio-{{ detalle.id }}" style="display:none; margin-top:8px;">
                 <form method="POST" action="{% url 'editar_precio_servicio' detalle.id %}" class="flex flex-wrap">
                     {% csrf_token %}
@@ -66,7 +72,6 @@
                 </form>
             </div>
 
-            <!-- Botones para cambiar estado -->
             <div class="flex flex-wrap" style="margin-top:8px;">
                 <form method="POST" action="{% url 'cambiar_estado_servicio' detalle.id %}" class="inline-form">
                     {% csrf_token %}
@@ -98,12 +103,12 @@
     <p class="text-muted">No hay servicios asignados.</p>
     {% endif %}
 
-    <!-- AGREGAR SERVICIO (con mecánico) -->
+    <!-- AGREGAR SERVICIO -->
     <div style="margin-top:15px;">
         <h4 style="font-size:14px; margin-bottom:8px;">Agregar servicio</h4>
         <form method="POST" action="{% url 'agregar_servicio_orden' orden.id %}" class="flex flex-wrap" style="gap:10px; align-items:center;">
             {% csrf_token %}
-            <select name="servicio_id" id="servicioSelect" class="form-control" style="flex:2; min-width:150px;" onchange="actualizarPrecio()">
+            <select name="servicio_id" id="servicioSelect" class="form-control" style="flex:2; min-width:150px;">
                 <option value="">-- Seleccionar servicio --</option>
                 {% for s in servicios %}
                 <option value="{{ s.id }}" data-precio="{{ s.precio_mano_obra }}">{{ s.nombre }} - Bs. {{ s.precio_mano_obra }}</option>
@@ -130,14 +135,21 @@
     <div class="table-responsive scroll-y" style="max-height:200px;">
         <table>
             <thead>
-                <tr><th>Producto</th><th>Cantidad</th><th>Subtotal</th></tr>
+                <tr><th>Producto</th><th>Cantidad</th><th>Precio Unit.</th><th>Subtotal</th><th></th></tr>
             </thead>
             <tbody>
                 {% for detalle in orden.detalles_producto.all %}
                 <tr>
                     <td>{{ detalle.id_producto.nombre }}</td>
                     <td>{{ detalle.cantidad }}</td>
+                    <td>Bs. {{ detalle.precio_unitario|default:"0.00" }}</td>
                     <td><strong>Bs. {{ detalle.subtotal_precio|default:"0.00" }}</strong></td>
+                    <td style="text-align:right;">
+                        <form method="POST" action="{% url 'eliminar_producto_orden' detalle.id %}" style="display:inline;" onsubmit="return confirm('¿Eliminar este producto?')">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-danger btn-sm" title="Eliminar producto">✕</button>
+                        </form>
+                    </td>
                 </tr>
                 {% endfor %}
             </tbody>
@@ -147,19 +159,21 @@
     <p class="text-muted">Sin productos.</p>
     {% endif %}
 
-    <!-- AGREGAR PRODUCTO -->
+    <!-- AGREGAR PRODUCTO (con precio y cantidad editables) -->
     <div style="margin-top:15px;">
         <h4 style="font-size:14px; margin-bottom:8px;">Agregar producto</h4>
         <form method="POST" action="{% url 'agregar_producto_orden' orden.id %}" class="flex flex-wrap" style="gap:10px; align-items:center;">
             {% csrf_token %}
-            <select name="producto_id" class="form-control" style="flex:2; min-width:150px;">
+            <select name="producto_id" id="productoSelect" class="form-control" style="flex:2; min-width:150px;">
                 <option value="">-- Seleccionar producto --</option>
                 {% for p in productos %}
-                <option value="{{ p.id }}">{{ p.nombre }} (Stock: {{ p.stock_actual }})</option>
+                <option value="{{ p.id }}" data-precio="{{ p.precio_venta }}">{{ p.nombre }} - Bs. {{ p.precio_venta }} (Stock: {{ p.stock_actual }})</option>
                 {% endfor %}
             </select>
-            <label style="font-weight:600; font-size:13px; margin:0;">Cantidad:</label>
-            <input type="number" name="cantidad" value="1" min="1" style="width:70px; padding:5px 10px;">
+            <label style="font-weight:600; font-size:13px; margin:0;">Cant.:</label>
+            <input type="number" name="cantidad" id="cantidadInput" value="1" min="1" style="width:70px; padding:5px 10px;">
+            <label style="font-weight:600; font-size:13px; margin:0;">Precio:</label>
+            <input type="number" name="precio_unitario" id="precioProductoInput" step="0.01" style="width:100px; padding:5px 10px;">
             <button type="submit" class="btn btn-warning">+ Agregar</button>
         </form>
     </div>
@@ -182,7 +196,6 @@
     <p class="text-muted">Sin hallazgos.</p>
     {% endif %}
 
-    <!-- AGREGAR HALLAZGO -->
     <div style="margin-top:15px;">
         <h4 style="font-size:14px; margin-bottom:8px;">Agregar hallazgo</h4>
         <form method="POST" action="{% url 'agregar_hallazgo_orden' orden.id %}" class="grid grid-3" style="align-items:center;">
@@ -204,13 +217,33 @@
 </div>
 
 <script>
-    function actualizarPrecio() {
-        var select = document.getElementById('servicioSelect');
-        var precioInput = document.getElementById('precioInput');
-        var selectedOption = select.options[select.selectedIndex];
-        var precio = selectedOption.getAttribute('data-precio');
-        precioInput.value = precio || '';
-    }
+    $(document).ready(function() {
+        // ✅ Select2 en servicios
+        $('#servicioSelect').select2({
+            placeholder: 'Buscar servicio...',
+            allowClear: true,
+            width: '100%'
+        });
+        
+        // ✅ Select2 en productos
+        $('#productoSelect').select2({
+            placeholder: 'Buscar producto...',
+            allowClear: true,
+            width: '100%'
+        });
+        
+        // Autocompletar precio al seleccionar servicio
+        $('#servicioSelect').on('change', function() {
+            var precio = $(this).find('option:selected').data('precio') || '';
+            $('#precioInput').val(precio);
+        });
+        
+        // ✅ Autocompletar precio al seleccionar producto
+        $('#productoSelect').on('change', function() {
+            var precio = $(this).find('option:selected').data('precio') || '';
+            $('#precioProductoInput').val(precio);
+        });
+    });
 
     function editarPrecio(detalleId) {
         var div = document.getElementById('editarPrecio-' + detalleId);
