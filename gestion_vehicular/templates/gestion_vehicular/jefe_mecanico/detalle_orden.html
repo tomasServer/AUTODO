@@ -1,16 +1,18 @@
 {% extends 'gestion_vehicular/jefe_mecanico/base_jefe.html' %}
-{% block title %}Orden {{ orden.id }}{% endblock %}
+{% block title %}Orden Nº {{ orden.id }}{% endblock %}
 
 {% block content %}
 
-<h2>Orden #{{ orden.id }}</h2>
+<h2>Orden Nº {{ orden.id }}</h2>
 
-<!-- ============ INFORMACIÓN DE LA ORDEN ============ -->
+<!-- ============ INFORMACIÓN GENERAL ============ -->
 <div class="card">
     <div class="grid grid-2">
         <div><strong>Placa:</strong> {{ orden.id_vehiculo.placa }}</div>
         <div><strong>Vehículo:</strong> {{ orden.id_vehiculo.marca|default:"" }} {{ orden.id_vehiculo.modelo|default:"" }}</div>
-        <div><strong>Cliente:</strong> {{ orden.id_vehiculo.id_cliente.nombre|default:"-" }}</div>
+        <div><strong>Cliente:</strong> {{ orden.id_vehiculo.id_cliente.nombre|default:"Sin cliente" }}</div>
+        <div><strong>Teléfono:</strong> {{ orden.id_vehiculo.id_cliente.telefono|default:"-" }}</div>
+        <div><strong>Kilometraje:</strong> {{ orden.id_vehiculo.kilometraje_actual|default:"0" }} km</div>
         <div>
             <strong>Estado:</strong>
             <span class="badge 

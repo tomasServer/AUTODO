@@ -1,0 +1,39 @@
+{% extends 'gestion_vehicular/jefe_mecanico/base_jefe.html' %}
+{% block title %}Revisión Rápida{% endblock %}
+
+{% block content %}
+
+<h2>Revisión Rápida</h2>
+
+<div class="card">
+    <form method="POST" action="{% url 'guardar_revision_rapida' %}">
+        {% csrf_token %}
+        <input type="hidden" name="placa" value="{{ placa }}">
+        
+        {% for componente in componentes %}
+        <div class="flex-between" style="padding:10px 0; border-bottom:1px solid #ecf0f1;">
+            <span style="font-weight:600;">{{ componente.nombre }}</span>
+            <div class="flex">
+                <label style="font-size:0.8rem; margin:0; display:flex; align-items:center; gap:4px;">
+                    <input type="radio" name="comp_{{ componente.id }}" value="OK" checked style="width:auto;"> OK
+                </label>
+                <label style="font-size:0.8rem; margin:0; display:flex; align-items:center; gap:4px;">
+                    <input type="radio" name="comp_{{ componente.id }}" value="REGULAR" style="width:auto;"> REGULAR
+                </label>
+                <label style="font-size:0.8rem; margin:0; display:flex; align-items:center; gap:4px;">
+                    <input type="radio" name="comp_{{ componente.id }}" value="CRITICO" style="width:auto;"> CRÍTICO
+                </label>
+            </div>
+        </div>
+        {% empty %}
+        <p class="text-muted">No hay componentes configurados para la visita.</p>
+        {% endfor %}
+        
+        <div class="flex flex-wrap" style="justify-content:space-between; margin-top:15px;">
+            <a href="{% url 'buscar_vehiculo' %}" class="btn btn-gray">Cancelar</a>
+            <button type="submit" class="btn btn-success">Guardar Revisión</button>
+        </div>
+    </form>
+</div>
+
+{% endblock %}

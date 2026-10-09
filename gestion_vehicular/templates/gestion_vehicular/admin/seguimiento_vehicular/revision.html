@@ -1,92 +1,109 @@
 {% extends 'gestion_vehicular/admin/base_admin.html' %}
-{% block title %}Revision Tecnica - Orden #{{ orden.id }}{% endblock %}
-
-
+{% block title %}Revisión Técnica - Orden Nº {{ orden.id }}{% endblock %}
 
 {% block content %}
-<h1 style="color:#1a252f;">Revision Tecnica</h1>
-<p style="margin-bottom:20px;"><strong>Orden #{{ orden.id }}</strong> | {{ orden.id_vehiculo.placa }} - {{ orden.id_vehiculo.marca|default:"" }} {{ orden.id_vehiculo.modelo|default:"" }}</p>
 
-<div class="card" style="background:#d6eaf8; border-left:0px solid #1a5276; margin-bottom:20px;">
-    <p style="margin:0;"><strong>Como se calcula el ISV:</strong> OK = 100% | REGULAR = 50% | CRITICO = 0%</p>
+<h1>Revisión Técnica</h1>
+<p><strong>Orden Nº {{ orden.id }}</strong> | {{ orden.id_vehiculo.placa }} - {{ orden.id_vehiculo.marca|default:"" }} {{ orden.id_vehiculo.modelo|default:"" }}</p>
+
+<!-- Explicación del ISV -->
+<div class="card" style="background:#d6eaf8; margin-bottom:20px;">
+    <p style="margin:0;"><strong>Cálculo del ISV:</strong> OK = 100% | REGULAR = 50% | CRÍTICO = 0%</p>
+</div>
+
+<!-- Selector de tipo de revisión -->
+<div class="flex flex-wrap mb-20">
+    <a href="?tipo=VISITA" class="btn {% if tipo == 'VISITA' %}btn-warning{% else %}btn-gray{% endif %}">
+        Visita
+    </a>
+    <a href="?tipo=RAPIDA" class="btn {% if tipo == 'RAPIDA' %}btn-warning{% else %}btn-gray{% endif %}">
+        Revisión Rápida
+    </a>
+    <a href="?tipo=COMPLETA" class="btn {% if tipo == 'COMPLETA' %}btn-primary{% else %}btn-gray{% endif %}">
+        Revisión Completa
+    </a>
 </div>
 
 <form method="POST">
     {% csrf_token %}
     
-    <div style="margin-bottom:20px; display:flex; gap:10px;">
-    <a href="?tipo=RAPIDA" class="btn {% if tipo == 'RAPIDA' %}btn-warning{% else %}btn-gray{% endif %}">Revision Rapida (5 componentes)</a>
-    <a href="?tipo=COMPLETA" class="btn {% if tipo == 'COMPLETA' %}btn-primary{% else %}btn-gray{% endif %}">Revision Completa (9 componentes)</a>
-    </div>
-
     {% for componente in componentes %}
     <div class="card">
         <h2>{{ componente.orden }}. {{ componente.nombre }}</h2>
         
-        <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+        <div class="flex flex-wrap" style="gap:10px; align-items:center;">
             <button type="button" class="btn btn-success" onclick="seleccionarEstado(this, 'OK', {{ componente.id }})">OK</button>
-            <button type="button" class="btn" style="background:#7d6608; color:#fff;" onclick="seleccionarEstado(this, 'REGULAR', {{ componente.id }})">REGULAR</button>
-            <button type="button" class="btn btn-warning" onclick="seleccionarEstado(this, 'CRITICO', {{ componente.id }})">CRITICO</button>
+            <button type="button" class="btn btn-warning" onclick="seleccionarEstado(this, 'REGULAR', {{ componente.id }})">REGULAR</button>
+            <button type="button" class="btn btn-danger" onclick="seleccionarEstado(this, 'CRITICO', {{ componente.id }})">CRÍTICO</button>
             <input type="hidden" name="comp_{{ componente.id }}" id="comp_{{ componente.id }}" value="OK">
         </div>
         
         <!-- Notas predefinidas -->
         <div id="notas_{{ componente.id }}" style="display:none; margin-top:10px;">
-            <label>Nota:</label>
-            <select name="nota_{{ componente.id }}" style="margin-bottom:5px;">
+            <label>Nota</label>
+            <select name="nota_{{ componente.id }}" id="select_nota_{{ componente.id }}">
                 <option value="">Seleccione una nota...</option>
                 {% for nota in notas_predefinidas %}
                     {% if nota.id_componente_id == componente.id %}
                     <option value="{{ nota.texto }}" data-estado="{{ nota.estado }}">{{ nota.texto }}</option>
                     {% endif %}
                 {% endfor %}
-                <option value="personalizada">Otra (escribir manual)</option>
+                <option value="__personalizada__">📝 Otra (escribir manual)</option>
             </select>
-            <input type="text" id="nota_manual_{{ componente.id }}" placeholder="Escriba su nota..." style="display:none;">
+            <input type="text" id="nota_manual_{{ componente.id }}" placeholder="Escriba su nota..." style="display:none; margin-top:5px;">
         </div>
+    </div>
+    {% empty %}
+    <div class="card">
+        <p class="text-muted">No hay componentes configurados para este tipo de revisión.</p>
     </div>
     {% endfor %}
     
-    <div style="text-align:right; margin-top:20px;">
+    <div class="flex flex-wrap" style="justify-content:flex-end; margin-top:20px;">
         <a href="{% url 'detalle_orden' orden.id %}" class="btn btn-gray">Cancelar</a>
-        <button type="submit" class="btn btn-success">Guardar Revision</button>
+        <button type="submit" class="btn btn-success">Guardar Revisión</button>
     </div>
 </form>
 
 <script>
-function seleccionarEstado(boton, estado, componenteId) {
-    // Guardar estado
-    document.getElementById('comp_' + componenteId).value = estado;
-    
-    // Mostrar notas si es REGULAR o CRITICO
-    var notasDiv = document.getElementById('notas_' + componenteId);
-    if (estado === 'REGULAR' || estado === 'CRITICO') {
-        notasDiv.style.display = 'block';
-    } else {
-        notasDiv.style.display = 'none';
-    }
-    
-    // Colorear botones
-    var botones = boton.parentElement.querySelectorAll('button');
-    botones.forEach(function(b) { b.style.opacity = '0.5'; });
-    boton.style.opacity = '1';
-}
-
-// Mostrar campo manual si selecciona "Otra"
-document.querySelectorAll('select[name^="nota_"]').forEach(function(select) {
-    select.addEventListener('change', function() {
-        var compId = this.name.replace('nota_comp_', '').replace('nota_', '');
-        var manual = document.getElementById('nota_manual_' + compId);
-        if (this.value === 'personalizada') {
-            manual.style.display = 'block';
-            manual.name = this.name;
-            this.name = '';
+    // ============ SELECCIONAR ESTADO ============
+    function seleccionarEstado(boton, estado, componenteId) {
+        // Guardar estado en el input hidden
+        document.getElementById('comp_' + componenteId).value = estado;
+        
+        // Mostrar/ocultar notas según estado
+        var notasDiv = document.getElementById('notas_' + componenteId);
+        if (estado === 'REGULAR' || estado === 'CRITICO') {
+            notasDiv.style.display = 'block';
         } else {
-            manual.style.display = 'none';
-            this.name = 'nota_' + compId;
-            manual.name = '';
+            notasDiv.style.display = 'none';
         }
+        
+        // Colorear botones: opacidad a todos, 100% al seleccionado
+        var botones = boton.parentElement.querySelectorAll('button');
+        botones.forEach(function(b) { b.style.opacity = '0.4'; });
+        boton.style.opacity = '1';
+    }
+
+    // ============ MANEJO DEL "OTRA (MANUAL)" ============
+    document.querySelectorAll('select[id^="select_nota_"]').forEach(function(select) {
+        select.addEventListener('change', function() {
+            var compId = this.id.replace('select_nota_', '');
+            var manual = document.getElementById('nota_manual_' + compId);
+            
+            if (this.value === '__personalizada__') {
+                // Mostrar input manual y quitar el name del select
+                manual.style.display = 'block';
+                manual.name = 'nota_' + compId;
+                this.name = '';  // El select ya no envía nada
+            } else {
+                // Ocultar input manual y devolver el name al select
+                manual.style.display = 'none';
+                manual.name = '';
+                this.name = 'nota_' + compId;
+            }
+        });
     });
-});
 </script>
+
 {% endblock %}

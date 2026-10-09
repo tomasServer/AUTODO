@@ -96,4 +96,6 @@ urlpatterns = [
 
     #pdf
     path('orden/<int:orden_id>/pdf/', gestion_taller.orden_pdf, name='orden_pdf'),
+    path('api/vehiculo/', seguimiento_vehicular.api_vehiculo_por_placa, name='api_vehiculo_por_placa'),
+    path('ventas/<int:venta_id>/pdf/', gestion_ventas.venta_pdf, name='venta_pdf'),
 ]

@@ -2,28 +2,70 @@
 {% block title %}Venta {{ venta.id }}{% endblock %}
 
 {% block content %}
-<h2 style="color:#1a252f; margin-bottom:15px;">Venta Rapida #{{ venta.id }}</h2>
+<h2 style="color:#1a252f; margin-bottom:15px;">Venta Rápida #{{ venta.id }}</h2>
 
 <div class="card" style="padding:20px;">
-    <p><strong>Fecha:</strong> {{ venta.fecha_venta|date:"d/m/Y H:i" }}</p>
-    <p><strong>Registrado por:</strong> {{ venta.registrado_por.nombre|default:"-" }}</p>
-    
-    <table style="font-size:0.85rem; margin-top:15px;">
+    <!-- INFO GENERAL -->
+    <div style="display:grid; grid-template-columns:repeat(2, 1fr); gap:12px; margin-bottom:15px;">
+        <div><strong>Fecha:</strong> {{ venta.fecha_venta|date:"d/m/Y H:i" }}</div>
+        <div><strong>Registrado por:</strong> {{ venta.registrado_por.nombre|default:"-" }}</div>
+        <div>
+            <strong>Método de Pago:</strong>
+            {% if venta.metodo_pago %}
+                <span class="badge badge-info">{{ venta.metodo_pago }}</span>
+            {% else %}
+                <span style="color:#95a5a6;">—</span>
+            {% endif %}
+        </div>
+        <div>
+            <strong>Cliente:</strong>
+            {% if venta.id_cliente %}
+                {{ venta.id_cliente.nombre }} {{ venta.id_cliente.apellido|default:"" }}
+            {% else %}
+                <span style="color:#95a5a6;">Sin registrar</span>
+            {% endif %}
+        </div>
+        {% if venta.id_cliente.ci %}
+        <div><strong>CI:</strong> {{ venta.id_cliente.ci }}</div>
+        {% endif %}
+        {% if venta.id_cliente.telefono %}
+        <div><strong>Teléfono:</strong> {{ venta.id_cliente.telefono }}</div>
+        {% endif %}
+    </div>
+
+    <hr style="border:none; border-top:1px solid #ecf0f1; margin:15px 0;">
+
+    <!-- DETALLE DE PRODUCTOS -->
+    <table style="font-size:0.9rem; margin-top:15px;">
         <thead>
-            <tr><th>Producto</th><th>Cantidad</th><th>Precio</th><th>Subtotal</th></tr>
+            <tr>
+                <th>Producto</th>
+                <th style="text-align:center;">Cantidad</th>
+                <th style="text-align:right;">Precio</th>
+                <th style="text-align:right;">Subtotal</th>
+            </tr>
         </thead>
         <tbody>
             {% for d in venta.detalles.all %}
             <tr>
                 <td>{{ d.id_producto.nombre }}</td>
-                <td>{{ d.cantidad }}</td>
-                <td>Bs. {{ d.precio_venta }}</td>
-                <td><strong>Bs. {{ d.cantidad|floatformat:0 }} x {{ d.precio_venta }}</strong></td>
+                <td style="text-align:center;">{{ d.cantidad }}</td>
+                <td style="text-align:right;">Bs. {{ d.precio_venta|floatformat:2 }}</td>
+                <td style="text-align:right;">
+                    <strong>Bs. {% widthratio d.precio_venta 1 d.cantidad %}</strong>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="4" style="text-align:center; color:#95a5a6; padding:20px;">
+                    No hay productos en esta venta.
+                </td>
             </tr>
             {% endfor %}
         </tbody>
     </table>
-    
+
+    <!-- TOTAL -->
     <div style="margin-top:15px; padding:15px; background:#fef9e7; border-radius:4px;">
         <div style="display:flex; justify-content:space-between; font-size:1.2rem;">
             <span>TOTAL:</span>
@@ -32,5 +74,22 @@
     </div>
 </div>
 
-<a href="{% url 'lista_ventas_rapidas' %}" class="btn btn-gray mt-20">Volver</a>
+<!-- BOTONES -->
+<div class="flex flex-wrap mt-20">
+    <a href="{% url 'lista_ventas_rapidas' %}" class="btn btn-gray">Volver</a>
+    <a href="{% url 'venta_pdf' venta.id %}" target="_blank" class="btn btn-primary">
+        📄 Imprimir Comprobante
+    </a>
+    <a href="{% url 'venta_rapida' %}" class="btn btn-success">
+        + Nueva Venta
+    </a>
+</div>
+
+{% if request.GET.imprimir == '1' %}
+<script>
+    // Abre el PDF automáticamente al cargar el detalle
+    window.open("{% url 'venta_pdf' venta.id %}", "_blank");
+</script>
+{% endif %}
+
 {% endblock %}

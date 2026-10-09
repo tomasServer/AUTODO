@@ -5,6 +5,7 @@ class Cliente(models.Model):
     nombre = models.CharField(max_length=100)
     apellido = models.CharField(max_length=100, blank=True, null=True)
     telefono = models.CharField(max_length=15, blank=True, null=True)
+    ci = models.CharField(unique=True, max_length=20, blank=True, null=True)  # ✅ NUEVO
     fecha_registro = models.DateTimeField(blank=True, null=True)
 
     class Meta:
@@ -161,6 +162,7 @@ class HistorialEstadoOrden(models.Model):
 
 
 class OrdenTrabajo(models.Model):
+    id_cliente = models.ForeignKey('Cliente',models.DO_NOTHING, db_column='id_cliente', blank=True, null=True,related_name='ordenes',)
     id_vehiculo = models.ForeignKey('Vehiculo', models.DO_NOTHING, db_column='id_vehiculo')
     id_jefe_tecnico = models.ForeignKey('Usuario', models.DO_NOTHING, db_column='id_jefe_tecnico', blank=True, null=True, related_name='ordenes_supervisadas')
     id_tipo_servicio = models.ForeignKey('TipoServicio', models.DO_NOTHING, db_column='id_tipo_servicio', blank=True, null=True)
@@ -344,7 +346,7 @@ class Usuario(models.Model):
 
 class Vehiculo(models.Model):
     id_cliente = models.ForeignKey(Cliente, models.DO_NOTHING, db_column='id_cliente', blank=True, null=True)
-    placa = models.CharField(unique=True, max_length=20)
+    placa = models.CharField(unique=True, max_length=20, blank=True, null=True)
     marca = models.CharField(max_length=50, blank=True, null=True)
     modelo = models.CharField(max_length=50, blank=True, null=True)
     anio = models.IntegerField(blank=True, null=True)
@@ -359,7 +361,8 @@ class Vehiculo(models.Model):
         db_table = 'vehiculo'
 
     def __str__(self):
-        return f"{self.placa} - {self.marca or ''} {self.modelo or ''}"
+        ident = self.placa or self.vin or f"# {self.pk}"
+        return f"{ident} - {self.marca or ''} {self.modelo or ''}".sprit(' -')
 
 
 #ventas............................
@@ -367,7 +370,10 @@ class VentaRapida(models.Model):
     fecha_venta = models.DateTimeField(blank=True, null=True)
     total = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
     registrado_por = models.ForeignKey('Usuario', models.DO_NOTHING, db_column='registrado_por', blank=True, null=True)
-    id_cliente_venta = models.ForeignKey('ClienteVenta', models.DO_NOTHING, db_column='id_cliente_venta', blank=True, null=True)
+    # ✅ NUEVO: FK hacia Cliente (ya no hacia ClienteVenta)
+    id_cliente = models.ForeignKey('Cliente', models.DO_NOTHING, db_column='id_cliente', blank=True, null=True, related_name='ventas_rapidas')
+    metodo_pago = models.CharField(max_length=50, blank=True, null=True)
+
     class Meta:
         managed = False
         db_table = 'venta_rapida'
@@ -383,16 +389,3 @@ class DetalleVentaRapida(models.Model):
         managed = False
         db_table = 'detalle_venta_rapida'
 
-#registro del cliente
-class ClienteVenta(models.Model):
-    nombre = models.CharField(max_length=100)
-    telefono = models.CharField(max_length=15, blank=True, null=True)
-    ci = models.CharField(max_length=20, blank=True, null=True)
-    fecha_registro = models.DateTimeField(auto_now_add=True, blank=True, null=True)
-
-    class Meta:
-        managed = False
-        db_table = 'cliente_venta'
-
-    def __str__(self):
-        return f"{self.nombre} - {self.telefono or 'Sin teléfono'}"

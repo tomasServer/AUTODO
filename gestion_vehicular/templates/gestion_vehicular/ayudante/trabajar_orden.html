@@ -1,9 +1,9 @@
 {% extends 'gestion_vehicular/ayudante/base_ayudante.html' %}
-{% block title %}Trabajar Orden {{ orden.id }}{% endblock %}
+{% block title %}Trabajar Orden Nº {{ orden.id }}{% endblock %}
 
 {% block content %}
 
-<h2>Orden #{{ orden.id }}</h2>
+<h2>Orden Nº {{ orden.id }}</h2>
 
 <!-- ============ INFO DE LA ORDEN ============ -->
 <div class="card">
@@ -19,34 +19,44 @@
 {% if servicios_detalle %}
 <div class="grid" style="gap:10px;">
     {% for servicio in servicios_detalle %}
-    <div class="card" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
-        <div>
-            <strong>{{ servicio.id_servicio.nombre }}</strong>
-            <span class="badge 
-                {% if servicio.estado == 'FINALIZADO' %}badge-success
-                {% elif servicio.estado == 'EN_PROCESO' %}badge-info
-                {% else %}badge-warning{% endif %}" 
-                style="margin-left:10px;">
-                {{ servicio.estado }}
-            </span>
+    <div class="card">
+        <div class="flex-between flex-wrap">
+            <div>
+                <strong>{{ servicio.id_servicio.nombre }}</strong>
+                <span class="badge 
+                    {% if servicio.estado == 'FINALIZADO' %}badge-success
+                    {% elif servicio.estado == 'EN_PROCESO' %}badge-info
+                    {% else %}badge-warning{% endif %}" 
+                    style="margin-left:10px;">
+                    {{ servicio.estado }}
+                </span>
+            </div>
         </div>
-        <div>
-            {% if servicio.estado == 'PENDIENTE' %}
-            <form method="POST" action="{% url 'cambiar_estado_servicio' servicio.id %}" style="display:inline;">
+
+        <div class="flex flex-wrap" style="margin-top:10px;">
+            <form method="POST" action="{% url 'cambiar_estado_servicio' servicio.id %}" class="inline-form">
+                {% csrf_token %}
+                <input type="hidden" name="nuevo_estado" value="PENDIENTE">
+                <button type="submit" class="btn btn-gray btn-sm" {% if servicio.estado == 'PENDIENTE' %}disabled{% endif %}>Pendiente</button>
+            </form>
+            <form method="POST" action="{% url 'cambiar_estado_servicio' servicio.id %}" class="inline-form">
                 {% csrf_token %}
                 <input type="hidden" name="nuevo_estado" value="EN_PROCESO">
-                <button type="submit" class="btn btn-info btn-sm">Iniciar</button>
+                <button type="submit" class="btn btn-warning btn-sm" {% if servicio.estado == 'EN_PROCESO' %}disabled{% endif %}>En Proceso</button>
             </form>
-            {% elif servicio.estado == 'EN_PROCESO' %}
-            <form method="POST" action="{% url 'cambiar_estado_servicio' servicio.id %}" style="display:inline;">
+            <form method="POST" action="{% url 'cambiar_estado_servicio' servicio.id %}" class="inline-form">
                 {% csrf_token %}
                 <input type="hidden" name="nuevo_estado" value="FINALIZADO">
-                <button type="submit" class="btn btn-success btn-sm">Finalizar</button>
+                <button type="submit" class="btn btn-success btn-sm" {% if servicio.estado == 'FINALIZADO' %}disabled{% endif %}>Finalizar</button>
             </form>
-            {% else %}
-            <span style="color:#27ae60; font-weight:600;">✓ Finalizado</span>
-            {% endif %}
         </div>
+
+        {% if servicio.fecha_inicio %}
+        <div class="text-muted" style="font-size:12px; margin-top:8px;">
+            Inicio: {{ servicio.fecha_inicio|date:"d/m/Y H:i" }}
+            {% if servicio.fecha_fin %} | Fin: {{ servicio.fecha_fin|date:"d/m/Y H:i" }}{% endif %}
+        </div>
+        {% endif %}
     </div>
     {% endfor %}
 </div>
@@ -54,9 +64,15 @@
 <p class="text-muted">No tienes servicios asignados en esta orden.</p>
 {% endif %}
 
-<!-- ============ BOTÓN VOLVER ============ -->
-<div class="mt-20">
+<!-- ============ BOTONES DE ACCIÓN ============ -->
+<div class="flex flex-wrap mt-20">
     <a href="{% url 'modo_taller' %}" class="btn btn-gray">Volver</a>
+    <a href="{% url 'orden_pdf' orden.id %}" class="btn btn-primary" target="_blank">📄 Recibo</a>
 </div>
+
+<style>
+    .inline-form { display: inline; }
+    .inline-form .btn { margin-right: 4px; }
+</style>
 
 {% endblock %}

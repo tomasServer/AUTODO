@@ -1,35 +1,28 @@
 {% extends 'gestion_vehicular/jefe_mecanico/base_jefe.html' %}
-{% block title %}Taller - Orden {{ orden.id }}{% endblock %}
+{% block title %}Taller - Orden Nº {{ orden.id }}{% endblock %}
 
 {% block extra_css %}
 <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 <style>
     .inline-form { display: inline; }
     .inline-form .btn { margin-right: 4px; }
-    .select2-container { min-width: 0 !important; }
-    .select2-container--default .select2-selection--single {
-        height: 38px;
-        border: 1px solid #bdc3c7;
-    }
-    .select2-container--default .select2-selection--single .select2-selection__rendered {
-        line-height: 36px;
-    }
-    .select2-container--default .select2-selection--single .select2-selection__arrow {
-        height: 36px;
-    }
+    .select2-container { min-width: 0 !important; width: 100% !important; }
+    .select2-container--default .select2-selection--single { height: 38px; border: 1px solid #bdc3c7; }
+    .select2-container--default .select2-selection--single .select2-selection__rendered { line-height: 36px; }
+    .select2-container--default .select2-selection--single .select2-selection__arrow { height: 36px; }
 </style>
 {% endblock %}
 
 {% block content %}
 
-<h2>Taller - Orden {{ orden.id }}</h2>
+<h2>Taller - Orden Nº {{ orden.id }}</h2>
 
-<!-- Información de la orden -->
+<!-- INFO DE LA ORDEN -->
 <div class="card">
     <div class="grid grid-4">
         <div><strong>Placa:</strong> {{ orden.id_vehiculo.placa }}</div>
         <div><strong>Complejidad:</strong> {{ orden.id_complejidad.nombre|default:"No asignado" }}</div>
-        <div><strong>Cliente:</strong> {{ orden.id_vehiculo.id_cliente.nombre|default:"Sin cliente" }} {{ orden.id_vehiculo.id_cliente.telefono|default:"No registrado" }}</div>
+        <div><strong>Cliente:</strong> {{ orden.id_vehiculo.id_cliente.nombre|default:"Sin cliente" }}</div>
         <div>
             <strong>Estado:</strong>
             <span class="badge 
@@ -41,6 +34,12 @@
             </span>
         </div>
     </div>
+    
+    {% if es_encargado %}
+    <div style="margin-top:10px; padding:8px 12px; background:#d5f5e3; border-left:3px solid #1e8449; border-radius:4px; font-size:0.85rem;">
+        <strong>✓ Eres el encargado de esta orden</strong>
+    </div>
+    {% endif %}
 </div>
 
 <!-- Botones de revisión -->
@@ -73,13 +72,12 @@
                         {% else %}badge-success{% endif %}">
                         {{ detalle.estado }}
                     </span>
-                    {% if user.id_rol_id == 1 or detalle.id_mecanico_id == user.id %}
+                    {% if user.id_rol_id == 1 or detalle.id_mecanico_id == user.id or es_encargado %}
                     <button onclick="editarPrecio({{ detalle.id }})" class="btn btn-gray btn-sm">Editar</button>
                     {% endif %}
                 </div>
             </div>
 
-            <!-- Formulario para editar precio (oculto) -->
             <div id="editarPrecio-{{ detalle.id }}" style="display:none; margin-top:8px;">
                 <form method="POST" action="{% url 'editar_precio_servicio' detalle.id %}" class="flex flex-wrap">
                     {% csrf_token %}
@@ -90,8 +88,7 @@
                 </form>
             </div>
 
-            <!-- Botones para cambiar estado -->
-            {% if user.id_rol_id == 1 or detalle.id_mecanico_id == user.id %}
+            {% if user.id_rol_id == 1 or detalle.id_mecanico_id == user.id or es_encargado %}
             <div class="flex flex-wrap" style="margin-top:8px;">
                 <form method="POST" action="{% url 'cambiar_estado_servicio' detalle.id %}" class="inline-form">
                     {% csrf_token %}
@@ -129,29 +126,48 @@
     {% endif %}
 
     <!-- AGREGAR SERVICIO -->
-    <div style="margin-top:15px;">
-        <h4 style="font-size:14px; margin-bottom:8px;">Agregar servicio</h4>
-        <form method="POST" action="{% url 'agregar_servicio_orden' orden.id %}" style="display:flex; gap:8px; align-items:center;">
+    {% if puede_agregar %}
+    <div style="margin-top:15px; padding:15px; background:#f8f9fa; border:1px dashed #bdc3c7; border-radius:4px;">
+        <h4 style="font-size:14px; margin-bottom:10px;">Agregar servicio</h4>
+        <form method="POST" action="{% url 'agregar_servicio_orden' orden.id %}">
             {% csrf_token %}
-            <select name="servicio_id" id="servicioSelect" style="flex:2; min-width:0;">
-                <option value="">-- Servicio --</option>
-                {% for s in servicios %}
-                <option value="{{ s.id }}" data-precio="{{ s.precio_mano_obra }}">{{ s.nombre }} - Bs. {{ s.precio_mano_obra }}</option>
-                {% endfor %}
-            </select>
-            <input type="number" name="precio_cobrado" id="precioInput" step="0.01" placeholder="Precio" style="flex:1; min-width:0;">
-            <select name="mecanico_id" id="mecanicoSelect" style="flex:1; min-width:0;">
-                <option value="">-- Mecánico --</option>
-                {% for mec in mecanicos %}
-                <option value="{{ mec.id }}">{{ mec.nombre_completo }}</option>
-                {% endfor %}
-            </select>
-            <button type="submit" class="btn btn-warning" style="white-space:nowrap;">+ Agregar</button>
+            <div style="margin-bottom:10px;">
+                <select name="servicio_id" id="servicioSelect">
+                    <option value="">-- Buscar servicio --</option>
+                    {% for s in servicios %}
+                    <option value="{{ s.id }}" data-precio="{{ s.precio_mano_obra }}">{{ s.nombre }} - Bs. {{ s.precio_mano_obra }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="flex flex-wrap" style="gap:8px;">
+                <div style="flex:1; min-width:100px;">
+                    <label style="font-size:0.8rem;">Precio</label>
+                    <input type="number" name="precio_cobrado" id="precioInput" step="0.01" placeholder="0.00">
+                </div>
+                <div style="flex:1; min-width:150px;">
+                    <label style="font-size:0.8rem;">Mecánico</label>
+                    <select name="mecanico_id" id="mecanicoSelect">
+                        <option value="">-- Seleccionar --</option>
+                        {% for mec in mecanicos %}
+                        <option value="{{ mec.id }}">{{ mec.nombre_completo }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div style="display:flex; align-items:flex-end;">
+                    <button type="submit" class="btn btn-warning" style="white-space:nowrap;">+ Agregar</button>
+                </div>
+            </div>
         </form>
     </div>
+    {% else %}
+    <div class="text-muted" style="margin-top:15px; padding:10px; background:#f8f9fa; border-radius:4px; font-size:0.85rem;">
+        <em>Solo el encargado de la orden puede agregar servicios.</em>
+    </div>
+    {% endif %}
 </div>
 
 <!-- ============ PRODUCTOS ============ -->
+{% if puede_agregar %}
 <div class="card">
     <h3>Productos</h3>
     {% if orden.detalles_producto.all %}
@@ -176,23 +192,35 @@
     <p class="text-muted">Sin productos.</p>
     {% endif %}
 
-    <!-- AGREGAR PRODUCTO -->
-    <div style="margin-top:15px;">
-        <h4 style="font-size:14px; margin-bottom:8px;">Agregar producto</h4>
-        <form method="POST" action="{% url 'agregar_producto_orden' orden.id %}" style="display:flex; gap:8px; align-items:center;">
+    <div style="margin-top:15px; padding:15px; background:#f8f9fa; border:1px dashed #bdc3c7; border-radius:4px;">
+        <h4 style="font-size:14px; margin-bottom:10px;">Agregar producto</h4>
+        <form method="POST" action="{% url 'agregar_producto_orden' orden.id %}">
             {% csrf_token %}
-            <select name="producto_id" id="productoSelect" style="flex:2; min-width:0;">
-                <option value="">-- Producto --</option>
-                {% for p in productos %}
-                <option value="{{ p.id }}" data-precio="{{ p.precio_venta }}">{{ p.nombre }} - Bs. {{ p.precio_venta }} (Stock: {{ p.stock_actual }})</option>
-                {% endfor %}
-            </select>
-            <input type="number" name="cantidad" id="cantidadInput" value="1" min="1" placeholder="Cant." style="flex:1; min-width:0;">
-            <input type="number" name="precio_unitario" id="precioProductoInput" step="0.01" placeholder="Precio" style="flex:1; min-width:0;">
-            <button type="submit" class="btn btn-warning" style="white-space:nowrap;">+ Agregar</button>
+            <div style="margin-bottom:10px;">
+                <select name="producto_id" id="productoSelect">
+                    <option value="">-- Buscar producto --</option>
+                    {% for p in productos %}
+                    <option value="{{ p.id }}" data-precio="{{ p.precio_venta }}">{{ p.nombre }} - Bs. {{ p.precio_venta }} (Stock: {{ p.stock_actual }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="flex flex-wrap" style="gap:8px;">
+                <div style="flex:1; min-width:80px;">
+                    <label style="font-size:0.8rem;">Cantidad</label>
+                    <input type="number" name="cantidad" id="cantidadInput" value="1" min="1">
+                </div>
+                <div style="flex:1; min-width:100px;">
+                    <label style="font-size:0.8rem;">Precio</label>
+                    <input type="number" name="precio_unitario" id="precioProductoInput" step="0.01" placeholder="0.00">
+                </div>
+                <div style="display:flex; align-items:flex-end;">
+                    <button type="submit" class="btn btn-warning" style="white-space:nowrap;">+ Agregar</button>
+                </div>
+            </div>
         </form>
     </div>
 </div>
+{% endif %}
 
 <!-- ============ HALLAZGOS ============ -->
 <div class="card">
@@ -200,10 +228,21 @@
     {% if orden.hallazgos.all %}
     <div class="scroll-y" style="max-height:200px;">
         {% for h in orden.hallazgos.all %}
-        <div class="flex-between flex-wrap" style="padding:6px 0; gap:5px;">
+        <div class="flex-between flex-wrap" style="padding:6px 0; border-bottom:1px solid #ecf0f1; gap:5px;">
             <span>{{ h.descripcion|truncatechars:50 }}</span>
-            <span style="color:#e67e22; font-weight:600;">Bs. {{ h.costo_estimado|default:"0.00" }}</span>
-            <span class="badge badge-warning">{{ h.estado_autorizacion }}</span>
+            <div class="flex">
+                <span style="color:#e67e22; font-weight:600;">Bs. {{ h.costo_estimado|default:"0.00" }}</span>
+                <span class="badge 
+                    {% if h.estado_autorizacion == 'AUTORIZADO_CLIENTE' %}badge-success
+                    {% elif h.estado_autorizacion == 'RECHAZADO_CLIENTE' %}badge-danger
+                    {% else %}badge-warning{% endif %}">
+                    {{ h.estado_autorizacion }}
+                </span>
+                {% if h.estado_autorizacion == 'PENDIENTE' and puede_agregar %}
+                <a href="{% url 'autorizar_hallazgo' h.id %}?accion=autorizar" class="btn btn-success btn-sm" onclick="return confirm('¿Aceptar este hallazgo?')">Aceptar</a>
+                <a href="{% url 'autorizar_hallazgo' h.id %}?accion=rechazar" class="btn btn-danger btn-sm" onclick="return confirm('¿Rechazar este hallazgo?')">Rechazar</a>
+                {% endif %}
+            </div>
         </div>
         {% endfor %}
     </div>
@@ -211,7 +250,6 @@
     <p class="text-muted">Sin hallazgos.</p>
     {% endif %}
 
-    <!-- AGREGAR HALLAZGO -->
     <div style="margin-top:15px;">
         <h4 style="font-size:14px; margin-bottom:8px;">Agregar hallazgo</h4>
         <form method="POST" action="{% url 'agregar_hallazgo_orden' orden.id %}" class="grid grid-3" style="align-items:center;">
@@ -228,49 +266,35 @@
     <a href="{% url 'modo_taller' %}" class="btn btn-gray">Volver</a>
     <a href="{% url 'orden_pdf' orden.id %}" class="btn btn-primary" target="_blank">📄 Recibo</a>
     {% if orden.estado_orden == 'POR_COBRAR' %}
-    <a href="{% url 'detalle_orden' orden.id %}" class="btn btn-info">Ver Orden</a>
-    <a href="{% url 'registrar_pago' orden.id %}" class="btn btn-success">Cobrar</a>
+        <a href="{% url 'detalle_orden' orden.id %}" class="btn btn-info">Ver Orden</a>
+        <a href="{% url 'registrar_pago' orden.id %}" class="btn btn-success">Cobrar</a>
+    {% elif es_encargado %}
+        <a href="{% url 'registrar_pago' orden.id %}" class="btn btn-success" onclick="return confirm('La orden no está marcada como POR_COBRAR. ¿Cobrar de todas formas?')">Cobrar (forzar)</a>
     {% endif %}
 </div>
 
-<!-- ============ SCRIPTS ============ -->
 <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 
 <script>
     $(document).ready(function() {
-        // Select2 en servicios
-        $('#servicioSelect').select2({
-            placeholder: '-- Servicio --',
-            allowClear: true,
-            width: '100%'
-        });
-        
-        // Select2 en productos
-        $('#productoSelect').select2({
-            placeholder: '-- Producto --',
-            allowClear: true,
-            width: '100%'
-        });
-        
-        // Select2 en mecánicos
-        $('#mecanicoSelect').select2({
-            placeholder: '-- Mecánico --',
-            allowClear: true,
-            width: '100%'
-        });
-        
-        // Autocompletar precio servicio
-        $('#servicioSelect').on('change', function() {
-            var precio = $(this).find('option:selected').data('precio') || '';
-            $('#precioInput').val(precio);
-        });
-        
-        // Autocompletar precio producto
-        $('#productoSelect').on('change', function() {
-            var precio = $(this).find('option:selected').data('precio') || '';
-            $('#precioProductoInput').val(precio);
-        });
+        if ($('#servicioSelect').length) {
+            $('#servicioSelect').select2({ placeholder: '-- Buscar servicio --', allowClear: true, width: '100%' });
+            $('#servicioSelect').on('change', function() {
+                var precio = $(this).find('option:selected').data('precio') || '';
+                $('#precioInput').val(precio);
+            });
+        }
+        if ($('#mecanicoSelect').length) {
+            $('#mecanicoSelect').select2({ placeholder: '-- Seleccionar --', allowClear: true, width: '100%' });
+        }
+        if ($('#productoSelect').length) {
+            $('#productoSelect').select2({ placeholder: '-- Buscar producto --', allowClear: true, width: '100%' });
+            $('#productoSelect').on('change', function() {
+                var precio = $(this).find('option:selected').data('precio') || '';
+                $('#precioProductoInput').val(precio);
+            });
+        }
     });
 
     function editarPrecio(detalleId) {

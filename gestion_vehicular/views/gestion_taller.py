@@ -2,6 +2,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.utils import timezone
 from django.contrib import messages
 from django.db.models import Q
+from django.db import IntegrityError
 from django.contrib.auth.decorators import login_required
 from ..models import *
 from django.db import connection 
@@ -43,36 +44,41 @@ def _revisar_estado_orden(orden):
 def crear_orden(request):
     # ============ DETECTAR SI VIENE DE UNA VISITA ============
     visita_id = request.GET.get('visita_id')
+    placa = ''
+    vin = '' #new
+    bloqueado = False
     es_nueva_visita = request.GET.get('nueva_visita') == '1'
     orden_visita = None
     revision_existente = None
     detalle_revision = None
     revision_detalle = None
-    
+
     # ============ OBTENER DETALLE DE REVISIÓN ============
     if request.session.get('revision_detalle'):
         revision_detalle = request.session.pop('revision_detalle')
-    
+
     if visita_id:
+        bloqueado = True
         orden_visita = get_object_or_404(OrdenTrabajo, id=visita_id)
         if orden_visita.estado_orden != 'VISITA':
             messages.error(request, 'Esta orden no está en estado VISITA.')
             return redirect('modo_taller')
-        
-        placa = orden_visita.id_vehiculo.placa
-        vehiculo = orden_visita.id_vehiculo
+
+        placa = orden_visita.id_vehiculo.placa or ''
+        vin = orden_visita.id_vehiculo.vin or ''  # 🆕
+        vehiculo = orden_visita.id_vehiculo or None
         cliente = vehiculo.id_cliente
-        
+
         revision_existente = RevisionTecnica.objects.filter(id_orden=orden_visita).first()
         if revision_existente:
             detalle_revision = DetalleRevision.objects.filter(
                 id_revision=revision_existente
             ).select_related('id_componente')
-            
+
             if not revision_detalle and detalle_revision.exists():
                 estados = {'MALO': [], 'REGULAR': [], 'OK': []}
                 componentes = []
-                
+
                 for detalle in detalle_revision:
                     nombre = detalle.id_componente.nombre
                     estado = detalle.estado
@@ -83,101 +89,222 @@ def crear_orden(request):
                     })
                     if estado in estados:
                         estados[estado].append(nombre)
-                
+
                 revision_detalle = {
                     'porcentaje': revision_existente.isv_porcentaje or 0,
                     'resumen': estados,
                     'componentes': componentes,
                 }
-    
+
     # ============ DETECTAR COTIZACIÓN ANTERIOR ============
     orden_anterior_id = request.GET.get('orden_anterior_id')
     cotizacion_anterior = None
-    
+
     if orden_anterior_id:
         cotizacion_anterior = OrdenTrabajo.objects.filter(
-            id=orden_anterior_id, 
+            id=orden_anterior_id,
             estado_orden='CANCELADA'
         ).first()
-    
+
     # ============ SI NO ES VISITA, BUSCAR POR PLACA O VEHICULO_ID ============
     if not visita_id:
         placa = request.GET.get('placa', '')
+        vin = request.GET.get('vin', '')  # 🆕
         vehiculo_id = request.GET.get('vehiculo_id')
         vehiculo = None
         cliente = None
-        
+        #si viene de busqueda
+        if placa or vin or vehiculo_id:
+            bloqueado = True
+
         if vehiculo_id:
             try:
                 vehiculo = Vehiculo.objects.get(id=vehiculo_id)
                 cliente = vehiculo.id_cliente
-                placa = vehiculo.placa
+                placa = vehiculo.placa or ''
+                vin = vehiculo.vin or ''  # 🆕
             except Vehiculo.DoesNotExist:
                 pass
-    
+
     # ============ PROCESAR POST ============
     if request.method == 'POST':
         placa = request.POST.get('placa', '').upper().strip()
+        vin = (request.POST.get('vin') or '').upper().strip()[:17]  # 🆕
+
+        
         cliente_nombre = (request.POST.get('cliente_nombre') or '').strip()
+        cliente_apellido = (request.POST.get('cliente_apellido') or '').strip()
         cliente_telefono = (request.POST.get('cliente_telefono') or '').strip()
+        cliente_ci = (request.POST.get('cliente_ci') or '').strip()
         supervisor_id = request.POST.get('supervisor_id')
         complejidad_id = request.POST.get('complejidad_id')
         observacion = request.POST.get('observacion', '')
         kilometraje = request.POST.get('kilometraje')
         anio = request.POST.get('anio')
         color = request.POST.get('color')
-        vin = request.POST.get('vin')
-        
-        # ============ GESTIÓN DEL CLIENTE ============
+
+        # 🆕 Normalizar: placa o VIN
+        placa_norm = placa or None
+        vin_norm = vin or None
+
+        # 🆕 Validar: al menos uno
+        if not placa_norm and not vin_norm:
+            messages.error(request, '⚠️ Debes ingresar al menos Placa o VIN.')
+            return redirect(request.get_full_path())
+
+        # ============================================================
+        #  GESTIÓN DEL CLIENTE
+        # ============================================================
         cliente = None
-        
-        if cliente_telefono:
-            cliente = Cliente.objects.filter(telefono=cliente_telefono).first()
-            
-            if cliente:
-                if cliente_nombre and cliente.nombre != cliente_nombre:
-                    cliente.nombre = cliente_nombre
-                    cliente.save()
+        cliente_creado = False
+
+        print(f"\n🔍 DEBUG crear_orden:")
+        print(f"   CI recibido: '{cliente_ci}'")
+        print(f"   Nombre recibido: '{cliente_nombre}'")
+        print(f"   Placa: '{placa_norm}' | VIN: '{vin_norm}'")
+
+        if cliente_ci:
+            cliente_existente = Cliente.objects.filter(ci=cliente_ci).first()
+            print(f"   Cliente encontrado por CI: {cliente_existente}")
+
+            if cliente_existente:
+                cambios = []
+                if cliente_nombre and cliente_existente.nombre != cliente_nombre:
+                    cliente_existente.nombre = cliente_nombre
+                    cambios.append('nombre')
+                if cliente_apellido and cliente_existente.apellido != cliente_apellido:
+                    cliente_existente.apellido = cliente_apellido
+                    cambios.append('apellido')
+                if cliente_telefono and cliente_existente.telefono != cliente_telefono:
+                    cliente_existente.telefono = cliente_telefono
+                    cambios.append('telefono')
+
+                if cambios:
+                    cliente_existente.save(update_fields=cambios)
+                    print(f"   ✏️ Cliente actualizado: {cambios}")
+                else:
+                    print(f"   ⏭️ Cliente existente sin cambios")
+
+                cliente = cliente_existente
+
             else:
                 cliente = Cliente.objects.create(
                     nombre=cliente_nombre or 'Cliente sin nombre',
-                    telefono=cliente_telefono,
+                    apellido=cliente_apellido or None,
+                    telefono=cliente_telefono or None,
+                    ci=cliente_ci,
                 )
-        elif cliente_nombre:
-            cliente = Cliente.objects.create(
-                nombre=cliente_nombre,
-                telefono=None,
-            )
-        
-        # ============ CREAR O ACTUALIZAR VEHÍCULO ============
-        vehiculo, created = Vehiculo.objects.get_or_create(
-            placa=placa,
-            defaults={
-                'id_cliente': cliente,
-                'anio': anio if anio else None,
-                'color': color if color else None,
-                'vin': vin if vin else None,
-            }
-        )
-        
-        if not created:
-            if cliente:
+                cliente_creado = True
+                print(f"   🆕 CLIENTE NUEVO CREADO: {cliente.nombre} (id={cliente.id})")
+
+        else:
+            print(f"   ⚠️ CI vacío, buscando por teléfono")
+            if cliente_telefono:
+                cliente = Cliente.objects.filter(telefono=cliente_telefono).first()
+                if cliente:
+                    if cliente_nombre and cliente.nombre != cliente_nombre:
+                        cliente.nombre = cliente_nombre
+                        cliente.save(update_fields=['nombre'])
+                else:
+                    cliente = Cliente.objects.create(
+                        nombre=cliente_nombre or 'Cliente sin nombre',
+                        apellido=cliente_apellido or None,
+                        telefono=cliente_telefono,
+                    )
+                    cliente_creado = True
+            elif cliente_nombre:
+                cliente = Cliente.objects.create(
+                    nombre=cliente_nombre,
+                    apellido=cliente_apellido or None,
+                    telefono=None,
+                )
+                cliente_creado = True
+
+        # ============ CREAR O ACTUALIZAR VEHÍCULO (POR PLACA O VIN) ============
+        # 🔍 Buscar por placa O por VIN
+        q = Q()
+        if placa_norm:
+            q |= Q(placa__iexact=placa_norm)
+        if vin_norm:
+            q |= Q(vin__iexact=vin_norm)
+
+        vehiculo = Vehiculo.objects.filter(q).first() if (placa_norm or vin_norm) else None
+        created = False
+        vin_actualizado = False
+
+        if vehiculo:
+            # ✅ Ya existe → actualizar
+            cambios_vehiculo = []
+
+            if cliente and vehiculo.id_cliente_id != cliente.id:
                 vehiculo.id_cliente = cliente
-            if anio:
-                vehiculo.anio = anio
-            if color:
+                cambios_vehiculo.append('id_cliente')
+
+            if anio and str(vehiculo.anio or '') != str(anio):
+                try:
+                    vehiculo.anio = int(anio)
+                    cambios_vehiculo.append('anio')
+                except (ValueError, TypeError):
+                    pass
+
+            if color and vehiculo.color != color:
                 vehiculo.color = color
-            if vin:
-                vehiculo.vin = vin
-            vehiculo.save()
-        
+                cambios_vehiculo.append('color')
+
+            # 🆕 Actualizar placa si viene y el vehículo no tenía
+            if placa_norm and not vehiculo.placa:
+                if not Vehiculo.objects.filter(placa__iexact=placa_norm).exclude(id=vehiculo.id).exists():
+                    vehiculo.placa = placa_norm
+                    cambios_vehiculo.append('placa')
+
+            # 🆕 Actualizar VIN si viene y es distinto
+            if vin_norm and vehiculo.vin != vin_norm:
+                vin_duplicado = (
+                    Vehiculo.objects
+                    .filter(vin__iexact=vin_norm)
+                    .exclude(id=vehiculo.id)
+                    .exists()
+                )
+                if vin_duplicado:
+                    messages.warning(
+                        request,
+                        f'⚠️ El VIN "{vin_norm}" ya está registrado en otro vehículo. No se actualizó.'
+                    )
+                else:
+                    vehiculo.vin = vin_norm
+                    cambios_vehiculo.append('vin')
+                    vin_actualizado = True
+
+            if cambios_vehiculo:
+                vehiculo.save(update_fields=cambios_vehiculo)
+
+        else:
+            # 🆕 No existe → crear nuevo
+            try:
+                vehiculo = Vehiculo.objects.create(
+                    placa=placa_norm,
+                    vin=vin_norm,
+                    id_cliente=cliente,
+                    anio=int(anio) if anio else None,
+                    color=color or None,
+                )
+                created = True
+            except IntegrityError:
+                messages.error(request, '⚠️ La placa o el VIN ya están registrados en otro vehículo.')
+                return redirect(request.get_full_path())
+
+        # Kilometraje
         if kilometraje:
-            vehiculo.kilometraje_actual = int(kilometraje)
-            vehiculo.save()
-        
+            try:
+                vehiculo.kilometraje_actual = int(kilometraje)
+                vehiculo.save(update_fields=['kilometraje_actual'])
+            except (ValueError, TypeError):
+                pass
+
         # ============ CREAR O CONVERTIR ORDEN ============
         if orden_visita:
             orden = orden_visita
+            orden.id_cliente = vehiculo.id_cliente
             orden.id_jefe_tecnico_id = supervisor_id if supervisor_id else None
             orden.id_complejidad_id = complejidad_id if complejidad_id else None
             orden.observacion_general = observacion
@@ -187,6 +314,7 @@ def crear_orden(request):
         else:
             orden = OrdenTrabajo.objects.create(
                 id_vehiculo=vehiculo,
+                id_cliente=vehiculo.id_cliente,
                 id_jefe_tecnico_id=supervisor_id if supervisor_id else None,
                 id_complejidad_id=complejidad_id if complejidad_id else None,
                 estado_orden='PENDIENTE',
@@ -194,7 +322,15 @@ def crear_orden(request):
                 fecha_ingreso=timezone.now(),
                 fecha_creacion=timezone.now(),
             )
-        
+
+        # 🆕 Avisar cliente nuevo
+        if cliente_creado:
+            messages.info(
+                request,
+                f'Se creó un nuevo cliente: {cliente.nombre} {cliente.apellido or ""} '
+                f'(CI: {cliente.ci}).'
+            )
+
         # ============ GUARDAR SERVICIOS ============
         for key in request.POST:
             if key.startswith('servicio_id_'):
@@ -202,7 +338,7 @@ def crear_orden(request):
                 servicio_id = request.POST.get(key)
                 precio = request.POST.get(f'precio_servicio_{num}', '0')
                 mecanico_id = request.POST.get(f'mecanico_{num}')
-                
+
                 if servicio_id:
                     servicio = get_object_or_404(Servicio, id=servicio_id)
                     DetalleServicio.objects.create(
@@ -213,60 +349,65 @@ def crear_orden(request):
                         costo_real=servicio.costo_mano_obra,
                         estado='PENDIENTE',
                     )
-        
-        # ============ GUARDAR PRODUCTOS (SQL CRUDO) ============
+
+        # ============ GUARDAR PRODUCTOS ============
         for key in request.POST:
             if key.startswith('producto_id_'):
                 num = key.split('_')[-1]
                 producto_id = request.POST.get(key)
                 cantidad = request.POST.get(f'cantidad_{num}', '1')
                 precio_producto = request.POST.get(f'precio_producto_{num}', '0')
-                
+
                 if producto_id:
                     producto = get_object_or_404(Producto, id=producto_id)
                     cantidad_int = int(cantidad) if cantidad else 1
                     precio_u = float(precio_producto) if precio_producto else float(producto.precio_venta)
-                    
+
                     with connection.cursor() as cursor:
                         cursor.execute(
                             "INSERT INTO detalle_producto "
                             "(id_orden, id_producto, cantidad, costo_unitario, precio_unitario, registrado_por) "
                             "VALUES (%s, %s, %s, %s, %s, %s)",
-                            [orden.id, producto.id, cantidad_int, 
-                             producto.costo_unitario, 
+                            [orden.id, producto.id, cantidad_int,
+                             producto.costo_unitario,
                              precio_u,
                              request.user.id if request.user.is_authenticated else None]
                         )
-                    
+
                     producto.stock_actual -= cantidad_int
                     producto.save()
-        
-        messages.success(request, f'Orden #{orden.id} {"convertida de visita" if orden_visita else "creada"} para {placa}.')
+
+        # 🆕 Mensaje con placa o VIN
+        ident = vehiculo.placa or vehiculo.vin or f'#{vehiculo.id}'
+        messages.success(
+            request,
+            f'Orden #{orden.id} {"convertida de visita" if orden_visita else "creada"} para {ident}.'
+        )
         return redirect('detalle_orden', orden_id=orden.id)
-    
+
     # ============ CONTEXTO PARA RENDERIZAR ============
     supervisores = Usuario.objects.filter(
         activo=True,
         id_rol_id__in=[1, 2]
     ).order_by('id_rol_id', 'nombre')
-    
+
     mecanicos = Usuario.objects.filter(
         activo=True,
         id_rol_id__in=[1, 2, 3]
     ).order_by('id_rol_id', 'nombre')
-    
+
     if request.user.id_rol_id == 3:  # AYUDANTE
         servicios = Servicio.objects.filter(activo=True, tiempo_estimado_minutos__lt=30)
     else:
         servicios = Servicio.objects.filter(activo=True)
-    
+
     if request.user.id_rol_id == 1:  # ADMIN
         template = 'gestion_vehicular/admin/gestion_taller/crear_orden.html'
     elif request.user.id_rol_id == 2:  # JEFE
         template = 'gestion_vehicular/jefe_mecanico/crear_orden.html'
     else:  # AYUDANTE
         template = 'gestion_vehicular/ayudante/crear_orden.html'
-    
+
     return render(request, template, {
         'supervisores': supervisores,
         'complejidades': Complejidad.objects.all(),
@@ -276,6 +417,8 @@ def crear_orden(request):
         'vehiculo': vehiculo,
         'cliente': cliente,
         'placa': placa,
+        'vin': vin,  # 🆕
+        'bloqueado': bloqueado,
         'cotizacion_anterior': cotizacion_anterior,
         'orden_visita': orden_visita,
         'es_nueva_visita': es_nueva_visita,
@@ -429,17 +572,25 @@ def taller_detalle(request, orden_id):
     productos_disponibles = Producto.objects.filter(activo=True, stock_actual__gt=0)
     mecanicos = Usuario.objects.filter(activo=True, id_rol_id__in=[1, 2, 3]).order_by('nombre')
 
-    # FILTRO PARA AYUDANTE
-    if request.user.id_rol_id == 3:  # AYUDANTE
-        servicios_detalle = orden.detalles_servicio.filter(id_mecanico=request.user)
+    # ============ DETERMINAR PERMISOS ============
+    es_admin = request.user.id_rol_id == 1
+    es_encargado = orden.id_jefe_tecnico_id == request.user.id if orden.id_jefe_tecnico else False
+    
+    # Admin o encargado → ve TODO y puede agregar
+    # Otros → solo sus servicios, solo puede generar hallazgo
+    if es_admin or es_encargado:
+        servicios_detalle = orden.detalles_servicio.all().order_by('id')
+        puede_agregar = True
     else:
-        servicios_detalle = orden.detalles_servicio.all()
+        servicios_detalle = orden.detalles_servicio.filter(id_mecanico=request.user)
+        puede_agregar = False
+    # =============================================
 
-    if request.user.id_rol_id == 1:  # ADMIN
+    if es_admin:
         template = 'gestion_vehicular/admin/gestion_taller/taller_detalle.html'
-    elif request.user.id_rol_id == 2:  # JEFE
+    elif request.user.id_rol_id == 2:
         template = 'gestion_vehicular/jefe_mecanico/taller_detalle.html'
-    else:  # AYUDANTE
+    else:
         template = 'gestion_vehicular/ayudante/trabajar_orden.html'
     
     return render(request, template, {
@@ -448,6 +599,8 @@ def taller_detalle(request, orden_id):
         'servicios': servicios_disponibles,
         'productos': productos_disponibles,
         'mecanicos': mecanicos,
+        'es_encargado': es_encargado,
+        'puede_agregar': puede_agregar,
     })
 
 

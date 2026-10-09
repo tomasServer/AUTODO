@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body { font-family: Arial, sans-serif; font-size: 12px; }
+        .header { text-align: center; margin-bottom: 20px; }
+        .header h1 { margin: 0; font-size: 20px; }
+        .info { margin-bottom: 15px; }
+        .info div { margin: 3px 0; }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        th, td { border: 1px solid #ccc; padding: 6px; text-align: left; }
+        th { background: #f0f0f0; }
+        .total { text-align: right; font-size: 14px; font-weight: bold; margin-top: 15px; }
+        .footer { text-align: center; margin-top: 30px; font-size: 10px; color: #666; }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h1>AUTODO</h1>
+        <p>Comprobante de Venta Rápida</p>
+    </div>
+
+    <div class="info">
+        <div><strong>Nº Venta:</strong> {{ venta.id }}</div>
+        <div><strong>Fecha:</strong> {{ venta.fecha_venta|date:"d/m/Y H:i" }}</div>
+        <div><strong>Cliente:</strong> {{ venta.id_cliente.nombre|default:"Sin nombre" }} {{ venta.id_cliente.apellido|default:"" }}</div>
+        {% if venta.id_cliente.ci %}<div><strong>CI:</strong> {{ venta.id_cliente.ci }}</div>{% endif %}
+        <div><strong>Método de Pago:</strong> {{ venta.metodo_pago|default:"—" }}</div>
+        <div><strong>Registrado por:</strong> {{ venta.registrado_por.nombre_completo|default:"—" }}</div>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Producto</th>
+                <th>Cant.</th>
+                <th>Precio Unit.</th>
+                <th>Subtotal</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for d in detalles %}
+            <tr>
+                <td>{{ d.id_producto.nombre }}</td>
+                <td>{{ d.cantidad }}</td>
+                <td>Bs. {{ d.precio_venta|floatformat:2 }}</td>
+                <td>Bs. {{ d.precio_venta|floatformat:2 }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <div class="total">
+        TOTAL: Bs. {{ venta.total|floatformat:2 }}
+    </div>
+
+    <div class="footer">
+        Gracias por su compra · AUTODO
+    </div>
+
+</body>
+</html>

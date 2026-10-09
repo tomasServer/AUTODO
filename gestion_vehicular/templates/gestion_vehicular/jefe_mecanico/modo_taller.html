@@ -13,10 +13,10 @@
         <table>
             <thead>
                 <tr>
-                    <th>Orden</th>
+                    <th>Nº</th>
                     <th>Placa</th>
                     <th>Cliente</th>
-                    <th>Mecánico</th>
+                    <th>Encargado</th>
                     <th>Estado</th>
                     <th>Acciones</th>
                 </tr>
@@ -28,13 +28,14 @@
                     <td>{{ orden.id_vehiculo.placa }}</td>
                     <td>{{ orden.id_vehiculo.id_cliente.nombre|default:"Sin cliente" }}</td>
                     <td>
-                        {% with mecanico=orden.detalles_servicio.first.id_mecanico %}
-                            {% if mecanico %}
-                                {{ mecanico.nombre_completo }}
-                            {% else %}
-                                <span class="text-muted">Sin asignar</span>
+                        {% if orden.id_jefe_tecnico %}
+                            {{ orden.id_jefe_tecnico.nombre_completo }}
+                            {% if orden.id_jefe_tecnico_id == user.id %}
+                                <span class="badge badge-success" style="margin-left:5px;">Tú</span>
                             {% endif %}
-                        {% endwith %}
+                        {% else %}
+                            <span class="text-muted">Sin asignar</span>
+                        {% endif %}
                     </td>
                     <td>
                         <span class="badge 
@@ -47,9 +48,7 @@
                     <td>
                         {% if orden.estado_orden == 'VISITA' %}
                             <a href="{% url 'convertir_visita_en_orden' orden.id %}" class="btn btn-primary btn-sm"
-                               onclick="return confirm('¿Convertir esta visita en una orden formal?')">
-                                Convertir
-                            </a>
+                               onclick="return confirm('¿Convertir esta visita en una orden formal?')">Convertir</a>
                             <a href="{% url 'detalle_orden' orden.id %}" class="btn btn-gray btn-sm">Ver</a>
                         {% else %}
                             <a href="{% url 'detalle_orden' orden.id %}" class="btn btn-gray btn-sm">Detalle</a>
@@ -62,7 +61,7 @@
         </table>
     </div>
     {% else %}
-    <p style="color:#27ae60;">No hay órdenes para trabajar.</p>
+    <p class="text-muted">No hay órdenes para trabajar.</p>
     {% endif %}
 </div>
 
@@ -74,10 +73,10 @@
         <table>
             <thead>
                 <tr>
-                    <th>Orden</th>
+                    <th>Nº</th>
                     <th>Placa</th>
                     <th>Cliente</th>
-                    <th>Mecánico</th>
+                    <th>Encargado</th>
                     <th>Estado</th>
                     <th>Acciones</th>
                 </tr>
@@ -89,18 +88,19 @@
                     <td>{{ orden.id_vehiculo.placa }}</td>
                     <td>{{ orden.id_vehiculo.id_cliente.nombre|default:"Sin cliente" }}</td>
                     <td>
-                        {% with mecanico=orden.detalles_servicio.first.id_mecanico %}
-                            {% if mecanico %}
-                                {{ mecanico.nombre_completo }}
-                            {% else %}
-                                <span class="text-muted">Sin asignar</span>
+                        {% if orden.id_jefe_tecnico %}
+                            {{ orden.id_jefe_tecnico.nombre_completo }}
+                            {% if orden.id_jefe_tecnico_id == user.id %}
+                                <span class="badge badge-success" style="margin-left:5px;">Tú</span>
                             {% endif %}
-                        {% endwith %}
+                        {% else %}
+                            <span class="text-muted">Sin asignar</span>
+                        {% endif %}
                     </td>
                     <td><span class="badge badge-success">POR COBRAR</span></td>
                     <td>
                         <a href="{% url 'detalle_orden' orden.id %}" class="btn btn-gray btn-sm">Detalle</a>
-                        <a href="{% url 'taller_detalle' orden.id %}" class="btn btn-success btn-sm">Cobrar</a>
+                        <a href="{% url 'registrar_pago' orden.id %}" class="btn btn-success btn-sm">Cobrar</a>
                     </td>
                 </tr>
                 {% endfor %}
@@ -113,7 +113,7 @@
 </div>
 
 <!-- ============ BOTÓN VOLVER ============ -->
-<div class="flex flex-wrap" style="margin-top:15px;">
+<div class="mt-20">
     <a href="{% url 'dashboard_jefe' %}" class="btn btn-gray">Volver</a>
 </div>
 

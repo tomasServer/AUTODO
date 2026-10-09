@@ -1,16 +1,15 @@
 {% extends 'gestion_vehicular/ayudante/base_ayudante.html' %}
-{% block title %}Ver Cobro - Orden #{{ orden.id }}{% endblock %}
+{% block title %}Ver Cobro - Orden Nº {{ orden.id }}{% endblock %}
 
 {% block content %}
 
 <h2>Resumen de Cobro</h2>
 <p class="text-muted mb-20">
-    <strong>Orden #{{ orden.id }}</strong> | 
+    <strong>Orden Nº {{ orden.id }}</strong> | 
     Vehículo: {{ orden.id_vehiculo.placa }} | 
     Cliente: {{ orden.id_vehiculo.id_cliente.nombre|default:"Sin cliente" }}
 </p>
 
-<!-- ============ RESUMEN DE COBRO ============ -->
 <div class="card">
     <h3>Resumen de Cobro</h3>
     <table>
@@ -25,9 +24,7 @@
             </tr>
             <tr style="background:#1a252f; color:#ffffff;">
                 <td style="font-size:1.2rem;"><strong>TOTAL A COBRAR</strong></td>
-                <td class="text-right" style="font-size:1.8rem; font-weight:700;">
-                    Bs. {{ total_general|floatformat:2 }}
-                </td>
+                <td class="text-right" style="font-size:1.8rem; font-weight:700;">Bs. {{ total_general|floatformat:2 }}</td>
             </tr>
         </tbody>
     </table>
@@ -36,7 +33,6 @@
     </div>
 </div>
 
-<!-- ============ AVISO: SOLO ADMIN/JEFE PUEDEN COBRAR ============ -->
 <div class="card">
     <div style="padding:20px; background:#fef9e7; border-radius:4px; text-align:center;">
         <p style="margin:0; font-size:1.1rem;">

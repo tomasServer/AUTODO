@@ -19,6 +19,26 @@
     .select2-container--default .select2-selection--single .select2-selection__arrow {
         height: 36px;
     }
+    /* Grid de 5 columnas */
+    .grid-5 {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 10px;
+    }
+    @media (max-width: 1100px) {
+        .grid-5 { grid-template-columns: repeat(3, 1fr); }
+    }
+    @media (max-width: 700px) {
+        .grid-5 { grid-template-columns: 1fr; }
+    }
+    /* Caja info vehículo */
+    #info-vehiculo {
+        animation: fadeIn 0.3s ease-in;
+    }
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(-4px); }
+        to   { opacity: 1; transform: translateY(0); }
+    }
 </style>
 {% endblock %}
 
@@ -29,19 +49,19 @@
 <div class="card">
     <h4>Revisión del Vehículo</h4>
     <p><strong>Estado:</strong> {{ revision_detalle.porcentaje }}%</p>
-    
+
     {% if revision_detalle.resumen.malo %}
     <p><strong>MALO:</strong> {{ revision_detalle.resumen.malo|join:", " }}</p>
     {% endif %}
-    
+
     {% if revision_detalle.resumen.regular %}
     <p><strong>REGULAR:</strong> {{ revision_detalle.resumen.regular|join:", " }}</p>
     {% endif %}
-    
+
     {% if revision_detalle.resumen.ok %}
     <p><strong>OK:</strong> {{ revision_detalle.resumen.ok|join:", " }}</p>
     {% endif %}
-    
+
     <details>
         <summary style="cursor:pointer;">Ver todos los componentes</summary>
         <ul style="margin-top:8px; padding-left:20px;">
@@ -72,33 +92,50 @@
     <form method="POST" id="ordenForm" autocomplete="off">
         {% csrf_token %}
 
-        <!-- FILA 1: Placa + Cliente + Teléfono -->
-        <div class="grid grid-3">
+        <!-- FILA 1: Placa + Cliente + Apellido + CI + Teléfono -->
+        <div class="grid grid-5">
             <div>
-                <label>Placa *</label>
-                <input type="text" name="placa" id="placa" required maxlength="8" 
-                    style="text-transform:uppercase;" oninput="validarPlaca(this)" 
+                <label>Placa <small style="color:#7f8c8d; font-weight:normal;">(o llena el VIN)</small></label>
+                <input type="text" name="placa" id="placa" maxlength="8"
+                    style="text-transform:uppercase;" oninput="validarPlaca(this)"
+                    placeholder="entre 3 y 8 letras/números"
                     value="{{ placa|default:'' }}"
-                    {% if orden_visita or revision_detalle or vehiculo %}readonly style="text-transform:uppercase; background:#f8f9fa; cursor:not-allowed;"{% endif %}>
-                {% if orden_visita or revision_detalle or vehiculo %}
-                <small style="color:#7f8c8d; font-size:0.75rem;">🔒 La placa no se puede modificar</small>
+                    {% if bloqueado %}readonly style="text-transform:uppercase; background:#f8f9fa; cursor:not-allowed;"{% endif %}>
+                {% if bloqueado %}
+                <small style="color:#7f8c8d; font-size:0.75rem;">🔒 Placa definida</small>
+                {% else %}
+                <small style="color:#7f8c8d; font-size:0.72rem;">3 - 8 letras/números</small>
                 {% endif %}
             </div>
             <div>
                 <label>Cliente *</label>
                 <input type="text" name="cliente_nombre" id="cliente_nombre" maxlength="100" required
-                       oninput="validarNombre(this)" placeholder="Nombre del cliente..." 
+                       oninput="validarNombre(this)" placeholder="Nombre del cliente..."
                        value="{{ cliente.nombre|default:'' }}">
+            </div>
+            <div>
+                <label>Apellido</label>
+                <input type="text" name="cliente_apellido" id="cliente_apellido" maxlength="100"
+                       oninput="validarNombre(this)" placeholder="Apellido..."
+                       value="{{ cliente.apellido|default:'' }}">
+            </div>
+            <div>
+                <label>CI *</label>
+                <input type="text" name="cliente_ci" id="cliente_ci" maxlength="20" required
+                       oninput="validarCI(this)" placeholder="Ej: 12345678"
+                       value="{{ cliente.ci|default:'' }}">
             </div>
             <div>
                 <label>Teléfono *</label>
                 <input type="tel" name="cliente_telefono" id="cliente_telefono" maxlength="8" required
-                       oninput="validarTelefono(this)" placeholder="Ej: 77712345" 
+                       oninput="validarTelefono(this)" placeholder="Ej: 77712345"
                        value="{{ cliente.telefono|default:'' }}">
             </div>
         </div>
 
-        <!-- FILA 2: Supervisor + Complejidad + Kilometraje + Más datos -->
+        <!-- 
+        <div id="info-vehiculo" style="display:none; margin-top:10px; padding:10px; background:#e3f2fd; border-left:4px solid #2196f3; border-radius:4px; font-size:0.9rem;"></div>-->
+      
         <div class="grid grid-4 mt-10">
             <div>
                 <label>Encargado de Revisión *</label>
@@ -140,9 +177,20 @@
                     <input type="text" name="color" maxlength="30" value="{{ vehiculo.color|default:'' }}">
                 </div>
                 <div>
-                    <label>VIN (Chasis)</label>
-                    <input type="text" name="vin" maxlength="17" style="text-transform:uppercase;" 
-                           oninput="this.value = this.value.toUpperCase()" value="{{ vehiculo.vin|default:'' }}">
+                    <label>VIN (Chasis) <small id="vin-contador" style="color:#7f8c8d; font-weight:normal;">0/17</small></label>
+                    <input type="text" name="vin" id="vin" maxlength="17"
+                        style="text-transform:uppercase; font-family: monospace;"
+                        oninput="validarVIN(this)"
+                        placeholder="Ej: 1ASDF21ASDF123456"
+                        value="{{ vin|default:'' }}"
+                        {% if bloqueado %}readonly style="text-transform:uppercase; font-family: monospace; background:#f8f9fa; cursor:not-allowed;"{% endif %}>
+                    <small style="color:#7f8c8d; font-size:0.72rem;">
+                        {% if bloqueado %}
+                        🔒 El VIN no se puede modificar
+                        {% else %}
+                        Máximo 17 caracteres. Solo letras y números.
+                        {% endif %}
+                    </small>
                 </div>
                 <div>
                     <label>Observaciones</label>
@@ -187,7 +235,7 @@
 <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 
-<script>
+   <script>
     var contadorServicios = 0;
     var contadorProductos = 0;
 
@@ -207,6 +255,39 @@
         input.value = input.value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ\s]/g, '');
         if (input.value.length > 100) input.value = input.value.slice(0, 100);
     }
+
+    // Validación del CI (solo números, hasta 20 dígitos)
+    function validarCI(input) {
+        input.value = input.value.replace(/[^0-9]/g, '');
+        if (input.value.length > 20) input.value = input.value.slice(0, 20);
+    }
+
+    // Validación del VIN (alfanumérico, máx 17)
+    function validarVIN(input) {
+        input.value = input.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+        if (input.value.length > 17) {
+            input.value = input.value.slice(0, 17);
+        }
+        const contador = document.getElementById('vin-contador');
+        if (!contador) return;{
+        
+        const len = input.value.length;
+
+        if (len === 0) {
+            contador.textContent = '0/17';
+            contador.style.color = '#7f8c8d';
+            contador.style.fontWeight = 'normal';
+        }
+        else if (len === 17) {
+            contador.textContent = len + '/17';
+            contador.style.color = '#27ae60';
+            contador.style.fontWeight = 'bold';
+        }
+        else {
+            contador.textContent = len +  '/17';
+            contador.style.color = '#7f8c8d';
+            contador.style.fontWeight = 'bold';
+        }
 
     // ============ MOSTRAR/OCULTAR EXTRA ============
     function toggleExtra() {
@@ -252,8 +333,7 @@
             <button type="button" class="btn btn-danger btn-sm">Quitar</button>
         `;
         document.getElementById('serviciosAdicionales').appendChild(div);
-        
-        // ✅ Select2 solo en el select de servicio
+
         $(div).find('.servicio-select').select2({
             placeholder: 'Buscar servicio...',
             allowClear: true,
@@ -263,14 +343,13 @@
                 searching: function() { return "Buscando..."; }
             }
         });
-        
-        // Evento de cambio en el select de servicio
+
         $(div).find('.servicio-select').on('change', function() {
             var precio = $(this).find('option:selected').data('precio') || '0';
             $(div).find('input[type="number"]').val(precio);
             actualizarTotal();
         });
-        
+
         $(div).find('input[type="number"]').on('input', actualizarTotal);
         $(div).find('button').on('click', function() {
             $(div).remove();
@@ -296,8 +375,7 @@
             <button type="button" class="btn btn-danger btn-sm">Quitar</button>
         `;
         document.getElementById('productosAdicionales').appendChild(div);
-        
-        // ✅ Select2 solo en el select de producto
+
         $(div).find('.producto-select').select2({
             placeholder: 'Buscar insumo...',
             allowClear: true,
@@ -307,13 +385,13 @@
                 searching: function() { return "Buscando..."; }
             }
         });
-        
+
         $(div).find('.producto-select').on('change', function() {
             var precio = $(this).find('option:selected').data('precio') || '0';
             $(div).find('input[type="number"]').eq(1).val(precio);
             actualizarTotal();
         });
-        
+
         $(div).find('input[type="number"]').on('input', actualizarTotal);
         $(div).find('button').on('click', function() {
             $(div).remove();
@@ -324,31 +402,38 @@
     // ============ CALCULAR TOTAL ============
     function actualizarTotal() {
         var total = 0;
-        
+
         $('input[name^="precio_servicio_"]').each(function() {
             total += parseFloat($(this).val()) || 0;
         });
-        
+
         $('input[name^="precio_producto_"]').each(function() {
             var num = $(this).attr('name').split('_').pop();
             var cantidad = $(`input[name="cantidad_${num}"]`);
             var cant = cantidad.length ? (parseFloat(cantidad.val()) || 0) : 0;
             total += (parseFloat($(this).val()) || 0) * cant;
         });
-        
+
         document.getElementById('totalCotizacion').textContent = 'Bs. ' + total.toFixed(2);
     }
 
     // ============ VALIDAR ANTES DE ENVIAR ============
     document.getElementById('ordenForm').addEventListener('submit', function(e) {
         var placa = document.getElementById('placa');
-        if (!placa.value.trim()) {
+        var vin = document.getElementById('vin');
+
+        // 🆕 Al menos Placa O VIN
+        var placaVal = placa.value.trim();
+        var vinVal = vin ? vin.value.trim() : '';
+
+        if (!placaVal && !vinVal) {
             e.preventDefault();
-            alert('⚠️ La placa es obligatoria.');
+            alert('⚠️ Debes ingresar al menos Placa o VIN.');
             placa.focus();
             return;
         }
         
+
         var cliente = document.getElementById('cliente_nombre');
         if (!cliente.value.trim()) {
             e.preventDefault();
@@ -356,7 +441,15 @@
             cliente.focus();
             return;
         }
-        
+
+        var ci = document.getElementById('cliente_ci');
+        if (!ci.value.trim()) {
+            e.preventDefault();
+            alert('⚠️ El CI del cliente es obligatorio.');
+            ci.focus();
+            return;
+        }
+
         var telefono = document.getElementById('cliente_telefono');
         if (!telefono.value.trim()) {
             e.preventDefault();
@@ -364,7 +457,7 @@
             telefono.focus();
             return;
         }
-        
+
         var supervisor = document.getElementById('supervisor_id');
         if (!supervisor.value) {
             e.preventDefault();
@@ -372,7 +465,7 @@
             supervisor.focus();
             return;
         }
-        
+
         var complejidad = document.getElementById('complejidad_id');
         if (!complejidad.value) {
             e.preventDefault();
@@ -380,13 +473,132 @@
             complejidad.focus();
             return;
         }
-        
+
         var kilometraje = document.getElementById('kilometraje');
         if (!kilometraje.value || kilometraje.value === '') {
             e.preventDefault();
             alert('⚠️ El kilometraje es obligatorio.');
             kilometraje.focus();
             return;
+        }
+    });
+
+    // ============================================================
+    //  AUTOCOMPLETADO POR PLACA O VIN + CONTADOR DE VIN
+    // ============================================================
+    document.addEventListener('DOMContentLoaded', function () {
+        // Inicializar contador de VIN si ya viene valor
+        const vinInputInit = document.getElementById('vin');
+        if (vinInputInit && vinInputInit.value) {
+            validarVIN(vinInputInit);
+        }
+
+        // 🆕 Si el VIN viene precargado, abrir el bloque "Más datos"
+        const vinPrecargado = document.getElementById('vin');
+        if (vinPrecargado && vinPrecargado.value.trim()) {
+            const extra = document.getElementById('extra');
+            const btnExtra = document.querySelector('button[onclick="toggleExtra()"]');
+            if (extra && extra.classList.contains('hidden')) {
+                extra.classList.remove('hidden');
+                if (btnExtra) btnExtra.textContent = '- Menos datos';
+            }
+        }
+
+        const placaInput = document.getElementById('placa');
+        const infoBox = document.getElementById('info-vehiculo');
+
+
+        // Función genérica: autocompletar por parámetro (placa o vin)
+        function autocompletar(parametro, valor) {
+            if (!valor || valor.length < 3) return;
+
+            fetch(`/api/vehiculo/?${parametro}=${encodeURIComponent(valor)}`)
+                .then(r => r.json())
+                .then(data => {
+                    if (!data.existe) {
+                        if (infoBox) {
+                            infoBox.style.display = 'block';
+                            infoBox.innerHTML = '🆕 <strong>Vehículo nuevo</strong>. Sin historial previo.';
+                        }
+                        return;
+                    }
+
+                    const v = data.vehiculo;
+                    const c = data.cliente;
+
+                    const setVal = (name, val) => {
+                        const el = document.querySelector(`[name="${name}"]`);
+                        if (el) el.value = val || '';
+                    };
+
+                    // Autocompletar campos (respetando readonly)
+                    const placaEl = document.getElementById('placa');
+                    const vinEl = document.getElementById('vin');
+
+                    if (placaEl && !placaEl.readOnly) setVal('placa', v.placa);
+                    if (vinEl && !vinEl.readOnly) setVal('vin', v.vin);
+                    setVal('anio', v.anio);
+                    setVal('color', v.color);
+                    setVal('kilometraje', v.kilometraje);
+
+                    // Actualizar contador de VIN
+                    if (vinEl && v.vin) {
+                        validarVIN(vinEl);
+                    }
+
+                    // Cliente
+                    setVal('cliente_nombre', c.nombre);
+                    setVal('cliente_apellido', c.apellido);
+                    setVal('cliente_telefono', c.telefono);
+                    setVal('cliente_ci', c.ci);
+
+                    // Mostrar aviso
+                    if (infoBox) {
+                        let identMsg = '';
+                        if (v.placa) {
+                            identMsg = `🚗 <strong>Placa:</strong> <code>${v.placa}</code><br>`;
+                        } else {
+                            identMsg = `🚗 <em>Sin placa registrada (solo VIN)</em><br>`;
+                        }
+                        let vinMsg = v.vin
+                            ? `🔧 <strong>VIN:</strong> <code>${v.vin}</code><br>`
+                            : `⚠️ <em>Este vehículo aún no tiene VIN registrado.</em><br>`;
+
+                        infoBox.style.display = 'block';
+                        infoBox.innerHTML =
+                            `📋 <strong>Vehículo registrado:</strong> ` +
+                            `${v.marca || ''} ${v.modelo || ''} ${v.anio || ''}<br>` +
+                            identMsg +
+                            `👤 <strong>Dueño actual:</strong> ` +
+                            `${c.nombre} ${c.apellido || ''}` +
+                            `${c.ci ? ' — CI: ' + c.ci : ''}<br>` +
+                            vinMsg +
+                            `<em style="color:#666;">💡 Si el dueño cambió, modifica el CI y se creará un cliente nuevo.</em>`;
+                    }
+                })
+                .catch(err => console.error('Error autocompletando:', err));
+        }
+
+        // Listeners
+        if (placaInput) {
+            placaInput.addEventListener('blur', function () {
+                autocompletar('placa', placaInput.value.trim().toUpperCase());
+            });
+
+            // Si viene pre-cargada (visita)
+            if (placaInput.value.trim() && placaInput.readOnly) {
+                autocompletar('placa', placaInput.value.trim().toUpperCase());
+            }
+        }
+
+        // 🆕 Autocompletar por VIN al salir del campo VIN
+        if (vinInputInit) {
+            vinInputInit.addEventListener('blur', function () {
+                const vinVal = vinInputInit.value.trim().toUpperCase();
+                if (vinVal.length >= 6) {
+                    autocompletar('vin', vinVal);
+                }
+            });
         }
     });
 </script>

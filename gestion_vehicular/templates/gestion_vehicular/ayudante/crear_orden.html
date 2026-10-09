@@ -26,7 +26,7 @@
     <form method="POST" id="ordenForm" autocomplete="off">
         {% csrf_token %}
 
-        <!-- FILA 1: Placa + Cliente + Teléfono -->
+        <!-- FILA 1 -->
         <div class="grid grid-3">
             <div>
                 <label>Placa *</label>
@@ -46,7 +46,7 @@
             </div>
         </div>
 
-        <!-- FILA 2: Supervisor + Complejidad + Kilometraje + Más datos -->
+        <!-- FILA 2 -->
         <div class="grid grid-4 mt-10">
             <div>
                 <label>Encargado de Revisión *</label>
@@ -102,7 +102,7 @@
         <div class="mt-20">
             <label>Servicios</label>
             <small class="text-muted" style="display:block; margin-bottom:5px; font-size:0.75rem;">
-                Solo servicios rápidos (menos de 30 minutos)
+                Solo puedes agregar servicios rápidos (menos de 30 minutos)
             </small>
             <div id="serviciosAdicionales"></div>
             <button type="button" onclick="agregarServicio()" class="btn btn-primary btn-sm mt-10">+ Agregar Servicio</button>
@@ -131,7 +131,6 @@
     </form>
 </div>
 
-<!-- ============ SCRIPTS ============ -->
 <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 
@@ -139,24 +138,19 @@
     var contadorServicios = 0;
     var contadorProductos = 0;
 
-    // ============ VALIDACIONES ============
     function validarPlaca(input) {
-        input.value = input.value.toUpperCase();
-        input.value = input.value.replace(/[^A-Z0-9]/g, '');
+        input.value = input.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
         if (input.value.length > 8) input.value = input.value.slice(0, 8);
     }
-
     function validarTelefono(input) {
         input.value = input.value.replace(/[^0-9]/g, '');
         if (input.value.length > 8) input.value = input.value.slice(0, 8);
     }
-
     function validarNombre(input) {
         input.value = input.value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ\s]/g, '');
         if (input.value.length > 100) input.value = input.value.slice(0, 100);
     }
 
-    // ============ MOSTRAR/OCULTAR EXTRA ============
     function toggleExtra() {
         var extra = document.getElementById('extra');
         var btn = event.target;
@@ -169,7 +163,6 @@
         }
     }
 
-    // ============ GUARDAR Y SALIR ============
     function cancelarVisita() {
         if (confirm('¿El cliente se va sin reparar? Se guardará como cancelada.')) {
             document.getElementById('ordenForm').action = "{% url 'cancelar_visita' %}";
@@ -177,7 +170,6 @@
         }
     }
 
-    // ============ AGREGAR SERVICIO ============
     function agregarServicio() {
         contadorServicios++;
         var div = document.createElement('div');
@@ -201,27 +193,16 @@
         `;
         document.getElementById('serviciosAdicionales').appendChild(div);
         
-        // ✅ Select2 en servicio
-        $(div).find('.servicio-select').select2({
-            placeholder: 'Buscar servicio...',
-            allowClear: true,
-            width: '100%'
-        });
-        
+        $(div).find('.servicio-select').select2({ placeholder: 'Buscar servicio...', allowClear: true, width: '100%' });
         $(div).find('.servicio-select').on('change', function() {
             var precio = $(this).find('option:selected').data('precio') || '0';
             $(div).find('input[type="number"]').val(precio);
             actualizarTotal();
         });
-        
         $(div).find('input[type="number"]').on('input', actualizarTotal);
-        $(div).find('button').on('click', function() {
-            $(div).remove();
-            actualizarTotal();
-        });
+        $(div).find('button').on('click', function() { $(div).remove(); actualizarTotal(); });
     }
 
-    // ============ AGREGAR INSUMO ============
     function agregarProducto() {
         contadorProductos++;
         var div = document.createElement('div');
@@ -240,93 +221,39 @@
         `;
         document.getElementById('productosAdicionales').appendChild(div);
         
-        // ✅ Select2 en insumo
-        $(div).find('.producto-select').select2({
-            placeholder: 'Buscar insumo...',
-            allowClear: true,
-            width: '100%'
-        });
-        
+        $(div).find('.producto-select').select2({ placeholder: 'Buscar insumo...', allowClear: true, width: '100%' });
         $(div).find('.producto-select').on('change', function() {
             var precio = $(this).find('option:selected').data('precio') || '0';
             $(div).find('input[type="number"]').eq(1).val(precio);
             actualizarTotal();
         });
-        
         $(div).find('input[type="number"]').on('input', actualizarTotal);
-        $(div).find('button').on('click', function() {
-            $(div).remove();
-            actualizarTotal();
-        });
+        $(div).find('button').on('click', function() { $(div).remove(); actualizarTotal(); });
     }
 
-    // ============ CALCULAR TOTAL ============
     function actualizarTotal() {
         var total = 0;
-        
-        $('input[name^="precio_servicio_"]').each(function() {
-            total += parseFloat($(this).val()) || 0;
-        });
-        
+        $('input[name^="precio_servicio_"]').each(function() { total += parseFloat($(this).val()) || 0; });
         $('input[name^="precio_producto_"]').each(function() {
             var num = $(this).attr('name').split('_').pop();
             var cantidad = $(`input[name="cantidad_${num}"]`);
             var cant = cantidad.length ? (parseFloat(cantidad.val()) || 0) : 0;
             total += (parseFloat($(this).val()) || 0) * cant;
         });
-        
         document.getElementById('totalCotizacion').textContent = 'Bs. ' + total.toFixed(2);
     }
 
-    // ============ VALIDAR ANTES DE ENVIAR ============
     document.getElementById('ordenForm').addEventListener('submit', function(e) {
         var placa = document.getElementById('placa');
-        if (!placa.value.trim()) {
-            e.preventDefault();
-            alert('⚠️ La placa es obligatoria.');
-            placa.focus();
-            return;
-        }
-        
+        if (!placa.value.trim()) { e.preventDefault(); alert('⚠️ La placa es obligatoria.'); placa.focus(); return; }
         var cliente = document.getElementById('cliente_nombre');
-        if (!cliente.value.trim()) {
-            e.preventDefault();
-            alert('⚠️ El nombre del cliente es obligatorio.');
-            cliente.focus();
-            return;
-        }
-        
+        if (!cliente.value.trim()) { e.preventDefault(); alert('⚠️ El nombre del cliente es obligatorio.'); cliente.focus(); return; }
         var telefono = document.getElementById('cliente_telefono');
-        if (!telefono.value.trim()) {
-            e.preventDefault();
-            alert('⚠️ El teléfono del cliente es obligatorio.');
-            telefono.focus();
-            return;
-        }
-        
+        if (!telefono.value.trim()) { e.preventDefault(); alert('⚠️ El teléfono es obligatorio.'); telefono.focus(); return; }
         var supervisor = document.getElementById('supervisor_id');
-        if (!supervisor.value) {
-            e.preventDefault();
-            alert('⚠️ Debe seleccionar un Encargado de Revisión.');
-            supervisor.focus();
-            return;
-        }
-        
+        if (!supervisor.value) { e.preventDefault(); alert('⚠️ Debe seleccionar un Encargado.'); supervisor.focus(); return; }
         var complejidad = document.getElementById('complejidad_id');
-        if (!complejidad.value) {
-            e.preventDefault();
-            alert('⚠️ Debe seleccionar una Complejidad.');
-            complejidad.focus();
-            return;
-        }
-        
-        var kilometraje = document.getElementById('kilometraje');
-        if (!kilometraje.value || kilometraje.value === '') {
-            e.preventDefault();
-            alert('⚠️ El kilometraje es obligatorio.');
-            kilometraje.focus();
-            return;
-        }
+        if (!complejidad.value) { e.preventDefault(); alert('⚠️ Debe seleccionar una Complejidad.'); complejidad.focus(); return; }
     });
 </script>
 

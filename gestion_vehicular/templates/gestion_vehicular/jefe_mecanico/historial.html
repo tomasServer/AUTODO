@@ -1,5 +1,5 @@
 {% extends 'gestion_vehicular/jefe_mecanico/base_jefe.html' %}
-{% block title %}Historial - {{ vehiculo.placa }}{% endblock %}
+{% block title %}Historial - {{ vehiculo.placa|default:vehiculo.vin|default:"Vehículo" }}{% endblock %}
 
 {% block content %}
 
@@ -7,12 +7,41 @@
 
 <!-- ============ DATOS DEL VEHÍCULO ============ -->
 <div class="card">
-    <h3 style="color:#e67e22;">{{ vehiculo.marca|default:"" }} {{ vehiculo.modelo|default:"" }}</h3>
+    <h3 style="color:#e67e22;">
+        {{ vehiculo.marca|default:"" }} {{ vehiculo.modelo|default:"" }}
+        {% if not vehiculo.marca and not vehiculo.modelo %}Vehículo{% endif %}
+    </h3>
+
     <div class="grid grid-2">
-        <div><strong>Placa:</strong> {{ vehiculo.placa }}</div>
+        <div>
+            <strong>Placa:</strong>
+            {% if vehiculo.placa %}
+                {{ vehiculo.placa }}
+            {% else %}
+                <span style="color:#e67e22; font-style:italic;">Sin placa</span>
+            {% endif %}
+        </div>
+        <div>
+            <strong>VIN:</strong>
+            {% if vehiculo.vin %}
+                <code style="font-family: monospace;">{{ vehiculo.vin }}</code>
+            {% else %}
+                <span style="color:#95a5a6;">—</span>
+            {% endif %}
+        </div>
+        <div><strong>Año:</strong> {{ vehiculo.anio|default:"—" }}</div>
+        <div><strong>Color:</strong> {{ vehiculo.color|default:"—" }}</div>
         <div><strong>Kilometraje:</strong> {{ vehiculo.kilometraje_actual|default:"0" }} km</div>
         <div><strong>Total Gastado:</strong> Bs. {{ total_gastado|floatformat:2 }}</div>
         <div><strong>Órdenes:</strong> {{ ordenes.count }}</div>
+        <div>
+            <strong>Cliente actual:</strong>
+            {% if vehiculo.id_cliente %}
+                {{ vehiculo.id_cliente.nombre }} {{ vehiculo.id_cliente.apellido|default:"" }}
+            {% else %}
+                <span style="color:#95a5a6;">Sin cliente</span>
+            {% endif %}
+        </div>
     </div>
 </div>
 
@@ -26,6 +55,7 @@
                 <tr>
                     <th>Orden</th>
                     <th>Fecha</th>
+                    <th>Cliente</th>
                     <th>Estado</th>
                     <th>Total</th>
                     <th>Acciones</th>
@@ -37,7 +67,14 @@
                     <td><strong>Nº {{ orden.id }}</strong></td>
                     <td>{{ orden.fecha_ingreso|date:"d/m/Y" }}</td>
                     <td>
-                        <span class="badge 
+                        {% if orden.id_cliente %}
+                            {{ orden.id_cliente.nombre }}
+                        {% else %}
+                            <span style="color:#95a5a6;">—</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <span class="badge
                             {% if orden.estado_orden == 'COBRADA' %}badge-success
                             {% elif orden.estado_orden == 'EN_PROCESO' %}badge-info
                             {% elif orden.estado_orden == 'POR_COBRAR' %}badge-warning
