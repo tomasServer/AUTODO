@@ -1,3 +1,7 @@
+#@author:  Tomas Jonatan Lopez Cruz
+#@email:   20461973hola@gmail.com
+#@date:    2026-10-13
+#@version: 0.0.1
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import authenticate, login as auth_login, logout as auth_logout

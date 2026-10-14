@@ -15,6 +15,8 @@ from pathlib import Path
 import os
 import dj_database_url
 
+
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -29,9 +31,9 @@ SECRET_KEY = 'django-insecure-qhagf&@-(l@sf)1wyzn!)ul!3b2fm)##qy_vjol&^y++38ar#r
 DEBUG = True
 
 ALLOWED_HOSTS = ['*']
+AUTOR_ASINATURE = 'TJLC-UBI-2026-SYS'
 
-
-# Application definition
+# Applicati on definition
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -139,12 +141,12 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 STATICFILES_DIRS = [
     os.path.join('gestion_vehicular', 'static'),
 ]
-
+#QUE HACE STOGARES
 STORAGES = {
     "staticfiles": {
         "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
     },
-}  # <-- AGREGA ESTA LÍNEA
+} 
 
 AUTHENTICATION_BACKENDS = [
     'gestion_vehicular.auth_backend.UsuarioBackend',

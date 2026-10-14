@@ -110,13 +110,13 @@
             <div>
                 <label>Cliente *</label>
                 <input type="text" name="cliente_nombre" id="cliente_nombre" maxlength="100" required
-                       oninput="validarNombre(this)" placeholder="Nombre del cliente..."
+                       oninput="validarNombre(this)" placeholder="Nombre del cliente"
                        value="{{ cliente.nombre|default:'' }}">
             </div>
             <div>
-                <label>Apellido</label>
-                <input type="text" name="cliente_apellido" id="cliente_apellido" maxlength="100"
-                       oninput="validarNombre(this)" placeholder="Apellido..."
+                <label>Apellido *</label>
+                <input type="text" name="cliente_apellido" id="cliente_apellido" maxlength="100" required
+                       oninput="validarNombre(this)" placeholder="Apellido"
                        value="{{ cliente.apellido|default:'' }}">
             </div>
             <div>
@@ -147,7 +147,7 @@
                 </select>
             </div>
             <div>
-                <label>Complejidad *</label>
+                <label>Calidad de orden*</label>
                 <select name="complejidad_id" id="complejidad_id" required>
                     <option value="">Seleccione...</option>
                     {% for comp in complejidades %}
@@ -256,11 +256,39 @@
         if (input.value.length > 100) input.value = input.value.slice(0, 100);
     }
 
-    // Validación del CI (solo números, hasta 20 dígitos)
+    // Validación del CI: 7-11 dígitos + opcional "-" + 1-2 letras/números
     function validarCI(input) {
-        input.value = input.value.replace(/[^0-9]/g, '');
-        if (input.value.length > 20) input.value = input.value.slice(0, 20);
+        let val = input.value.toUpperCase();
+
+        // Separar por guion
+        const partes = val.split('-');
+
+        // Más de un guion → colapsar
+        if (partes.length > 2) {
+            val = partes[0] + '-' + partes.slice(1).join('');
+            partes.length = 0;
+            partes.push(...val.split('-'));
+        }
+
+        let numeros = partes[0].replace(/[^0-9]/g, '');
+        let complemento = partes[1] !== undefined
+            ? partes[1].replace(/[^A-Z0-9]/g, '')
+            : null;
+
+        // Base: máximo 11 dígitos
+        if (numeros.length > 11) numeros = numeros.slice(0, 11);
+
+        // Complemento: máximo 2 caracteres
+        if (complemento && complemento.length > 2) {
+            complemento = complemento.slice(0, 2);
+        }
+
+        // Reconstruir
+        input.value = complemento !== null
+            ? numeros + '-' + complemento
+            : numeros;
     }
+
 
     // Validación del VIN (alfanumérico, máx 17)
     function validarVIN(input) {
@@ -269,7 +297,7 @@
             input.value = input.value.slice(0, 17);
         }
         const contador = document.getElementById('vin-contador');
-        if (!contador) return;{
+        if (!contador) return;
         
         const len = input.value.length;
 
@@ -288,6 +316,7 @@
             contador.style.color = '#7f8c8d';
             contador.style.fontWeight = 'bold';
         }
+    }
 
     // ============ MOSTRAR/OCULTAR EXTRA ============
     function toggleExtra() {
@@ -433,6 +462,27 @@
             return;
         }
         
+        //validar placa
+        // 🆕 Validar placa: si tiene contenido, entre 3 y 8
+        if (placaVal && (placaVal.length < 3 || placaVal.length > 8)) {
+            e.preventDefault();
+            alert(`⚠️ La placa debe tener entre 3 y 8 caracteres.\nActualmente tiene ${placaVal.length}.`);
+            placa.focus();
+            return;
+        }
+
+        // 🆕 Validar VIN: si tiene contenido, EXACTAMENTE 17
+        if (vinVal && vinVal.length !== 17) {
+            e.preventDefault();
+            const diff = 17 - vinVal.length;
+            if (diff > 0) {
+                alert(`⚠️ El VIN debe tener exactamente 17 caracteres.\nLe faltan ${diff} carácter(es).\nActualmente tiene ${vinVal.length}.`);
+            } else {
+                alert(`⚠️ El VIN debe tener exactamente 17 caracteres.\nTe sobra(n) ${Math.abs(diff)} carácter(es).\nActualmente tiene ${vinVal.length}.`);
+            }
+            vin.focus();
+            return;
+        }
 
         var cliente = document.getElementById('cliente_nombre');
         if (!cliente.value.trim()) {
@@ -443,13 +493,36 @@
         }
 
         var ci = document.getElementById('cliente_ci');
-        if (!ci.value.trim()) {
+        var ciVal = ci.value.trim();
+
+        if (!ciVal) {
             e.preventDefault();
             alert('⚠️ El CI del cliente es obligatorio.');
             ci.focus();
             return;
         }
 
+        // Formato: 7-11 dígitos + opcional "-" + 1-2 letras/números
+        var regexCI = /^[0-9]{7,11}(-[A-Z0-9]{1,2})?$/;
+
+        if (!regexCI.test(ciVal)) {
+            e.preventDefault();
+            alert(
+                '⚠️ El CI no tiene un formato válido.\n\n' +
+                '• Debe tener entre 7 y 11 dígitos.\n' +
+                '• Opcionalmente: guion y hasta 2 letras/números (ej: 1234567-1A).\n\n' +
+                'Ejemplos válidos:\n' +
+                '  1234567\n' +
+                '  12345678\n' +
+                '  12345678901\n' +
+                '  1234567-1A'
+            );
+            ci.focus();
+            return;
+        }
+
+
+        // Validar telefono
         var telefono = document.getElementById('cliente_telefono');
         if (!telefono.value.trim()) {
             e.preventDefault();
@@ -516,6 +589,7 @@
                 .then(r => r.json())
                 .then(data => {
                     if (!data.existe) {
+
                         if (infoBox) {
                             infoBox.style.display = 'block';
                             infoBox.innerHTML = '🆕 <strong>Vehículo nuevo</strong>. Sin historial previo.';
@@ -532,16 +606,17 @@
                     };
 
                     // Autocompletar campos (respetando readonly)
-                    const placaEl = document.getElementById('placa');
-                    const vinEl = document.getElementById('vin');
-
-                    if (placaEl && !placaEl.readOnly) setVal('placa', v.placa);
-                    if (vinEl && !vinEl.readOnly) setVal('vin', v.vin);
+                    setVal('placa', v.placa);
+                    setVal('vin', v.vin);
                     setVal('anio', v.anio);
                     setVal('color', v.color);
                     setVal('kilometraje', v.kilometraje);
 
+
+
+
                     // Actualizar contador de VIN
+                    const vinEl = document.getElementById('vin');
                     if (vinEl && v.vin) {
                         validarVIN(vinEl);
                     }

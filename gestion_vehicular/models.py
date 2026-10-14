@@ -1,6 +1,12 @@
+#@author:  Tomas Jonatan Lopez Cruz
+#@email:   20461973hola@gmail.com
+#@date:    2026-10-13
+#@version: 0.0.1
+
+
 from django.db import models
 
-
+#impo
 class Cliente(models.Model):
     nombre = models.CharField(max_length=100)
     apellido = models.CharField(max_length=100, blank=True, null=True)

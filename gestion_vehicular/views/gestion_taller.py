@@ -1,3 +1,7 @@
+#@author:  Tomas Jonatan Lopez Cruz
+#@email:   20461973hola@gmail.com
+#@date:    2026-10-13    
+#@version: 0.0.1
 from django.shortcuts import render, redirect, get_object_or_404
 from django.utils import timezone
 from django.contrib import messages
@@ -9,6 +13,7 @@ from django.db import connection
 from xhtml2pdf import pisa
 from django.template.loader import render_to_string
 from django.http import HttpResponse
+import re
 
 
 def _revisar_estado_orden(orden):
@@ -131,11 +136,10 @@ def crear_orden(request):
         placa = request.POST.get('placa', '').upper().strip()
         vin = (request.POST.get('vin') or '').upper().strip()[:17]  # 🆕
 
-        
         cliente_nombre = (request.POST.get('cliente_nombre') or '').strip()
         cliente_apellido = (request.POST.get('cliente_apellido') or '').strip()
         cliente_telefono = (request.POST.get('cliente_telefono') or '').strip()
-        cliente_ci = (request.POST.get('cliente_ci') or '').strip()
+        cliente_ci = (request.POST.get('cliente_ci') or '').strip().upper()
         supervisor_id = request.POST.get('supervisor_id')
         complejidad_id = request.POST.get('complejidad_id')
         observacion = request.POST.get('observacion', '')
@@ -143,13 +147,45 @@ def crear_orden(request):
         anio = request.POST.get('anio')
         color = request.POST.get('color')
 
+        
         # 🆕 Normalizar: placa o VIN
         placa_norm = placa or None
         vin_norm = vin or None
 
-        # 🆕 Validar: al menos uno
+        # Validar: al menos uno
         if not placa_norm and not vin_norm:
             messages.error(request, '⚠️ Debes ingresar al menos Placa o VIN.')
+            return redirect(request.get_full_path())
+
+        # Validar placa: entre 3 y 8
+        if placa_norm and (len(placa_norm) < 3 or len(placa_norm) > 8):
+            messages.error(
+                request,
+                f'⚠️ La placa debe tener entre 3 y 8 caracteres. '
+                f'Actualmente tiene {len(placa_norm)}.'
+            )
+            return redirect(request.get_full_path())
+
+        # Validar VIN: exactamente 17
+        if vin_norm and len(vin_norm) != 17:
+            messages.error(
+                request,
+                f'⚠️ El VIN debe tener exactamente 17 caracteres. '
+                f'Actualmente tiene {len(vin_norm)}.'
+            )
+            return redirect(request.get_full_path())
+
+        if not cliente_ci:
+            messages.error(request, 'Debe ingresar el CI del cliente.')
+            return redirect(request.get_full_path())
+            # Formato: 7-11 dígitos + opcional "-" + 1-2 letras/números
+
+        if not re.match(r'^[0-9]{7,11}(-[A-Z0-9]{1,2})?$', cliente_ci):
+            messages.error(
+                request, 
+                'El CI ingresado debe tener entre 7 y 11 digitos.'
+                'optionnalmente: guion y hasta 2 letras/números (ej: 1234567-1A).'
+            )
             return redirect(request.get_full_path())
 
         # ============================================================

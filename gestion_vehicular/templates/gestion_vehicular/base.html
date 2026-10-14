@@ -1,3 +1,4 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -343,6 +344,23 @@
             top: 0;
             z-index: 10;
         }
+
+        .footer {
+            pading: 1rem;
+            text-align: center;
+            background: #0E1113;
+            color: #F2fafb;
+        }
+        .logo-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .logo-img {
+            height: 40px;
+            width: auto;
+        }
         
         /* ========== RESPONSIVE ========== */
         
@@ -381,7 +399,12 @@
 </head>
 <body>
     <nav class="navbar">
-        <div><span class="logo">AUTODO</span></div>
+        <div class="logo-container">
+            <img src="{% static 'gestion_vehicular/img/logo.svg' %}"
+                alt="Logo AUTODO"
+                class="logo-img">
+            <span class="logo">AUTODO</span>
+        </div>
         <div class="navbar-links">
             {% block navbar %}{% endblock %}
         </div>
@@ -411,5 +434,10 @@
     </div>
     
     {% block extra_js %}{% endblock %}
+    {% block footer %}
+    <footer class="footer">
+        <p> &copy; {%now "Y"%} DIAXO LT. Todos los derechos reservados.</p>
+    </footer>
+    {% endblock %}
 </body>
 </html>
