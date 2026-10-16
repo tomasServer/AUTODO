@@ -1,16 +1,36 @@
 {% extends 'gestion_vehicular/admin/base_admin.html' %}
-{% block title %}Historial - {{ vehiculo.placa }}{% endblock %}
+{% block title %}Historial - {{ vehiculo.placa|default:vehiculo.vin }}{% endblock %}
 
 {% block content %}
 
-<h2>Historial - {{ vehiculo.placa }}</h2>
+<h2>Historial del Vehículo</h2>
 
 <!-- DATOS DEL VEHICULO -->
 <div class="card">
     <div class="grid grid-4">
-        <div><strong>Placa:</strong> {{ vehiculo.placa }}</div>
-        <div><strong>Cliente:</strong> {{ vehiculo.id_cliente.nombre|default:"-" }}</div>
+        <div>
+            <strong>Placa:</strong>
+            {% if vehiculo.placa %}
+                {{ vehiculo.placa }}
+            {% else %}
+                <span style="color:#e67e22; font-style:italic;">Sin placa</span>
+            {% endif %}
+        </div>
+        <div>
+            <strong>VIN:</strong>
+            {% if vehiculo.vin %}
+                <code style="font-family: monospace; font-size:0.85rem;">{{ vehiculo.vin }}</code>
+            {% else %}
+                <span style="color:#95a5a6;">—</span>
+            {% endif %}
+        </div>
+        <div><strong>Marca / Modelo:</strong> {{ vehiculo.marca|default:"" }} {{ vehiculo.modelo|default:"" }}
+            {% if not vehiculo.marca and not vehiculo.modelo %}—{% endif %}
+        </div>
+        <div><strong>Año:</strong> {{ vehiculo.anio|default:"—" }}</div>
+        <div><strong>Cliente:</strong> {{ vehiculo.id_cliente.nombre|default:"-" }} {{ vehiculo.id_cliente.apellido|default:"" }}</div>
         <div><strong>Teléfono:</strong> {{ vehiculo.id_cliente.telefono|default:"-" }}</div>
+        <div><strong>Kilometraje:</strong> {{ vehiculo.kilometraje_actual|default:"—" }} km</div>
         <div><strong>Total Gastado:</strong> Bs. {{ total_gastado|floatformat:2|default:"0.00" }}</div>
     </div>
     <div class="flex flex-wrap mt-10">
@@ -26,26 +46,41 @@
     <div class="grid">
         {% for revision in revisiones %}
         <div style="border:1px solid #ecf0f1; border-radius:6px; padding:12px 15px;">
-            <div class="grid grid-4">
+            <!-- ENCABEZADO DE LA REVISIÓN -->
+            <div class="grid grid-4" style="margin-bottom:10px;">
                 <div><strong>Fecha:</strong> {{ revision.fecha_revision|date:"d/m/Y H:i" }}</div>
                 <div><strong>Tipo:</strong> {{ revision.tipo_revision }}</div>
                 <div><strong>Salud:</strong> {{ revision.isv_porcentaje|default:"0" }}%</div>
                 <div>
-                    <strong>Estado:</strong> 
-                    <span class="{% if revision.isv_porcentaje >= 80 %}badge badge-success{% elif revision.isv_porcentaje >= 50 %}badge badge-warning{% else %}badge badge-danger{% endif %}">
+                    <strong>Estado:</strong>
+                    <span class="badge {% if revision.isv_porcentaje >= 80 %}badge-success{% elif revision.isv_porcentaje >= 50 %}badge-warning{% else %}badge-danger{% endif %}">
                         {% if revision.isv_porcentaje >= 80 %}BUENO
                         {% elif revision.isv_porcentaje >= 50 %}REGULAR
                         {% else %}CRÍTICO{% endif %}
                     </span>
                 </div>
             </div>
-            <div class="grid grid-3 mt-10" style="font-size:0.8rem;">
+
+            <!-- DETALLE DE COMPONENTES -->
+            <div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap:8px;">
                 {% for detalle in revision.detalles.all %}
-                <div>
-                    <span>{{ detalle.id_componente.nombre }}:</span>
-                    <strong class="{% if detalle.estado == 'OK' %}badge badge-success{% elif detalle.estado == 'REGULAR' %}badge badge-warning{% else %}badge badge-danger{% endif %}">
-                        {{ detalle.estado }}
-                    </strong>
+                <div style="padding:8px 10px; background:#f8f9fa; border-radius:4px; border-left:3px solid
+                    {% if detalle.estado == 'OK' %}#27ae60
+                    {% elif detalle.estado == 'REGULAR' %}#e67e22
+                    {% else %}#c0392b{% endif %};">
+                    <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
+                        <span style="font-size:0.85rem; font-weight:600;">{{ detalle.id_componente.nombre }}</span>
+                        <span class="badge {% if detalle.estado == 'OK' %}badge-success{% elif detalle.estado == 'REGULAR' %}badge-warning{% else %}badge-danger{% endif %}" style="font-size:0.7rem;">
+                            {{ detalle.estado }}
+                        </span>
+                    </div>
+
+                    {# 🆕 Mostrar nota solo si existe #}
+                    {% if detalle.nota and detalle.nota.strip %}
+                    <div style="margin-top:5px; font-size:0.78rem; color:#555; font-style:italic;">
+                        📝 {{ detalle.nota }}
+                    </div>
+                    {% endif %}
                 </div>
                 {% endfor %}
             </div>
@@ -57,7 +92,7 @@
     {% endif %}
 </div>
 
-<!-- ORDENES -->
+<!-- ÓRDENES -->
 <div class="card">
     <h3>Órdenes de Trabajo</h3>
     {% if ordenes %}
@@ -66,6 +101,7 @@
             <tr>
                 <th>Orden</th>
                 <th>Fecha</th>
+                <th>Cliente</th>
                 <th>Estado</th>
                 <th>Total</th>
                 <th class="text-center">Acciones</th>
@@ -76,7 +112,23 @@
             <tr>
                 <td><strong>Nº {{ orden.id }}</strong></td>
                 <td>{{ orden.fecha_ingreso|date:"d/m/Y H:i" }}</td>
-                <td><span class="badge {% if orden.estado_orden == 'COBRADA' %}badge-success{% elif orden.estado_orden == 'EN_PROCESO' %}badge-info{% else %}badge-warning{% endif %}">{{ orden.estado_orden }}</span></td>
+                <td>
+                    {% if orden.id_cliente %}
+                        {{ orden.id_cliente.nombre }}
+                    {% else %}
+                        <span style="color:#95a5a6;">—</span>
+                    {% endif %}
+                </td>
+                <td>
+                    <span class="badge
+                        {% if orden.estado_orden == 'COBRADA' %}badge-success
+                        {% elif orden.estado_orden == 'EN_PROCESO' %}badge-info
+                        {% elif orden.estado_orden == 'POR_COBRAR' %}badge-warning
+                        {% elif orden.estado_orden == 'CANCELADA' %}badge-danger
+                        {% else %}badge-warning{% endif %}">
+                        {{ orden.estado_orden }}
+                    </span>
+                </td>
                 <td>Bs. {{ orden.total_orden|floatformat:2|default:"0.00" }}</td>
                 <td class="text-center">
                     <a href="{% url 'detalle_orden' orden.id %}" class="btn btn-warning btn-sm">Ver</a>

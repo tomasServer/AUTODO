@@ -1,37 +1,131 @@
 {% extends 'gestion_vehicular/admin/base_admin.html' %}
-{% block title %}Revision Visita{% endblock %}
+{% block title %}Revisión Visita{% endblock %}
 
 {% block content %}
-<h2 style="color:#1a252f; margin-bottom:15px;">Revision Visita</h2>
+
+<h2 style="color:#1a252f; margin-bottom:15px;">Revisión Visita</h2>
 
 <div class="card" style="padding:20px;">
-    <p style="margin-bottom:15px;">Placa: <strong style="text-transform:uppercase;">{{ placa }}</strong></p>
-    
+    <p style="margin-bottom:15px;">Placa / VIN: <strong style="text-transform:uppercase;">{{ placa }}</strong></p>
+
     <form method="POST" action="{% url 'guardar_revision_rapida' %}">
         {% csrf_token %}
         <input type="hidden" name="placa" value="{{ placa }}">
-        
+
         {% for componente in componentes %}
-        <div style="display:flex; align-items:center; justify-content:space-between; padding:10px; border-bottom:1px solid #ecf0f1;">
-            <span style="font-weight:600;">{{ componente.nombre }}</span>
-            <div style="display:flex; gap:8px;">
-                <label style="font-size:0.8rem; margin:0;">
-                    <input type="radio" name="comp_{{ componente.id }}" value="OK" checked> OK
-                </label>
-                <label style="font-size:0.8rem; margin:0;">
-                    <input type="radio" name="comp_{{ componente.id }}" value="REGULAR"> REGULAR
-                </label>
-                <label style="font-size:0.8rem; margin:0;">
-                    <input type="radio" name="comp_{{ componente.id }}" value="CRITICO"> CRITICO
+        <div class="card" style="padding:15px; margin-bottom:10px; border-left:4px solid #e67e22;">
+            <h3 style="margin:0 0 10px 0; font-size:1rem;">{{ componente.orden }}. {{ componente.nombre }}</h3>
+
+            <div class="flex flex-wrap" style="gap:8px; margin-bottom:10px;">
+                <button type="button" class="btn btn-success btn-sm estado-btn" data-comp="{{ componente.id }}"
+                        onclick="seleccionarEstado(this, {{ componente.id }}, 'OK')">✓ OK</button>
+                <button type="button" class="btn btn-warning btn-sm estado-btn" data-comp="{{ componente.id }}"
+                        onclick="seleccionarEstado(this, {{ componente.id }}, 'REGULAR')">⚠ REGULAR</button>
+                <button type="button" class="btn btn-danger btn-sm estado-btn" data-comp="{{ componente.id }}"
+                        onclick="seleccionarEstado(this, {{ componente.id }}, 'CRITICO')">✗ CRÍTICO</button>
+            </div>
+
+            <input type="hidden" name="comp_{{ componente.id }}" id="comp_{{ componente.id }}" value="OK">
+
+            <div id="notas_{{ componente.id }}" style="display:none; margin-top:10px;">
+                <label style="font-size:0.85rem;">¿Qué está mal? Selecciona una nota:</label>
+                <select name="nota_{{ componente.id }}"
+                        id="select_nota_{{ componente.id }}"
+                        onchange="manejarNotaManual(this, {{ componente.id }})"
+                        style="margin-bottom:6px;">
+                    <option value="">-- Seleccione una nota --</option>
+                    {% for nota in notas_predefinidas %}
+                        {% if nota.id_componente_id == componente.id %}
+                        <option value="{{ nota.texto }}" data-estado="{{ nota.estado }}">{{ nota.texto }}</option>
+                        {% endif %}
+                    {% endfor %}
+                    <option value="__personalizada__">📝 Otra (escribir manual)</option>
+                </select>
+
+                <input type="text" id="nota_manual_{{ componente.id }}"
+                       placeholder="Escriba su nota..."
+                       style="display:none;" maxlength="200">
+
+                <label id="check_guardar_{{ componente.id }}"
+                       style="display:none; margin-top:8px; font-size:0.85rem; cursor:pointer; user-select:none;">
+                    <input type="checkbox" name="guardar_predef_{{ componente.id }}" value="1"
+                           style="width:auto; margin-right:6px;">
+                    💾 Guardar esta nota para futuras revisiones
                 </label>
             </div>
         </div>
+        {% empty %}
+        <div class="card">
+            <p class="text-muted">No hay componentes configurados para revisión.</p>
+        </div>
         {% endfor %}
-        
+
         <div style="display:flex; justify-content:space-between; margin-top:15px;">
             <a href="{% url 'buscar_vehiculo' %}" class="btn btn-gray">Cancelar</a>
-            <button type="submit" class="btn btn-success">Guardar Revision</button>
+            <button type="submit" class="btn btn-success">Guardar Revisión</button>
         </div>
     </form>
 </div>
+
+<script>
+function seleccionarEstado(boton, componenteId, estado) {
+    document.getElementById('comp_' + componenteId).value = estado;
+
+    var botones = document.querySelectorAll(`.estado-btn[data-comp="${componenteId}"]`);
+    botones.forEach(function(b) {
+        b.style.opacity = '0.4';
+        b.style.transform = 'scale(0.95)';
+    });
+    boton.style.opacity = '1';
+    boton.style.transform = 'scale(1)';
+
+    var notasDiv = document.getElementById('notas_' + componenteId);
+    if (estado === 'REGULAR' || estado === 'CRITICO') {
+        notasDiv.style.display = 'block';
+        filtrarNotasPorEstado(componenteId, estado);
+    } else {
+        notasDiv.style.display = 'none';
+        var sel = document.getElementById('select_nota_' + componenteId);
+        if (sel) sel.value = '';
+        var man = document.getElementById('nota_manual_' + componenteId);
+        if (man) { man.style.display = 'none'; man.value = ''; man.name = ''; }
+        var check = document.getElementById('check_guardar_' + componenteId);
+        if (check) check.style.display = 'none';
+    }
+}
+
+function filtrarNotasPorEstado(componenteId, estado) {
+    var select = document.getElementById('select_nota_' + componenteId);
+    if (!select) return;
+    select.value = '';
+
+    Array.from(select.options).forEach(function(opt) {
+        if (opt.value === '' || opt.value === '__personalizada__') {
+            opt.hidden = false;
+            return;
+        }
+        var optEstado = opt.getAttribute('data-estado');
+        opt.hidden = (optEstado !== estado);
+    });
+}
+
+function manejarNotaManual(select, componenteId) {
+    var manual = document.getElementById('nota_manual_' + componenteId);
+    var check = document.getElementById('check_guardar_' + componenteId);
+
+    if (select.value === '__personalizada__') {
+        manual.style.display = 'block';
+        manual.name = 'nota_' + componenteId;
+        select.name = '';
+        manual.focus();
+        if (check) check.style.display = 'block';
+    } else {
+        manual.style.display = 'none';
+        manual.name = '';
+        select.name = 'nota_' + componenteId;
+        if (check) check.style.display = 'none';
+    }
+}
+</script>
+
 {% endblock %}

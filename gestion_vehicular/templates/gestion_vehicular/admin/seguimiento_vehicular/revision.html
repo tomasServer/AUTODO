@@ -4,45 +4,44 @@
 {% block content %}
 
 <h1>Revisión Técnica</h1>
-<p><strong>Orden Nº {{ orden.id }}</strong> | {{ orden.id_vehiculo.placa }} - {{ orden.id_vehiculo.marca|default:"" }} {{ orden.id_vehiculo.modelo|default:"" }}</p>
+<p><strong>Orden Nº {{ orden.id }}</strong> | {{ orden.id_vehiculo.placa|default:orden.id_vehiculo.vin }} - {{ orden.id_vehiculo.marca|default:"" }} {{ orden.id_vehiculo.modelo|default:"" }}</p>
 
-<!-- Explicación del ISV -->
 <div class="card" style="background:#d6eaf8; margin-bottom:20px;">
     <p style="margin:0;"><strong>Cálculo del ISV:</strong> OK = 100% | REGULAR = 50% | CRÍTICO = 0%</p>
 </div>
 
-<!-- Selector de tipo de revisión -->
 <div class="flex flex-wrap mb-20">
-    <a href="?tipo=VISITA" class="btn {% if tipo == 'VISITA' %}btn-warning{% else %}btn-gray{% endif %}">
-        Visita
-    </a>
-    <a href="?tipo=RAPIDA" class="btn {% if tipo == 'RAPIDA' %}btn-warning{% else %}btn-gray{% endif %}">
-        Revisión Rápida
-    </a>
-    <a href="?tipo=COMPLETA" class="btn {% if tipo == 'COMPLETA' %}btn-primary{% else %}btn-gray{% endif %}">
-        Revisión Completa
-    </a>
+    <a href="?tipo=VISITA" class="btn {% if tipo == 'VISITA' %}btn-warning{% else %}btn-gray{% endif %}">Visita</a>
+    <a href="?tipo=RAPIDA" class="btn {% if tipo == 'RAPIDA' %}btn-warning{% else %}btn-gray{% endif %}">Revisión Rápida</a>
+    <a href="?tipo=COMPLETA" class="btn {% if tipo == 'COMPLETA' %}btn-primary{% else %}btn-gray{% endif %}">Revisión Completa</a>
 </div>
 
 <form method="POST">
     {% csrf_token %}
-    
+    <input type="hidden" name="tipo_revision" value="{{ tipo }}">
+
     {% for componente in componentes %}
-    <div class="card">
-        <h2>{{ componente.orden }}. {{ componente.nombre }}</h2>
-        
-        <div class="flex flex-wrap" style="gap:10px; align-items:center;">
-            <button type="button" class="btn btn-success" onclick="seleccionarEstado(this, 'OK', {{ componente.id }})">OK</button>
-            <button type="button" class="btn btn-warning" onclick="seleccionarEstado(this, 'REGULAR', {{ componente.id }})">REGULAR</button>
-            <button type="button" class="btn btn-danger" onclick="seleccionarEstado(this, 'CRITICO', {{ componente.id }})">CRÍTICO</button>
-            <input type="hidden" name="comp_{{ componente.id }}" id="comp_{{ componente.id }}" value="OK">
+    <div class="card" style="padding:15px; margin-bottom:10px; border-left:4px solid #2980b9;">
+        <h3 style="margin:0 0 10px 0; font-size:1rem;">{{ componente.orden }}. {{ componente.nombre }}</h3>
+
+        <div class="flex flex-wrap" style="gap:8px; margin-bottom:10px;">
+            <button type="button" class="btn btn-success btn-sm estado-btn" data-comp="{{ componente.id }}"
+                    onclick="seleccionarEstado(this, {{ componente.id }}, 'OK')">✓ OK</button>
+            <button type="button" class="btn btn-warning btn-sm estado-btn" data-comp="{{ componente.id }}"
+                    onclick="seleccionarEstado(this, {{ componente.id }}, 'REGULAR')">⚠ REGULAR</button>
+            <button type="button" class="btn btn-danger btn-sm estado-btn" data-comp="{{ componente.id }}"
+                    onclick="seleccionarEstado(this, {{ componente.id }}, 'CRITICO')">✗ CRÍTICO</button>
         </div>
-        
-        <!-- Notas predefinidas -->
+
+        <input type="hidden" name="comp_{{ componente.id }}" id="comp_{{ componente.id }}" value="OK">
+
         <div id="notas_{{ componente.id }}" style="display:none; margin-top:10px;">
-            <label>Nota</label>
-            <select name="nota_{{ componente.id }}" id="select_nota_{{ componente.id }}">
-                <option value="">Seleccione una nota...</option>
+            <label style="font-size:0.85rem;">Nota:</label>
+            <select name="nota_{{ componente.id }}"
+                    id="select_nota_{{ componente.id }}"
+                    onchange="manejarNotaManual(this, {{ componente.id }})"
+                    style="margin-bottom:6px;">
+                <option value="">-- Seleccione una nota --</option>
                 {% for nota in notas_predefinidas %}
                     {% if nota.id_componente_id == componente.id %}
                     <option value="{{ nota.texto }}" data-estado="{{ nota.estado }}">{{ nota.texto }}</option>
@@ -50,7 +49,17 @@
                 {% endfor %}
                 <option value="__personalizada__">📝 Otra (escribir manual)</option>
             </select>
-            <input type="text" id="nota_manual_{{ componente.id }}" placeholder="Escriba su nota..." style="display:none; margin-top:5px;">
+
+            <input type="text" id="nota_manual_{{ componente.id }}"
+                   placeholder="Escriba su nota..."
+                   style="display:none;" maxlength="200">
+
+            <label id="check_guardar_{{ componente.id }}"
+                   style="display:none; margin-top:8px; font-size:0.85rem; cursor:pointer; user-select:none;">
+                <input type="checkbox" name="guardar_predef_{{ componente.id }}" value="1"
+                       style="width:auto; margin-right:6px;">
+                💾 Guardar esta nota para futuras revisiones
+            </label>
         </div>
     </div>
     {% empty %}
@@ -58,7 +67,7 @@
         <p class="text-muted">No hay componentes configurados para este tipo de revisión.</p>
     </div>
     {% endfor %}
-    
+
     <div class="flex flex-wrap" style="justify-content:flex-end; margin-top:20px;">
         <a href="{% url 'detalle_orden' orden.id %}" class="btn btn-gray">Cancelar</a>
         <button type="submit" class="btn btn-success">Guardar Revisión</button>
@@ -66,44 +75,64 @@
 </form>
 
 <script>
-    // ============ SELECCIONAR ESTADO ============
-    function seleccionarEstado(boton, estado, componenteId) {
-        // Guardar estado en el input hidden
-        document.getElementById('comp_' + componenteId).value = estado;
-        
-        // Mostrar/ocultar notas según estado
-        var notasDiv = document.getElementById('notas_' + componenteId);
-        if (estado === 'REGULAR' || estado === 'CRITICO') {
-            notasDiv.style.display = 'block';
-        } else {
-            notasDiv.style.display = 'none';
-        }
-        
-        // Colorear botones: opacidad a todos, 100% al seleccionado
-        var botones = boton.parentElement.querySelectorAll('button');
-        botones.forEach(function(b) { b.style.opacity = '0.4'; });
-        boton.style.opacity = '1';
-    }
+function seleccionarEstado(boton, componenteId, estado) {
+    document.getElementById('comp_' + componenteId).value = estado;
 
-    // ============ MANEJO DEL "OTRA (MANUAL)" ============
-    document.querySelectorAll('select[id^="select_nota_"]').forEach(function(select) {
-        select.addEventListener('change', function() {
-            var compId = this.id.replace('select_nota_', '');
-            var manual = document.getElementById('nota_manual_' + compId);
-            
-            if (this.value === '__personalizada__') {
-                // Mostrar input manual y quitar el name del select
-                manual.style.display = 'block';
-                manual.name = 'nota_' + compId;
-                this.name = '';  // El select ya no envía nada
-            } else {
-                // Ocultar input manual y devolver el name al select
-                manual.style.display = 'none';
-                manual.name = '';
-                this.name = 'nota_' + compId;
-            }
-        });
+    var botones = document.querySelectorAll(`.estado-btn[data-comp="${componenteId}"]`);
+    botones.forEach(function(b) {
+        b.style.opacity = '0.4';
+        b.style.transform = 'scale(0.95)';
     });
+    boton.style.opacity = '1';
+    boton.style.transform = 'scale(1)';
+
+    var notasDiv = document.getElementById('notas_' + componenteId);
+    if (estado === 'REGULAR' || estado === 'CRITICO') {
+        notasDiv.style.display = 'block';
+        filtrarNotasPorEstado(componenteId, estado);
+    } else {
+        notasDiv.style.display = 'none';
+        var sel = document.getElementById('select_nota_' + componenteId);
+        if (sel) sel.value = '';
+        var man = document.getElementById('nota_manual_' + componenteId);
+        if (man) { man.style.display = 'none'; man.value = ''; man.name = ''; }
+        var check = document.getElementById('check_guardar_' + componenteId);
+        if (check) check.style.display = 'none';
+    }
+}
+
+function filtrarNotasPorEstado(componenteId, estado) {
+    var select = document.getElementById('select_nota_' + componenteId);
+    if (!select) return;
+    select.value = '';
+
+    Array.from(select.options).forEach(function(opt) {
+        if (opt.value === '' || opt.value === '__personalizada__') {
+            opt.hidden = false;
+            return;
+        }
+        var optEstado = opt.getAttribute('data-estado');
+        opt.hidden = (optEstado !== estado);
+    });
+}
+
+function manejarNotaManual(select, componenteId) {
+    var manual = document.getElementById('nota_manual_' + componenteId);
+    var check = document.getElementById('check_guardar_' + componenteId);
+
+    if (select.value === '__personalizada__') {
+        manual.style.display = 'block';
+        manual.name = 'nota_' + componenteId;
+        select.name = '';
+        manual.focus();
+        if (check) check.style.display = 'block';
+    } else {
+        manual.style.display = 'none';
+        manual.name = '';
+        select.name = 'nota_' + componenteId;
+        if (check) check.style.display = 'none';
+    }
+}
 </script>
 
 {% endblock %}

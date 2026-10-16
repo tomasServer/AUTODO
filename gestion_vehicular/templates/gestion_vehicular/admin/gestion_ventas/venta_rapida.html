@@ -9,7 +9,6 @@
     <form method="POST" action="{% url 'guardar_venta_rapida' %}" id="ventaForm">
         {% csrf_token %}
 
-        <!-- 🆕 Input hidden que SÍ se envía al backend -->
         <input type="hidden" name="metodo_pago" id="metodo_pago_hidden" value="EFECTIVO">
 
         <!-- PRODUCTOS -->
@@ -60,21 +59,28 @@
         <hr style="border:none; border-top:1px solid #ecf0f1; margin:15px 0;">
 
         <div style="margin-bottom:12px;">
-            <label>Nombre</label>
-            <input type="text" id="cliente_nombre">
+            <label>Nombre *</label>
+            <input type="text" id="cliente_nombre" maxlength="30" required>
         </div>
 
         <div style="margin-bottom:12px;">
-            <label>Teléfono</label>
-            <input type="tel" id="cliente_telefono">
+            <label>Apellido *</label>
+            <input type="text" id="cliente_apellido" maxlength="30" required>
+        </div>
+
+        <div style="margin-bottom:12px;">
+            <label>Teléfono *</label>
+            <input type="tel" id="cliente_telefono" maxlength="8" required>
         </div>
 
         <div style="margin-bottom:20px;">
-            <label>CI</label>
-            <input type="text" id="cliente_ci">
+            <label>CI * <small id="ci-helper" style="color:#7f8c8d; font-weight:normal; font-size:0.75rem;"></small></label>
+            <input type="text" id="cliente_ci" maxlength="14"
+                   placeholder="Ej: 1234567-1A"
+                   oninput="validarCI(this)"
+                   required>
         </div>
 
-        <!-- MÉTODO DE PAGO (dentro del modal, se copia al form al confirmar) -->
         <div style="margin-bottom:20px;">
             <label>Método de Pago *</label>
             <select id="metodo_pago" required style="max-width:250px;">
@@ -130,9 +136,50 @@
     // ============ CLIENTES ============
     var CLIENTES = [
         {% for c in clientes %}
-        { id: {{ c.id }}, nombre: "{{ c.nombre|escapejs }}", telefono: "{{ c.telefono|default:''|escapejs }}", ci: "{{ c.ci|default:''|escapejs }}" }{% if not forloop.last %},{% endif %}
+        { id: {{ c.id }}, nombre: "{{ c.nombre|escapejs }}", apellido: "{{ c.apellido|default:''|escapejs }}", telefono: "{{ c.telefono|default:''|escapejs }}", ci: "{{ c.ci|default:''|escapejs }}" }{% if not forloop.last %},{% endif %}
         {% endfor %}
     ];
+
+    // ============ VALIDACIÓN DE CI ============
+    function validarCI(input) {
+        let val = input.value.toUpperCase();
+        const partes = val.split('-');
+
+        if (partes.length > 2) {
+            val = partes[0] + '-' + partes.slice(1).join('');
+            partes.length = 0;
+            partes.push(...val.split('-'));
+        }
+
+        let numeros = partes[0].replace(/[^0-9]/g, '');
+        let complemento = partes[1] !== undefined
+            ? partes[1].replace(/[^A-Z0-9]/g, '')
+            : null;
+
+        if (numeros.length > 11) numeros = numeros.slice(0, 11);
+        if (complemento && complemento.length > 2) {
+            complemento = complemento.slice(0, 2);
+        }
+
+        input.value = complemento !== null
+            ? numeros + '-' + complemento
+            : numeros;
+
+        const helper = document.getElementById('ci-helper');
+        if (!helper) return;
+
+        if (input.value.length === 0) {
+            helper.textContent = '';
+        } else if (/^[0-9]{7,11}(-[A-Z0-9]{1,2})?$/.test(input.value)) {
+            helper.textContent = '✓';
+            helper.style.color = '#27ae60';
+            helper.style.fontWeight = 'bold';
+        } else {
+            helper.textContent = '⚠️';
+            helper.style.color = '#e67e22';
+            helper.style.fontWeight = 'bold';
+        }
+    }
 
     function buscarClienteLocal(termino) {
         var div = document.getElementById('resultados_busqueda');
@@ -141,7 +188,10 @@
         if (t.length < 2) { div.style.display = 'none'; return; }
 
         var encontrados = CLIENTES.filter(function(c) {
-            return c.nombre.toLowerCase().includes(t) || c.telefono.toLowerCase().includes(t) || c.ci.toLowerCase().includes(t);
+            return c.nombre.toLowerCase().includes(t) ||
+                   (c.apellido && c.apellido.toLowerCase().includes(t)) ||
+                   c.telefono.toLowerCase().includes(t) ||
+                   c.ci.toLowerCase().includes(t);
         }).slice(0, 10);
 
         if (encontrados.length === 0) {
@@ -152,7 +202,8 @@
 
         var html = '';
         encontrados.forEach(function(c) {
-            html += `<div onclick="seleccionarCliente(${c.id})" style="padding:10px 12px; cursor:pointer; border-bottom:1px solid #ecf0f1; font-size:0.85rem;" onmouseover="this.style.background='#f8f9fa'" onmouseout="this.style.background='#fff'"><strong>${c.nombre}</strong>${c.telefono ? ' · ' + c.telefono : ''}${c.ci ? ' · ' + c.ci : ''}</div>`;
+            var nombreCompleto = c.nombre + (c.apellido ? ' ' + c.apellido : '');
+            html += `<div onclick="seleccionarCliente(${c.id})" style="padding:10px 12px; cursor:pointer; border-bottom:1px solid #ecf0f1; font-size:0.85rem;" onmouseover="this.style.background='#f8f9fa'" onmouseout="this.style.background='#fff'"><strong>${nombreCompleto}</strong>${c.telefono ? ' · ' + c.telefono : ''}${c.ci ? ' · ' + c.ci : ''}</div>`;
         });
         div.innerHTML = html;
         div.style.display = 'block';
@@ -162,8 +213,12 @@
         var c = CLIENTES.find(function(x) { return x.id === id; });
         if (!c) return;
         document.getElementById('cliente_nombre').value = c.nombre;
+        document.getElementById('cliente_apellido').value = c.apellido || '';
         document.getElementById('cliente_telefono').value = c.telefono;
         document.getElementById('cliente_ci').value = c.ci;
+
+        validarCI(document.getElementById('cliente_ci'));
+
         document.getElementById('resultados_busqueda').style.display = 'none';
         document.getElementById('buscador_cliente').value = '';
     }
@@ -224,53 +279,103 @@
         if (!hayProducto) { alert('Selecciona al menos un producto.'); return; }
 
         document.getElementById('cliente_nombre').value = '';
+        document.getElementById('cliente_apellido').value = '';
         document.getElementById('cliente_telefono').value = '';
         document.getElementById('cliente_ci').value = '';
         document.getElementById('buscador_cliente').value = '';
         document.getElementById('resultados_busqueda').style.display = 'none';
-        document.getElementById('metodo_pago').value = 'EFECTIVO'; // Reset
+        document.getElementById('metodo_pago').value = 'EFECTIVO';
+
+        var helperCI = document.getElementById('ci-helper');
+        if (helperCI) helperCI.textContent = '';
 
         document.getElementById('modalCliente').style.display = 'flex';
     }
 
     function cerrarModalCliente() { document.getElementById('modalCliente').style.display = 'none'; }
 
-    // 🆕 Función que copia el método de pago al form
     function copiarMetodoPago() {
         var metodo = document.getElementById('metodo_pago').value || 'EFECTIVO';
         document.getElementById('metodo_pago_hidden').value = metodo;
     }
 
+    // ============ VENTA SIN CLIENTE ============
     function ventaSinRegistrar() {
         if (confirm('¿Continuar sin registrar cliente?')) {
             var form = document.getElementById('ventaForm');
-            form.querySelectorAll('input[name="cliente_nombre"], input[name="cliente_telefono"], input[name="cliente_ci"], input[name="sin_registrar"]').forEach(function(i) { i.remove(); });
+            form.querySelectorAll('input[name="cliente_nombre"], input[name="cliente_apellido"], input[name="cliente_telefono"], input[name="cliente_ci"], input[name="sin_registrar"]').forEach(function(i) { i.remove(); });
             var i = document.createElement('input'); i.type = 'hidden'; i.name = 'sin_registrar'; i.value = 'true'; form.appendChild(i);
 
-            copiarMetodoPago();  // 🆕
+            copiarMetodoPago();
 
             cerrarModalCliente();
             form.submit();
         }
     }
 
+    // ============ VENTA CON CLIENTE ============
     function confirmarVenta() {
         var nombre = document.getElementById('cliente_nombre').value.trim();
+        var apellido = document.getElementById('cliente_apellido').value.trim();
         var telefono = document.getElementById('cliente_telefono').value.trim();
         var ci = document.getElementById('cliente_ci').value.trim();
 
-        if (!nombre && !telefono && !ci) {
-            if (!confirm('Sin datos de cliente. ¿Continuar?')) return;
+        // Validar que TODOS los campos estén llenos
+        var faltantes = [];
+        if (!nombre) faltantes.push('Nombre');
+        if (!apellido) faltantes.push('Apellido');
+        if (!telefono) faltantes.push('Teléfono');
+        if (!ci) faltantes.push('CI');
+
+        if (faltantes.length > 0) {
+            alert(
+                '⚠️ Para registrar al cliente debes llenar todos los campos.\n\n' +
+                'Faltan:\n• ' + faltantes.join('\n• ') +
+                '\n\nSi no quieres registrar los datos, usa el botón "Sin Registrar".'
+            );
+            return;
         }
 
+        // Validar formato de teléfono (8 dígitos)
+        if (!/^[0-9]{8}$/.test(telefono)) {
+            alert('⚠️ El teléfono debe tener exactamente 8 dígitos.');
+            document.getElementById('cliente_telefono').focus();
+            return;
+        }
+
+        // Validar formato de CI: 7-11 dígitos + opcional "-" + 1-2 letras/números
+        if (!/^[0-9]{7,11}(-[A-Z0-9]{1,2})?$/.test(ci.toUpperCase())) {
+            alert(
+                '⚠️ El CI no tiene un formato válido.\n\n' +
+                '• Debe tener entre 7 y 11 dígitos.\n' +
+                '• Opcionalmente: guion y hasta 2 letras/números.\n\n' +
+                'Ejemplos: 1234567, 12345678, 12345678901, 1234567-1A'
+            );
+            document.getElementById('cliente_ci').focus();
+            return;
+        }
+
+        // Todo OK → enviar
         var form = document.getElementById('ventaForm');
-        form.querySelectorAll('input[name="cliente_nombre"], input[name="cliente_telefono"], input[name="cliente_ci"], input[name="sin_registrar"]').forEach(function(i) { i.remove(); });
+        form.querySelectorAll('input[name="cliente_nombre"], input[name="cliente_apellido"], input[name="cliente_telefono"], input[name="cliente_ci"], input[name="sin_registrar"]').forEach(function(i) { i.remove(); });
 
-        if (nombre) { var i = document.createElement('input'); i.type = 'hidden'; i.name = 'cliente_nombre'; i.value = nombre; form.appendChild(i); }
-        if (telefono) { var i = document.createElement('input'); i.type = 'hidden'; i.name = 'cliente_telefono'; i.value = telefono; form.appendChild(i); }
-        if (ci) { var i = document.createElement('input'); i.type = 'hidden'; i.name = 'cliente_ci'; i.value = ci; form.appendChild(i); }
+        var inpNombre = document.createElement('input');
+        inpNombre.type = 'hidden'; inpNombre.name = 'cliente_nombre'; inpNombre.value = nombre;
+        form.appendChild(inpNombre);
 
-        copiarMetodoPago();  // 🆕
+        var inpApellido = document.createElement('input');
+        inpApellido.type = 'hidden'; inpApellido.name = 'cliente_apellido'; inpApellido.value = apellido;
+        form.appendChild(inpApellido);
+
+        var inpTel = document.createElement('input');
+        inpTel.type = 'hidden'; inpTel.name = 'cliente_telefono'; inpTel.value = telefono;
+        form.appendChild(inpTel);
+
+        var inpCi = document.createElement('input');
+        inpCi.type = 'hidden'; inpCi.name = 'cliente_ci'; inpCi.value = ci.toUpperCase();
+        form.appendChild(inpCi);
+
+        copiarMetodoPago();
 
         cerrarModalCliente();
         form.submit();

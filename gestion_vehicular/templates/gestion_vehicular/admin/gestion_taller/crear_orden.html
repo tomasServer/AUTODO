@@ -98,24 +98,24 @@
                 <label>Placa <small style="color:#7f8c8d; font-weight:normal;">(o llena el VIN)</small></label>
                 <input type="text" name="placa" id="placa" maxlength="8"
                     style="text-transform:uppercase;" oninput="validarPlaca(this)"
-                    placeholder="entre 3 y 8 letras/números"
+                    placeholder="ej: abc123 sin (-)guion"
                     value="{{ placa|default:'' }}"
                     {% if bloqueado %}readonly style="text-transform:uppercase; background:#f8f9fa; cursor:not-allowed;"{% endif %}>
                 {% if bloqueado %}
-                <small style="color:#7f8c8d; font-size:0.75rem;">🔒 Placa definida</small>
+                <small style="color:#7f8c8d; font-size:0.75rem;">🔒 Placa ya definida</small>
                 {% else %}
-                <small style="color:#7f8c8d; font-size:0.72rem;">3 - 8 letras/números</small>
+                <small style="color:#7f8c8d; font-size:0.72rem;">3-8 letras. ej: abc123 sin "-"guion</small>
                 {% endif %}
             </div>
             <div>
                 <label>Cliente *</label>
-                <input type="text" name="cliente_nombre" id="cliente_nombre" maxlength="100" required
+                <input type="text" name="cliente_nombre" id="cliente_nombre" maxlength="30" required
                        oninput="validarNombre(this)" placeholder="Nombre del cliente"
                        value="{{ cliente.nombre|default:'' }}">
             </div>
             <div>
                 <label>Apellido *</label>
-                <input type="text" name="cliente_apellido" id="cliente_apellido" maxlength="100" required
+                <input type="text" name="cliente_apellido" id="cliente_apellido" maxlength="30" required
                        oninput="validarNombre(this)" placeholder="Apellido"
                        value="{{ cliente.apellido|default:'' }}">
             </div>

@@ -31,7 +31,7 @@ SECRET_KEY = 'django-insecure-qhagf&@-(l@sf)1wyzn!)ul!3b2fm)##qy_vjol&^y++38ar#r
 DEBUG = True
 
 ALLOWED_HOSTS = ['*']
-AUTOR_ASINATURE = 'TJLC-UBI-2026-SYS'
+AUTOR_ASIGNATURE = 'TJLC-UBI-2026-SYS'
 
 # Applicati on definition
 

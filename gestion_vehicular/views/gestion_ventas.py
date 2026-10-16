@@ -35,6 +35,7 @@ def guardar_venta_rapida(request):
     if request.method == 'POST':
         # ====== DATOS DEL CLIENTE ======
         cliente_nombre = (request.POST.get('cliente_nombre') or '').strip()
+        cliente_apellido = (request.POST.get('cliente_apellido') or '').strip()
         cliente_telefono = (request.POST.get('cliente_telefono') or '').strip()
         cliente_ci = (request.POST.get('cliente_ci') or '').strip()
         
@@ -64,6 +65,7 @@ def guardar_venta_rapida(request):
             if not cliente and (cliente_nombre or cliente_telefono or cliente_ci):
                 cliente = Cliente.objects.create(
                     nombre=cliente_nombre or 'Cliente sin nombre',
+                    apellido=cliente_apellido or None,
                     telefono=cliente_telefono if cliente_telefono else None,
                     ci=cliente_ci if cliente_ci else None,
                 )

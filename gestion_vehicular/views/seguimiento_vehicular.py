@@ -93,51 +93,69 @@ def historial_vehiculo(request, placa):
 def revision_tecnica(request, orden_id):
     orden = get_object_or_404(OrdenTrabajo, id=orden_id)
     tipo = request.GET.get('tipo', 'COMPLETA')
-    
-    # Filtrar componentes según el tipo de revisión
+
     if tipo == 'VISITA':
         componentes = Componente.objects.filter(en_visita=True).order_by('orden')
     elif tipo == 'RAPIDA':
         componentes = Componente.objects.filter(en_rapida=True).order_by('orden')
-    else:  # COMPLETA
+    else:
         componentes = Componente.objects.filter(en_completa=True).order_by('orden')
-    
+
+    notas_predefinidas = NotaPredefinida.objects.all()
+
     if request.method == 'POST':
-        # ✅ Guardar con el tipo correcto (VISITA, RAPIDA o COMPLETA)
         revision = RevisionTecnica.objects.create(
             id_orden=orden,
+            id_mecanico=request.user if request.user.is_authenticated else None,
             tipo_revision=request.POST.get('tipo_revision', tipo),
             fecha_revision=timezone.now()
         )
-        
+
         for c in componentes:
+            estado = request.POST.get(f'comp_{c.id}', 'OK')
+            nota = request.POST.get(f'nota_{c.id}', '')
+            guardar_predef = request.POST.get(f'guardar_predef_{c.id}') == '1'
+
             DetalleRevision.objects.create(
                 id_revision=revision,
                 id_componente=c,
-                estado=request.POST.get(f'comp_{c.id}', 'OK'),
-                nota=request.POST.get(f'nota_{c.id}', '')
+                estado=estado,
+                nota=nota
             )
-        
-        # Cálculo del ISV
+
+            # 🆕 Guardar en catálogo si marcó
+            if guardar_predef and nota and nota.strip():
+                existe = NotaPredefinida.objects.filter(
+                    id_componente=c,
+                    estado=estado,
+                    texto__iexact=nota.strip()
+                ).exists()
+                if not existe:
+                    NotaPredefinida.objects.create(
+                        id_componente=c,
+                        estado=estado,
+                        texto=nota.strip()[:200],
+                    )
+
+        # Calcular ISV
         total = revision.detalles.count()
         ok = revision.detalles.filter(estado='OK').count()
         regular = revision.detalles.filter(estado='REGULAR').count()
         revision.isv_porcentaje = round(((ok * 100) + (regular * 50)) / total, 2) if total > 0 else 0
         revision.save()
-        
+
         messages.success(request, f'Revisión guardada. ISV: {revision.isv_porcentaje}%')
         return redirect('detalle_orden', orden_id=orden.id)
-    
-    # Elegir template según rol
+
     if request.user.id_rol_id == 2:  # JEFE
         template = 'gestion_vehicular/jefe_mecanico/revision.html'
     else:  # ADMIN
         template = 'gestion_vehicular/admin/seguimiento_vehicular/revision.html'
-    
+
     return render(request, template, {
         'orden': orden,
         'componentes': componentes,
-        'notas_predefinidas': NotaPredefinida.objects.all(),
+        'notas_predefinidas': notas_predefinidas,
         'tipo': tipo,
     })
 
@@ -189,16 +207,35 @@ def revision_rapida_placa(request):
     """Revisión rápida para vehículo nuevo (sin orden formal)"""
     placa = request.GET.get('placa', '')
     componentes = Componente.objects.filter(en_visita=True).order_by('orden')
-    
-    # ✅ Elegir template según rol
+    notas_predefinidas = NotaPredefinida.objects.all()  # 🆕
+
     if request.user.id_rol_id == 2:  # JEFE
         template = 'gestion_vehicular/jefe_mecanico/revision_rapida.html'
     else:  # ADMIN
         template = 'gestion_vehicular/admin/seguimiento_vehicular/revision_rapida.html'
-    
+
     return render(request, template, {
         'placa': placa,
         'componentes': componentes,
+        'notas_predefinidas': notas_predefinidas,  
+    })
+
+
+def revision_rapida_placa(request):
+    """Revisión rápida para vehículo nuevo (sin orden formal)"""
+    placa = request.GET.get('placa', '')
+    componentes = Componente.objects.filter(en_visita=True).order_by('orden')
+    notas_predefinidas = NotaPredefinida.objects.all()
+
+    if request.user.id_rol_id == 2:  # JEFE
+        template = 'gestion_vehicular/jefe_mecanico/revision_rapida.html'
+    else:  # ADMIN
+        template = 'gestion_vehicular/admin/seguimiento_vehicular/revision_rapida.html'
+
+    return render(request, template, {
+        'placa': placa,
+        'componentes': componentes,
+        'notas_predefinidas': notas_predefinidas,
     })
 
 
@@ -207,71 +244,93 @@ def guardar_revision_rapida(request):
     if request.method == 'POST':
         placa = request.POST.get('placa', '').upper()
         componentes = Componente.objects.filter(en_visita=True).order_by('orden')
-        
-        # Crear vehículo si no existe
-        vehiculo, created = Vehiculo.objects.get_or_create(
-            placa=placa,
-            defaults={}
-        )
-        
+
+        # Buscar vehículo por placa O vin
+        vehiculo = Vehiculo.objects.filter(
+            Q(placa__iexact=placa) | Q(vin__iexact=placa)
+        ).first()
+
+        if not vehiculo:
+            if len(placa) == 17:
+                vehiculo = Vehiculo.objects.create(vin=placa)
+            else:
+                vehiculo = Vehiculo.objects.create(placa=placa)
+
         # Crear orden VISITA
         orden = OrdenTrabajo.objects.create(
             id_vehiculo=vehiculo,
-            id_cliente=vehiculo.id_cliente,  # ✅ Asignar cliente si existe
+            id_cliente=vehiculo.id_cliente,
             estado_orden='VISITA',
             fecha_ingreso=timezone.now(),
             fecha_creacion=timezone.now(),
         )
-        
+
         # Crear revisión
         revision = RevisionTecnica.objects.create(
             id_orden=orden,
+            id_mecanico=request.user if request.user.is_authenticated else None,
             tipo_revision='VISITA',
             fecha_revision=timezone.now(),
         )
-        
-        # Guardar componentes
+
+        # Guardar componentes + notas
         detalles = []
         estados = {'MALO': [], 'REGULAR': [], 'OK': []}
-        
+        estados_db = {'CRITICO': 'MALO'}
+
         for componente in componentes:
             estado = request.POST.get(f'comp_{componente.id}', 'OK')
             nota = request.POST.get(f'nota_{componente.id}', '')
-            
+            guardar_predef = request.POST.get(f'guardar_predef_{componente.id}') == '1'
+
             DetalleRevision.objects.create(
                 id_revision=revision,
                 id_componente=componente,
                 estado=estado,
                 nota=nota,
             )
-            
+
+            # 🆕 Si marcó "guardar" → agregar al catálogo
+            if guardar_predef and nota and nota.strip():
+                existe = NotaPredefinida.objects.filter(
+                    id_componente=componente,
+                    estado=estado,
+                    texto__iexact=nota.strip()
+                ).exists()
+                if not existe:
+                    NotaPredefinida.objects.create(
+                        id_componente=componente,
+                        estado=estado,
+                        texto=nota.strip()[:200],
+                    )
+
             detalles.append({
                 'nombre': componente.nombre,
                 'estado': estado,
                 'nota': nota
             })
-            
-            if estado in estados:
-                estados[estado].append(componente.nombre)
-        
-        # Calcular porcentaje
+
+            estado_key = estados_db.get(estado, estado)
+            if estado_key in estados:
+                estados[estado_key].append(componente.nombre)
+
+        # Calcular ISV
         total = revision.detalles.count()
         ok = revision.detalles.filter(estado='OK').count()
         regular = revision.detalles.filter(estado='REGULAR').count()
         estado_porcentaje = round(((ok * 100) + (regular * 50)) / total, 2) if total > 0 else 0
         revision.isv_porcentaje = estado_porcentaje
         revision.save()
-        
-        # Guardar en sesión
+
         request.session['revision_detalle'] = {
             'porcentaje': estado_porcentaje,
             'resumen': estados,
             'componentes': detalles,
         }
-        
+
         messages.success(request, f"Revisión guardada. Estado del vehículo: {estado_porcentaje}%")
         return redirect(f'/orden/crear/?visita_id={orden.id}&nueva_visita=1')
-    
+
     return redirect('buscar_vehiculo')
 
 

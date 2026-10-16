@@ -9,7 +9,7 @@
 <div class="card">
     <div class="grid grid-4">
         <div><strong>Placa:</strong> {{ orden.id_vehiculo.placa }}</div>
-        <div><strong>Complejidad:</strong> {{ orden.id_complejidad.nombre|default:"No asignado" }}</div>
+        <div><strong>Calidad de orden:</strong> {{ orden.id_complejidad.nombre|default:"No asignado" }}</div>
         <div><strong>Cliente:</strong> {{ orden.id_vehiculo.id_cliente.nombre|default:"Sin cliente" }} {{ orden.id_vehiculo.id_cliente.telefono|default:"No registrado" }}</div>
         <div>
             <strong>Estado:</strong>
