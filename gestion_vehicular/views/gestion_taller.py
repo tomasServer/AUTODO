@@ -649,30 +649,36 @@ def cambiar_estado_servicio(request, detalle_id):
     detalle = get_object_or_404(DetalleServicio, id=detalle_id)
     orden = detalle.id_orden
     
-    # Verificar permisos: solo admin o el mecánico asignado
     if request.user.id_rol_id != 1 and detalle.id_mecanico_id != request.user.id:
         messages.error(request, 'No tienes permiso para modificar este servicio.')
         return redirect('taller_detalle', orden_id=orden.id)
     
     if request.method == 'POST':
         nuevo_estado = request.POST.get('nuevo_estado')
+        estado_anterior = detalle.estado
+        
+        if nuevo_estado == 'PENDIENTE':
+            detalle.fecha_inicio = None
+            detalle.fecha_fin = None
+            
+        elif nuevo_estado == 'EN_PROCESO':
+            if estado_anterior == 'PENDIENTE' or not detalle.fecha_inicio:
+                detalle.fecha_inicio = timezone.now()
+            detalle.fecha_fin = None
+            
+        elif nuevo_estado == 'FINALIZADO':
+            if not detalle.fecha_inicio:
+                detalle.fecha_inicio = timezone.now()
+            detalle.fecha_fin = timezone.now()
         
         detalle.estado = nuevo_estado
-        if nuevo_estado == 'EN_PROCESO':
-            detalle.fecha_inicio = timezone.now()
-        if nuevo_estado == 'FINALIZADO':
-            detalle.fecha_fin = timezone.now()
         detalle.save()
         
-        # ✅ Usar función auxiliar para revisar el estado
         _revisar_estado_orden(orden)
-        
         messages.success(request, f'Servicio cambiado a {nuevo_estado}')
-        
         return redirect('taller_detalle', orden_id=orden.id)
     
     return redirect('taller_detalle', orden_id=orden.id)
-
 
 # ============================================================
 # HALLAZGOS

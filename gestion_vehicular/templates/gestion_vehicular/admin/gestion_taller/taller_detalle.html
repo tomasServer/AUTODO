@@ -1,4 +1,5 @@
 {% extends 'gestion_vehicular/admin/base_admin.html' %}
+{% load tz %}
 {% block title %}Taller - Orden {{ orden.id }}{% endblock %}
 
 {% block content %}
@@ -92,7 +93,7 @@
 
             {% if detalle.fecha_inicio %}
             <div class="text-muted" style="font-size:12px; margin-top:5px;">
-                Inicio: {{ detalle.fecha_inicio|date:"d/m/Y H:i" }}
+                Inicio: {%localtime on %} {{ detalle.fecha_inicio|date:"d/m/Y H:i" }} {%endlocaltime %}
                 {% if detalle.fecha_fin %} | Fin: {{ detalle.fecha_fin|date:"d/m/Y H:i" }}{% endif %}
             </div>
             {% endif %}
