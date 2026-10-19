@@ -46,6 +46,55 @@
 
 <h2>Nueva Orden de Trabajo</h2>
 
+<!-- ====== REVISIÓN Y VISITA ====== -->
+{% if revision_detalle %}
+<div class="card">
+    <h4>Revisión del Vehículo</h4>
+    <p><strong>Estado:</strong> {{ revision_detalle.porcentaje }}%</p>
+
+    {% if revision_detalle.resumen.malo %}
+    <p><strong>MALO:</strong> {{ revision_detalle.resumen.malo|join:", " }}</p>
+    {% endif %}
+
+    {% if revision_detalle.resumen.regular %}
+    <p><strong>REGULAR:</strong> {{ revision_detalle.resumen.regular|join:", " }}</p>
+    {% endif %}
+
+    {% if revision_detalle.resumen.ok %}
+    <p><strong>OK:</strong> {{ revision_detalle.resumen.ok|join:", " }}</p>
+    {% endif %}
+
+    <details>
+        <summary style="cursor:pointer;">Ver todos los componentes</summary>
+        <ul style="margin-top:8px; padding-left:20px;">
+            {% for comp in revision_detalle.componentes %}
+            <li>
+                {{ comp.nombre }} - <strong>{{ comp.estado }}</strong>
+                {% if comp.nota %}
+                    <span style="color:#e67e22; font-size:0.85rem; margin-left:5px;">📝 {{ comp.nota }}</span>
+                {% endif %}
+            </li>
+            {% endfor %}
+        </ul>
+    </details>
+</div>
+{% endif %}
+
+<!-- ====== MENSAJE DE VISITA ====== -->
+{% if orden_visita %}
+    {% if not es_nueva_visita %}
+    <div class="card">
+        <p><strong>Convirtiendo visita {{ orden_visita.id }}</strong></p>
+        <p style="margin:0;">Esta orden está en <strong>VISITA</strong>. Al guardar, pasará a <strong>PENDIENTE</strong>.</p>
+    </div>
+    {% else %}
+    <div class="card">
+        <p><strong>Revisión Rápida Guardada</strong></p>
+        <p style="margin:0;">Visita {{ orden_visita.id }} creada. Agrega servicios para convertirla en orden formal.</p>
+    </div>
+    {% endif %}
+{% endif %}
+
 <div class="card">
     <form method="POST" id="ordenForm" autocomplete="off">
         {% csrf_token %}
@@ -56,25 +105,25 @@
                 <label>Placa <small style="color:#7f8c8d; font-weight:normal;">(o llena el VIN)</small></label>
                 <input type="text" name="placa" id="placa" maxlength="8"
                     style="text-transform:uppercase;" oninput="validarPlaca(this)"
-                    placeholder="Ej: ABC-1234"
+                    placeholder="ej: abc123 sin (-)guion"
                     value="{{ placa|default:'' }}"
-                    {% if orden_visita or revision_detalle or vehiculo %}readonly style="text-transform:uppercase; background:#f8f9fa; cursor:not-allowed;"{% endif %}>
-                {% if orden_visita or revision_detalle or vehiculo %}
-                <small style="color:#7f8c8d; font-size:0.75rem;">🔒 La placa no se puede modificar</small>
+                    {% if bloqueado %}readonly style="text-transform:uppercase; background:#f8f9fa; cursor:not-allowed;"{% endif %}>
+                {% if bloqueado %}
+                <small style="color:#7f8c8d; font-size:0.75rem;">🔒 Placa ya definida</small>
                 {% else %}
-                <small style="color:#7f8c8d; font-size:0.72rem;">Opcional si llenas el VIN</small>
+                <small style="color:#7f8c8d; font-size:0.72rem;">3-8 letras. ej: abc123 sin "-"guion</small>
                 {% endif %}
             </div>
             <div>
                 <label>Cliente *</label>
-                <input type="text" name="cliente_nombre" id="cliente_nombre" maxlength="100" required
-                       oninput="validarNombre(this)" placeholder="Nombre del cliente..."
+                <input type="text" name="cliente_nombre" id="cliente_nombre" maxlength="30" required
+                       oninput="validarNombre(this)" placeholder="Nombre del cliente"
                        value="{{ cliente.nombre|default:'' }}">
             </div>
             <div>
-                <label>Apellido</label>
-                <input type="text" name="cliente_apellido" id="cliente_apellido" maxlength="100"
-                       oninput="validarNombre(this)" placeholder="Apellido..."
+                <label>Apellido *</label>
+                <input type="text" name="cliente_apellido" id="cliente_apellido" maxlength="30" required
+                       oninput="validarNombre(this)" placeholder="Apellido"
                        value="{{ cliente.apellido|default:'' }}">
             </div>
             <div>
@@ -91,10 +140,9 @@
             </div>
         </div>
 
-        <!-- Caja de info del vehículo autocompletado -->
-        <div id="info-vehiculo" style="display:none; margin-top:10px; padding:10px; background:#e3f2fd; border-left:4px solid #2196f3; border-radius:4px; font-size:0.9rem;"></div>
-
-        <!-- FILA 2: Supervisor + Complejidad + Kilometraje + Más datos -->
+        <!-- Caja de info del vehículo autocompletado (comentada porque ya no la mostramos) -->
+        <!-- <div id="info-vehiculo" style="display:none; margin-top:10px; padding:10px; background:#e3f2fd; border-left:4px solid #2196f3; border-radius:4px; font-size:0.9rem;"></div> -->
+      
         <div class="grid grid-4 mt-10">
             <div>
                 <label>Encargado de Revisión *</label>
@@ -106,7 +154,7 @@
                 </select>
             </div>
             <div>
-                <label>Complejidad *</label>
+                <label>Calidad de orden*</label>
                 <select name="complejidad_id" id="complejidad_id" required>
                     <option value="">Seleccione...</option>
                     {% for comp in complejidades %}
@@ -138,13 +186,13 @@
                 <div>
                     <label>VIN (Chasis) <small id="vin-contador" style="color:#7f8c8d; font-weight:normal;">0/17</small></label>
                     <input type="text" name="vin" id="vin" maxlength="17"
-                           style="text-transform:uppercase; font-family: monospace;"
-                           oninput="validarVIN(this)"
-                           placeholder="Ej: 1HGBH41JXMN109186"
-                           value="{{ vehiculo.vin|default:'' }}"
-                           {% if orden_visita or revision_detalle or vehiculo %}readonly style="text-transform:uppercase; font-family: monospace; background:#f8f9fa; cursor:not-allowed;"{% endif %}>
+                        style="text-transform:uppercase; font-family: monospace;"
+                        oninput="validarVIN(this)"
+                        placeholder="Ej: 1ASDF21ASDF123456"
+                        value="{{ vin|default:'' }}"
+                        {% if bloqueado %}readonly style="text-transform:uppercase; font-family: monospace; background:#f8f9fa; cursor:not-allowed;"{% endif %}>
                     <small style="color:#7f8c8d; font-size:0.72rem;">
-                        {% if orden_visita or revision_detalle or vehiculo %}
+                        {% if bloqueado %}
                         🔒 El VIN no se puede modificar
                         {% else %}
                         Máximo 17 caracteres. Solo letras y números.
@@ -212,12 +260,33 @@
 
     function validarNombre(input) {
         input.value = input.value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ\s]/g, '');
-        if (input.value.length > 100) input.value = input.value.slice(0, 100);
+        if (input.value.length > 30) input.value = input.value.slice(0, 30);
     }
 
+    // Validación del CI: 7-11 dígitos + opcional "-" + 1-2 letras/números
     function validarCI(input) {
-        input.value = input.value.replace(/[^0-9]/g, '');
-        if (input.value.length > 20) input.value = input.value.slice(0, 20);
+        let val = input.value.toUpperCase();
+        const partes = val.split('-');
+
+        if (partes.length > 2) {
+            val = partes[0] + '-' + partes.slice(1).join('');
+            partes.length = 0;
+            partes.push(...val.split('-'));
+        }
+
+        let numeros = partes[0].replace(/[^0-9]/g, '');
+        let complemento = partes[1] !== undefined
+            ? partes[1].replace(/[^A-Z0-9]/g, '')
+            : null;
+
+        if (numeros.length > 11) numeros = numeros.slice(0, 11);
+        if (complemento && complemento.length > 2) {
+            complemento = complemento.slice(0, 2);
+        }
+
+        input.value = complemento !== null
+            ? numeros + '-' + complemento
+            : numeros;
     }
 
     // Validación del VIN (alfanumérico, máx 17)
@@ -227,9 +296,24 @@
             input.value = input.value.slice(0, 17);
         }
         const contador = document.getElementById('vin-contador');
-        if (contador) {
-            contador.textContent = input.value.length + '/17';
-            contador.style.color = input.value.length === 17 ? '#27ae60' : '#7f8c8d';
+        if (!contador) return;
+        
+        const len = input.value.length;
+
+        if (len === 0) {
+            contador.textContent = '0/17';
+            contador.style.color = '#7f8c8d';
+            contador.style.fontWeight = 'normal';
+        }
+        else if (len === 17) {
+            contador.textContent = len + '/17';
+            contador.style.color = '#27ae60';
+            contador.style.fontWeight = 'bold';
+        }
+        else {
+            contador.textContent = len +  '/17';
+            contador.style.color = '#7f8c8d';
+            contador.style.fontWeight = 'bold';
         }
     }
 
@@ -375,6 +459,27 @@
             placa.focus();
             return;
         }
+        
+        // Validar placa: entre 3 y 8
+        if (placaVal && (placaVal.length < 3 || placaVal.length > 8)) {
+            e.preventDefault();
+            alert(`⚠️ La placa debe tener entre 3 y 8 caracteres.\nActualmente tiene ${placaVal.length}.`);
+            placa.focus();
+            return;
+        }
+
+        // Validar VIN: exactamente 17
+        if (vinVal && vinVal.length !== 17) {
+            e.preventDefault();
+            const diff = 17 - vinVal.length;
+            if (diff > 0) {
+                alert(`⚠️ El VIN debe tener exactamente 17 caracteres.\nLe faltan ${diff} carácter(es).\nActualmente tiene ${vinVal.length}.`);
+            } else {
+                alert(`⚠️ El VIN debe tener exactamente 17 caracteres.\nTe sobra(n) ${Math.abs(diff)} carácter(es).\nActualmente tiene ${vinVal.length}.`);
+            }
+            vin.focus();
+            return;
+        }
 
         var cliente = document.getElementById('cliente_nombre');
         if (!cliente.value.trim()) {
@@ -385,9 +490,30 @@
         }
 
         var ci = document.getElementById('cliente_ci');
-        if (!ci.value.trim()) {
+        var ciVal = ci.value.trim();
+
+        if (!ciVal) {
             e.preventDefault();
             alert('⚠️ El CI del cliente es obligatorio.');
+            ci.focus();
+            return;
+        }
+
+        // Formato: 7-11 dígitos + opcional "-" + 1-2 letras/números
+        var regexCI = /^[0-9]{7,11}(-[A-Z0-9]{1,2})?$/;
+
+        if (!regexCI.test(ciVal)) {
+            e.preventDefault();
+            alert(
+                '⚠️ El CI no tiene un formato válido.\n\n' +
+                '• Debe tener entre 7 y 11 dígitos.\n' +
+                '• Opcionalmente: guion y hasta 2 letras/números (ej: 1234567-1A).\n\n' +
+                'Ejemplos válidos:\n' +
+                '  1234567\n' +
+                '  12345678\n' +
+                '  12345678901\n' +
+                '  1234567-1A'
+            );
             ci.focus();
             return;
         }
@@ -429,10 +555,19 @@
     //  AUTOCOMPLETADO POR PLACA O VIN + CONTADOR DE VIN
     // ============================================================
     document.addEventListener('DOMContentLoaded', function () {
-        // Inicializar contador de VIN si ya viene valor
         const vinInputInit = document.getElementById('vin');
         if (vinInputInit && vinInputInit.value) {
             validarVIN(vinInputInit);
+        }
+
+        const vinPrecargado = document.getElementById('vin');
+        if (vinPrecargado && vinPrecargado.value.trim()) {
+            const extra = document.getElementById('extra');
+            const btnExtra = document.querySelector('button[onclick="toggleExtra()"]');
+            if (extra && extra.classList.contains('hidden')) {
+                extra.classList.remove('hidden');
+                if (btnExtra) btnExtra.textContent = '- Menos datos';
+            }
         }
 
         const placaInput = document.getElementById('placa');
@@ -463,8 +598,8 @@
                     const placaEl = document.getElementById('placa');
                     const vinEl = document.getElementById('vin');
 
-                    if (placaEl && !placaEl.readOnly) setVal('placa', v.placa);
-                    if (vinEl && !vinEl.readOnly) setVal('vin', v.vin);
+                    setVal('placa', v.placa);
+                    setVal('vin', v.vin);
                     setVal('anio', v.anio);
                     setVal('color', v.color);
                     setVal('kilometraje', v.kilometraje);

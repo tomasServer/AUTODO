@@ -1,9 +1,9 @@
 {% extends 'gestion_vehicular/jefe_mecanico/base_jefe.html' %}
-{% block title %}Modo Taller{% endblock %}
+{% block title %}Órdenes Pendientes{% endblock %}
 
 {% block content %}
 
-<h2>Modo Taller</h2>
+<h2>Órdenes Pendientes</h2>
 
 <!-- ============ ÓRDENES PARA TRABAJAR ============ -->
 <div class="card">
@@ -14,7 +14,7 @@
             <thead>
                 <tr>
                     <th>Nº</th>
-                    <th>Placa</th>
+                    <th>Placa / VIN</th>
                     <th>Cliente</th>
                     <th>Encargado</th>
                     <th>Estado</th>
@@ -25,8 +25,16 @@
                 {% for orden in ordenes_trabajo %}
                 <tr>
                     <td><strong>Nº {{ orden.id }}</strong></td>
-                    <td>{{ orden.id_vehiculo.placa }}</td>
-                    <td>{{ orden.id_vehiculo.id_cliente.nombre|default:"Sin cliente" }}</td>
+                    <td>
+                        {% if orden.id_vehiculo.placa %}
+                            {{ orden.id_vehiculo.placa }}
+                        {% elif orden.id_vehiculo.vin %}
+                            <span style="font-family:monospace; font-size:0.8rem;">{{ orden.id_vehiculo.vin }}</span>
+                        {% else %}
+                            <span style="color:#e67e22; font-style:italic;">Sin placa</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ orden.id_vehiculo.id_cliente.nombre|default:"Sin cliente" }} {{ orden.id_vehiculo.id_cliente.apellido|default:"" }}</td>
                     <td>
                         {% if orden.id_jefe_tecnico %}
                             {{ orden.id_jefe_tecnico.nombre_completo }}
@@ -39,9 +47,9 @@
                     </td>
                     <td>
                         <span class="badge 
-                            {% if orden.estado_orden == 'EN_PROCESO' %}badge-warning
-                            {% elif orden.estado_orden == 'VISITA' %}badge-info
-                            {% else %}badge-danger{% endif %}">
+                            {% if orden.estado_orden == 'EN_PROCESO' %}badge-info
+                            {% elif orden.estado_orden == 'VISITA' %}badge-primary
+                            {% else %}badge-warning{% endif %}">
                             {{ orden.estado_orden }}
                         </span>
                     </td>
@@ -74,7 +82,7 @@
             <thead>
                 <tr>
                     <th>Nº</th>
-                    <th>Placa</th>
+                    <th>Placa / VIN</th>
                     <th>Cliente</th>
                     <th>Encargado</th>
                     <th>Estado</th>
@@ -85,8 +93,16 @@
                 {% for orden in ordenes_cobrar %}
                 <tr>
                     <td><strong>Nº {{ orden.id }}</strong></td>
-                    <td>{{ orden.id_vehiculo.placa }}</td>
-                    <td>{{ orden.id_vehiculo.id_cliente.nombre|default:"Sin cliente" }}</td>
+                    <td>
+                        {% if orden.id_vehiculo.placa %}
+                            {{ orden.id_vehiculo.placa }}
+                        {% elif orden.id_vehiculo.vin %}
+                            <span style="font-family:monospace; font-size:0.8rem;">{{ orden.id_vehiculo.vin }}</span>
+                        {% else %}
+                            <span style="color:#e67e22; font-style:italic;">Sin placa</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ orden.id_vehiculo.id_cliente.nombre|default:"Sin cliente" }} {{ orden.id_vehiculo.id_cliente.apellido|default:"" }}</td>
                     <td>
                         {% if orden.id_jefe_tecnico %}
                             {{ orden.id_jefe_tecnico.nombre_completo }}

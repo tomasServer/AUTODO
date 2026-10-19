@@ -17,7 +17,7 @@
             {% for h in hallazgos_pendientes %}
             <div class="flex-between" style="padding:8px 0; border-bottom:1px solid #ecf0f1;">
                 <div>
-                    <strong>#{{ h.id_orden.id }}</strong> - {{ h.id_orden.id_vehiculo.placa }}
+                    <strong>#{{ h.id_orden.id }}</strong> - {{ h.id_orden.id_vehiculo.placa|default:h.id_orden.id_vehiculo.vin|default:"Sin placa" }}
                     <span class="text-muted">| {{ h.descripcion|truncatechars:30 }}</span>
                 </div>
                 <strong style="color:#d35400;">Bs. {{ h.costo_estimado|default:"0" }}</strong>
@@ -59,7 +59,7 @@
             <thead>
                 <tr>
                     <th>Orden</th>
-                    <th>Placa</th>
+                    <th>Placa / VIN</th>
                     <th>Vehículo</th>
                     <th>Estado</th>
                     <th>Total</th>
@@ -69,7 +69,15 @@
                 {% for o in ultimas_ordenes %}
                 <tr>
                     <td><strong>Nº {{ o.id }}</strong></td>
-                    <td>{{ o.id_vehiculo.placa }}</td>
+                    <td>
+                        {% if o.id_vehiculo.placa %}
+                            {{ o.id_vehiculo.placa }}
+                        {% elif o.id_vehiculo.vin %}
+                            <span style="font-family:monospace; font-size:0.8rem;">{{ o.id_vehiculo.vin }}</span>
+                        {% else %}
+                            <span style="color:#e67e22; font-style:italic;">Sin placa</span>
+                        {% endif %}
+                    </td>
                     <td>{{ o.id_vehiculo.marca|default:"" }} {{ o.id_vehiculo.modelo|default:"" }}</td>
                     <td>
                         <span class="badge 

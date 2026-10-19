@@ -10,6 +10,19 @@
     .select2-container--default .select2-selection--single { height: 38px; border: 1px solid #bdc3c7; }
     .select2-container--default .select2-selection--single .select2-selection__rendered { line-height: 36px; }
     .select2-container--default .select2-selection--single .select2-selection__arrow { height: 36px; }
+    
+    /* 🆕 Estilos para agrupar servicios */
+    .grupo-servicio {
+        margin: 12px 0 6px 0;
+        padding: 6px 10px;
+        background: #f0f0f0;
+        border-radius: 4px;
+        font-size: 0.9rem;
+        color: #2c3e50;
+        position: sticky;
+        top: 0;
+        z-index: 2;
+    }
 </style>
 {% endblock %}
 
@@ -20,9 +33,18 @@
 <!-- INFO DE LA ORDEN -->
 <div class="card">
     <div class="grid grid-4">
-        <div><strong>Placa:</strong> {{ orden.id_vehiculo.placa }}</div>
+        <div>
+            <strong>Placa / VIN:</strong> 
+            {% if orden.id_vehiculo.placa %}
+                {{ orden.id_vehiculo.placa }}
+            {% elif orden.id_vehiculo.vin %}
+                <span style="font-family: monospace; font-size: 0.85rem;">{{ orden.id_vehiculo.vin }}</span>
+            {% else %}
+                <span style="color:#e67e22; font-style:italic;">Sin placa</span>
+            {% endif %}
+        </div>
         <div><strong>Complejidad:</strong> {{ orden.id_complejidad.nombre|default:"No asignado" }}</div>
-        <div><strong>Cliente:</strong> {{ orden.id_vehiculo.id_cliente.nombre|default:"Sin cliente" }}</div>
+        <div><strong>Cliente:</strong> {{ orden.id_vehiculo.id_cliente.nombre|default:"Sin cliente" }} {{ orden.id_vehiculo.id_cliente.apellido|default:"" }}</div>
         <div>
             <strong>Estado:</strong>
             <span class="badge 
@@ -52,73 +74,107 @@
 <div class="card">
     <h3>Servicios</h3>
     {% if servicios_detalle %}
-    <div class="table-responsive scroll-y" style="max-height:300px;">
-        {% for detalle in servicios_detalle %}
-        <div style="padding:10px 0; border-bottom:1px solid #ecf0f1;">
-            <div class="flex-between flex-wrap">
-                <div>
-                    <strong>{{ detalle.id_servicio.nombre }}</strong>
-                    <span class="text-muted" style="font-size:13px; margin-left:10px;">Bs. {{ detalle.precio_cobrado }}</span>
-                    {% if detalle.id_mecanico %}
-                    <span style="font-size:12px; color:#2c3e50; margin-left:10px;">{{ detalle.id_mecanico.nombre_completo }}</span>
-                    {% else %}
-                    <span class="text-muted" style="font-size:12px; margin-left:10px;">Sin asignar</span>
+    <div class="table-responsive scroll-y" style="max-height:400px;">
+
+        {% regroup servicios_detalle by estado as servicios_por_estado %}
+
+        {% for grupo in servicios_por_estado %}
+            <!-- TÍTULO DEL GRUPO -->
+            <h4 class="grupo-servicio">
+                {% if grupo.grouper == 'PENDIENTE' %}
+                    ⏳ Pendientes
+                {% elif grupo.grouper == 'EN_PROCESO' %}
+                    🔧 En Proceso
+                {% elif grupo.grouper == 'FINALIZADO' %}
+                    ✅ Finalizados
+                {% else %}
+                    {{ grupo.grouper }}
+                {% endif %}
+                <span style="color:#7f8c8d; font-weight:normal; font-size:0.8rem;">
+                    ({{ grupo.list|length }})
+                </span>
+            </h4>
+
+            <!-- SERVICIOS DEL GRUPO -->
+            {% for detalle in grupo.list %}
+            <div style="padding:10px 0; border-bottom:1px solid #ecf0f1;">
+                <div class="flex-between flex-wrap">
+                    <div>
+                        <strong>{{ detalle.id_servicio.nombre }}</strong>
+                        <span class="text-muted" style="font-size:13px; margin-left:10px;">Bs. {{ detalle.precio_cobrado }}</span>
+                        {% if detalle.id_mecanico %}
+                        <span style="font-size:12px; color:#2c3e50; margin-left:10px;">{{ detalle.id_mecanico.nombre_completo }}</span>
+                        {% else %}
+                        <span class="text-muted" style="font-size:12px; margin-left:10px;">Sin asignar</span>
+                        {% endif %}
+                    </div>
+                    <div class="flex">
+                        <span class="badge 
+                            {% if detalle.estado == 'PENDIENTE' %}badge-warning
+                            {% elif detalle.estado == 'EN_PROCESO' %}badge-info
+                            {% else %}badge-success{% endif %}">
+                            {{ detalle.estado }}
+                        </span>
+                        {% if user.id_rol_id == 1 or detalle.id_mecanico_id == user.id or es_encargado %}
+                        <button onclick="editarPrecio({{ detalle.id }})" class="btn btn-gray btn-sm">Editar</button>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div id="editarPrecio-{{ detalle.id }}" style="display:none; margin-top:8px;">
+                    <form method="POST" action="{% url 'editar_precio_servicio' detalle.id %}" class="flex flex-wrap">
+                        {% csrf_token %}
+                        <label style="font-weight:600; font-size:13px; margin-right:5px;">Nuevo Precio:</label>
+                        <input type="number" name="nuevo_precio" step="0.01" value="{{ detalle.precio_cobrado }}" style="width:120px; padding:5px 10px;">
+                        <button type="submit" class="btn btn-success btn-sm">Guardar</button>
+                        <button type="button" onclick="cerrarEditarPrecio({{ detalle.id }})" class="btn btn-gray btn-sm">Cancelar</button>
+                    </form>
+                </div>
+
+                {% if user.id_rol_id == 1 or detalle.id_mecanico_id == user.id or es_encargado %}
+                <!-- 🆕 BOTONES DE ESTADO CON ATENUACIÓN -->
+                <div class="flex flex-wrap botones-estado" style="margin-top:8px;">
+                    <form method="POST" action="{% url 'cambiar_estado_servicio' detalle.id %}" class="inline-form">
+                        {% csrf_token %}
+                        <input type="hidden" name="nuevo_estado" value="PENDIENTE">
+                        <button type="submit" class="btn btn-gray btn-sm" 
+                                onclick="atenuarBotones(this)"
+                                style="opacity: {% if detalle.estado == 'PENDIENTE' %}1{% else %}0.4{% endif %};" 
+                                {% if detalle.estado == 'PENDIENTE' %}disabled{% endif %}>Pendiente</button>
+                    </form>
+                    <form method="POST" action="{% url 'cambiar_estado_servicio' detalle.id %}" class="inline-form">
+                        {% csrf_token %}
+                        <input type="hidden" name="nuevo_estado" value="EN_PROCESO">
+                        <button type="submit" class="btn btn-warning btn-sm" 
+                                onclick="atenuarBotones(this)"
+                                style="opacity: {% if detalle.estado == 'EN_PROCESO' %}1{% else %}0.4{% endif %};" 
+                                {% if detalle.estado == 'EN_PROCESO' %}disabled{% endif %}>En Proceso</button>
+                    </form>
+                    <form method="POST" action="{% url 'cambiar_estado_servicio' detalle.id %}" class="inline-form">
+                        {% csrf_token %}
+                        <input type="hidden" name="nuevo_estado" value="FINALIZADO">
+                        <button type="submit" class="btn btn-success btn-sm" 
+                                onclick="atenuarBotones(this)"
+                                style="opacity: {% if detalle.estado == 'FINALIZADO' %}1{% else %}0.4{% endif %};" 
+                                {% if detalle.estado == 'FINALIZADO' %}disabled{% endif %}>Finalizar</button>
+                    </form>
+                </div>
+                {% else %}
+                <div style="margin-top:8px; font-size:12px; color:#c0392b;">
+                    <em>No puedes modificar este servicio (asignado a otro mecánico)</em>
+                </div>
+                {% endif %}
+
+                {% if detalle.fecha_inicio %}
+                <div class="text-muted" style="font-size:12px; margin-top:5px;">
+                    <strong>Inicio:</strong> {{ detalle.fecha_inicio|date:"d/m/Y H:i" }}
+                    {% if detalle.fecha_fin %}
+                        | <strong>Fin:</strong> {{ detalle.fecha_fin|date:"d/m/Y H:i" }}
                     {% endif %}
                 </div>
-                <div class="flex">
-                    <span class="badge 
-                        {% if detalle.estado == 'PENDIENTE' %}badge-warning
-                        {% elif detalle.estado == 'EN_PROCESO' %}badge-info
-                        {% else %}badge-success{% endif %}">
-                        {{ detalle.estado }}
-                    </span>
-                    {% if user.id_rol_id == 1 or detalle.id_mecanico_id == user.id or es_encargado %}
-                    <button onclick="editarPrecio({{ detalle.id }})" class="btn btn-gray btn-sm">Editar</button>
-                    {% endif %}
-                </div>
+                {% endif %}
             </div>
-
-            <div id="editarPrecio-{{ detalle.id }}" style="display:none; margin-top:8px;">
-                <form method="POST" action="{% url 'editar_precio_servicio' detalle.id %}" class="flex flex-wrap">
-                    {% csrf_token %}
-                    <label style="font-weight:600; font-size:13px; margin-right:5px;">Nuevo Precio:</label>
-                    <input type="number" name="nuevo_precio" step="0.01" value="{{ detalle.precio_cobrado }}" style="width:120px; padding:5px 10px;">
-                    <button type="submit" class="btn btn-success btn-sm">Guardar</button>
-                    <button type="button" onclick="cerrarEditarPrecio({{ detalle.id }})" class="btn btn-gray btn-sm">Cancelar</button>
-                </form>
-            </div>
-
-            {% if user.id_rol_id == 1 or detalle.id_mecanico_id == user.id or es_encargado %}
-            <div class="flex flex-wrap" style="margin-top:8px;">
-                <form method="POST" action="{% url 'cambiar_estado_servicio' detalle.id %}" class="inline-form">
-                    {% csrf_token %}
-                    <input type="hidden" name="nuevo_estado" value="PENDIENTE">
-                    <button type="submit" class="btn btn-gray btn-sm" {% if detalle.estado == 'PENDIENTE' %}disabled{% endif %}>Pendiente</button>
-                </form>
-                <form method="POST" action="{% url 'cambiar_estado_servicio' detalle.id %}" class="inline-form">
-                    {% csrf_token %}
-                    <input type="hidden" name="nuevo_estado" value="EN_PROCESO">
-                    <button type="submit" class="btn btn-warning btn-sm" {% if detalle.estado == 'EN_PROCESO' %}disabled{% endif %}>En Proceso</button>
-                </form>
-                <form method="POST" action="{% url 'cambiar_estado_servicio' detalle.id %}" class="inline-form">
-                    {% csrf_token %}
-                    <input type="hidden" name="nuevo_estado" value="FINALIZADO">
-                    <button type="submit" class="btn btn-success btn-sm" {% if detalle.estado == 'FINALIZADO' %}disabled{% endif %}>Finalizar</button>
-                </form>
-            </div>
-            {% else %}
-            <div style="margin-top:8px; font-size:12px; color:#c0392b;">
-                <em>No puedes modificar este servicio (asignado a otro mecánico)</em>
-            </div>
-            {% endif %}
-
-            {% if detalle.fecha_inicio %}
-            <div class="text-muted" style="font-size:12px; margin-top:5px;">
-                Inicio: {{ detalle.fecha_inicio|date:"d/m/Y H:i" }}
-                {% if detalle.fecha_fin %} | Fin: {{ detalle.fecha_fin|date:"d/m/Y H:i" }}{% endif %}
-            </div>
-            {% endif %}
-        </div>
+            {% endfor %}
         {% endfor %}
     </div>
     {% else %}
@@ -304,6 +360,19 @@
 
     function cerrarEditarPrecio(detalleId) {
         document.getElementById('editarPrecio-' + detalleId).style.display = 'none';
+    }
+
+    // 🆕 Función para atenuar los otros botones al hacer clic
+    function atenuarBotones(botonClickeado) {
+        var contenedor = botonClickeado.closest('.botones-estado');
+        if (!contenedor) return;
+
+        var botones = contenedor.querySelectorAll('button');
+        botones.forEach(function(btn) {
+            btn.style.opacity = '0.4';
+        });
+
+        botonClickeado.style.opacity = '1';
     }
 </script>
 

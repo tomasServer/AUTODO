@@ -57,7 +57,6 @@
     <form method="POST" action="{% url 'guardar_venta_rapida' %}" id="ventaForm">
         {% csrf_token %}
 
-        <!-- 🆕 Input hidden que SÍ se envía al backend -->
         <input type="hidden" name="metodo_pago" id="metodo_pago_hidden" value="EFECTIVO">
 
         <div id="productosVenta">
@@ -98,7 +97,7 @@
         <!-- Buscador -->
         <div style="margin-bottom:12px; position:relative;">
             <label>🔍 Buscar cliente existente</label>
-            <input type="text" id="buscador_cliente" placeholder="Escribe nombre, teléfono o CI..."
+            <input type="text" id="buscador_cliente" placeholder="Escribe nombre, apellido, teléfono o CI..."
                    autocomplete="off" oninput="buscarClienteLocal(this.value)">
             <div id="resultados_busqueda"></div>
         </div>
@@ -106,28 +105,34 @@
         <hr style="border:none; border-top:1px solid #ecf0f1; margin:15px 0;">
 
         <div style="margin-bottom:12px;">
-            <label>Nombre</label>
-            <input type="text" id="cliente_nombre">
+            <label>Nombre *</label>
+            <input type="text" id="cliente_nombre" maxlength="30" required>
         </div>
 
         <div style="margin-bottom:12px;">
-            <label>Teléfono</label>
-            <input type="tel" id="cliente_telefono">
+            <label>Apellido *</label>
+            <input type="text" id="cliente_apellido" maxlength="30" required>
+        </div>
+
+        <div style="margin-bottom:12px;">
+            <label>Teléfono *</label>
+            <input type="tel" id="cliente_telefono" maxlength="8" required>
         </div>
 
         <div style="margin-bottom:20px;">
-            <label>CI (Carnet)</label>
-            <input type="text" id="cliente_ci">
+            <label>CI * <small id="ci-helper" style="color:#7f8c8d; font-weight:normal; font-size:0.75rem;"></small></label>
+            <input type="text" id="cliente_ci" maxlength="14"
+                   placeholder="Ej: 1234567-1A"
+                   oninput="validarCI(this)"
+                   required>
         </div>
 
-        <!-- 🆕 MÉTODO DE PAGO -->
         <div style="margin-bottom:20px;">
             <label>Método de Pago *</label>
             <select id="metodo_pago" required style="max-width:250px;">
                 <option value="EFECTIVO">💵 Efectivo</option>
                 <option value="QR">📱 QR</option>
                 <option value="TRANSFERENCIA">🏦 Transferencia</option>
-                <option value="TARJETA">💳 Tarjeta</option>
             </select>
         </div>
 
@@ -150,6 +155,7 @@
         {
             id: {{ c.id }},
             nombre: "{{ c.nombre|escapejs }}",
+            apellido: "{{ c.apellido|default:''|escapejs }}",
             telefono: "{{ c.telefono|default:''|escapejs }}",
             ci: "{{ c.ci|default:''|escapejs }}"
         }{% if not forloop.last %},{% endif %}
@@ -164,6 +170,47 @@
             width: '100%'
         });
     });
+
+    // ============ VALIDACIÓN DE CI ============
+    function validarCI(input) {
+        let val = input.value.toUpperCase();
+        const partes = val.split('-');
+
+        if (partes.length > 2) {
+            val = partes[0] + '-' + partes.slice(1).join('');
+            partes.length = 0;
+            partes.push(...val.split('-'));
+        }
+
+        let numeros = partes[0].replace(/[^0-9]/g, '');
+        let complemento = partes[1] !== undefined
+            ? partes[1].replace(/[^A-Z0-9]/g, '')
+            : null;
+
+        if (numeros.length > 11) numeros = numeros.slice(0, 11);
+        if (complemento && complemento.length > 2) {
+            complemento = complemento.slice(0, 2);
+        }
+
+        input.value = complemento !== null
+            ? numeros + '-' + complemento
+            : numeros;
+
+        const helper = document.getElementById('ci-helper');
+        if (!helper) return;
+
+        if (input.value.length === 0) {
+            helper.textContent = '';
+        } else if (/^[0-9]{7,11}(-[A-Z0-9]{1,2})?$/.test(input.value)) {
+            helper.textContent = '✓';
+            helper.style.color = '#27ae60';
+            helper.style.fontWeight = 'bold';
+        } else {
+            helper.textContent = '⚠️';
+            helper.style.color = '#e67e22';
+            helper.style.fontWeight = 'bold';
+        }
+    }
 
     // ============ PRODUCTOS ============
     var contadorVentas = 1;
@@ -231,6 +278,7 @@
 
         var encontrados = CLIENTES.filter(function(c) {
             return c.nombre.toLowerCase().includes(t) ||
+                   (c.apellido && c.apellido.toLowerCase().includes(t)) ||
                    c.telefono.toLowerCase().includes(t) ||
                    c.ci.toLowerCase().includes(t);
         }).slice(0, 10);
@@ -243,12 +291,13 @@
 
         var html = '';
         encontrados.forEach(function(c) {
+            var nombreCompleto = c.nombre + (c.apellido ? ' ' + c.apellido : '');
             html += `
                 <div onclick="seleccionarCliente(${c.id})"
                      style="padding:10px 12px; cursor:pointer; border-bottom:1px solid #ecf0f1; font-size:0.85rem;"
                      onmouseover="this.style.background='#f8f9fa'"
                      onmouseout="this.style.background='#fff'">
-                    <strong>${c.nombre}</strong>
+                    <strong>${nombreCompleto}</strong>
                     ${c.telefono ? '<span style="color:#7f8c8d; margin-left:8px;">📞 ' + c.telefono + '</span>' : ''}
                     ${c.ci ? '<span style="color:#7f8c8d; margin-left:8px;">🆔 ' + c.ci + '</span>' : ''}
                 </div>
@@ -263,8 +312,12 @@
         if (!cliente) return;
 
         document.getElementById('cliente_nombre').value = cliente.nombre;
+        document.getElementById('cliente_apellido').value = cliente.apellido || '';
         document.getElementById('cliente_telefono').value = cliente.telefono;
         document.getElementById('cliente_ci').value = cliente.ci;
+
+        // Actualizar helper del CI
+        validarCI(document.getElementById('cliente_ci'));
 
         document.getElementById('resultados_busqueda').style.display = 'none';
         document.getElementById('buscador_cliente').value = '';
@@ -291,11 +344,15 @@
         }
 
         document.getElementById('cliente_nombre').value = '';
+        document.getElementById('cliente_apellido').value = '';
         document.getElementById('cliente_telefono').value = '';
         document.getElementById('cliente_ci').value = '';
         document.getElementById('buscador_cliente').value = '';
         document.getElementById('resultados_busqueda').style.display = 'none';
-        document.getElementById('metodo_pago').value = 'EFECTIVO'; // 🆕 Reset
+        document.getElementById('metodo_pago').value = 'EFECTIVO';
+
+        var helperCI = document.getElementById('ci-helper');
+        if (helperCI) helperCI.textContent = '';
 
         document.getElementById('modalCliente').style.display = 'flex';
     }
@@ -304,7 +361,6 @@
         document.getElementById('modalCliente').style.display = 'none';
     }
 
-    // 🆕 Copia el método de pago al input hidden del form
     function copiarMetodoPago() {
         var metodo = document.getElementById('metodo_pago').value || 'EFECTIVO';
         document.getElementById('metodo_pago_hidden').value = metodo;
@@ -314,7 +370,7 @@
         if (confirm('¿Estás seguro de que no quieres registrar los datos del cliente?')) {
             var form = document.getElementById('ventaForm');
 
-            form.querySelectorAll('input[name="cliente_nombre"], input[name="cliente_telefono"], input[name="cliente_ci"], input[name="sin_registrar"]').forEach(function(input) {
+            form.querySelectorAll('input[name="cliente_nombre"], input[name="cliente_apellido"], input[name="cliente_telefono"], input[name="cliente_ci"], input[name="sin_registrar"]').forEach(function(input) {
                 input.remove();
             });
 
@@ -324,7 +380,7 @@
             inputSinRegistrar.value = 'true';
             form.appendChild(inputSinRegistrar);
 
-            copiarMetodoPago();  // 🆕
+            copiarMetodoPago();
 
             cerrarModalCliente();
             form.submit();
@@ -333,46 +389,68 @@
 
     function confirmarVenta() {
         var nombre = document.getElementById('cliente_nombre').value.trim();
+        var apellido = document.getElementById('cliente_apellido').value.trim();
         var telefono = document.getElementById('cliente_telefono').value.trim();
         var ci = document.getElementById('cliente_ci').value.trim();
 
-        if (!nombre && !telefono && !ci) {
-            if (!confirm('No has ingresado ningún dato del cliente. ¿Quieres continuar sin registrar?')) {
-                return;
-            }
+        // ✅ Validar que TODOS los campos estén llenos
+        var faltantes = [];
+        if (!nombre) faltantes.push('Nombre');
+        if (!apellido) faltantes.push('Apellido');
+        if (!telefono) faltantes.push('Teléfono');
+        if (!ci) faltantes.push('CI');
+
+        if (faltantes.length > 0) {
+            alert(
+                '⚠️ Para registrar al cliente debes llenar todos los campos.\n\n' +
+                'Faltan:\n• ' + faltantes.join('\n• ') +
+                '\n\nSi no quieres registrar los datos, usa el botón "Sin Registrar".'
+            );
+            return;
+        }
+
+        // Validar formato de teléfono (8 dígitos)
+        if (!/^[0-9]{8}$/.test(telefono)) {
+            alert('⚠️ El teléfono debe tener exactamente 8 dígitos.');
+            document.getElementById('cliente_telefono').focus();
+            return;
+        }
+
+        // Validar formato de CI: 7-11 dígitos + opcional "-" + 1-2 letras/números
+        if (!/^[0-9]{7,11}(-[A-Z0-9]{1,2})?$/.test(ci.toUpperCase())) {
+            alert(
+                '⚠️ El CI no tiene un formato válido.\n\n' +
+                '• Debe tener entre 7 y 11 dígitos.\n' +
+                '• Opcionalmente: guion y hasta 2 letras/números.\n\n' +
+                'Ejemplos: 1234567, 12345678, 12345678901, 1234567-1A'
+            );
+            document.getElementById('cliente_ci').focus();
+            return;
         }
 
         var form = document.getElementById('ventaForm');
 
-        form.querySelectorAll('input[name="cliente_nombre"], input[name="cliente_telefono"], input[name="cliente_ci"], input[name="sin_registrar"]').forEach(function(input) {
+        form.querySelectorAll('input[name="cliente_nombre"], input[name="cliente_apellido"], input[name="cliente_telefono"], input[name="cliente_ci"], input[name="sin_registrar"]').forEach(function(input) {
             input.remove();
         });
 
-        if (nombre) {
-            var inputNombre = document.createElement('input');
-            inputNombre.type = 'hidden';
-            inputNombre.name = 'cliente_nombre';
-            inputNombre.value = nombre;
-            form.appendChild(inputNombre);
-        }
+        var inpNombre = document.createElement('input');
+        inpNombre.type = 'hidden'; inpNombre.name = 'cliente_nombre'; inpNombre.value = nombre;
+        form.appendChild(inpNombre);
 
-        if (telefono) {
-            var inputTelefono = document.createElement('input');
-            inputTelefono.type = 'hidden';
-            inputTelefono.name = 'cliente_telefono';
-            inputTelefono.value = telefono;
-            form.appendChild(inputTelefono);
-        }
+        var inpApellido = document.createElement('input');
+        inpApellido.type = 'hidden'; inpApellido.name = 'cliente_apellido'; inpApellido.value = apellido;
+        form.appendChild(inpApellido);
 
-        if (ci) {
-            var inputCi = document.createElement('input');
-            inputCi.type = 'hidden';
-            inputCi.name = 'cliente_ci';
-            inputCi.value = ci;
-            form.appendChild(inputCi);
-        }
+        var inpTel = document.createElement('input');
+        inpTel.type = 'hidden'; inpTel.name = 'cliente_telefono'; inpTel.value = telefono;
+        form.appendChild(inpTel);
 
-        copiarMetodoPago();  // 🆕
+        var inpCi = document.createElement('input');
+        inpCi.type = 'hidden'; inpCi.name = 'cliente_ci'; inpCi.value = ci.toUpperCase();
+        form.appendChild(inpCi);
+
+        copiarMetodoPago();
 
         cerrarModalCliente();
         form.submit();

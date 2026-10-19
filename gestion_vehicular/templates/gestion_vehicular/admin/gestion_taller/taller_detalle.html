@@ -1,5 +1,4 @@
 {% extends 'gestion_vehicular/admin/base_admin.html' %}
-{% load tz %}
 {% block title %}Taller - Orden {{ orden.id }}{% endblock %}
 
 {% block content %}
@@ -73,28 +72,41 @@
                 </form>
             </div>
 
-            <div class="flex flex-wrap" style="margin-top:8px;">
+            <!-- 🆕 BOTONES DE ESTADO CON ATENUACIÓN -->
+            <div class="flex flex-wrap botones-estado" style="margin-top:8px;">
                 <form method="POST" action="{% url 'cambiar_estado_servicio' detalle.id %}" class="inline-form">
                     {% csrf_token %}
                     <input type="hidden" name="nuevo_estado" value="PENDIENTE">
-                    <button type="submit" class="btn btn-gray btn-sm" {% if detalle.estado == 'PENDIENTE' %}disabled{% endif %}>Pendiente</button>
+                    <button type="submit" class="btn btn-gray btn-sm" 
+                            onclick="atenuarBotones(this)"
+                            style="opacity: {% if detalle.estado == 'PENDIENTE' %}1{% else %}0.4{% endif %};" 
+                            {% if detalle.estado == 'PENDIENTE' %}disabled{% endif %}>Pendiente</button>
                 </form>
                 <form method="POST" action="{% url 'cambiar_estado_servicio' detalle.id %}" class="inline-form">
                     {% csrf_token %}
                     <input type="hidden" name="nuevo_estado" value="EN_PROCESO">
-                    <button type="submit" class="btn btn-warning btn-sm" {% if detalle.estado == 'EN_PROCESO' %}disabled{% endif %}>En Proceso</button>
+                    <button type="submit" class="btn btn-warning btn-sm" 
+                            onclick="atenuarBotones(this)"
+                            style="opacity: {% if detalle.estado == 'EN_PROCESO' %}1{% else %}0.4{% endif %};" 
+                            {% if detalle.estado == 'EN_PROCESO' %}disabled{% endif %}>En Proceso</button>
                 </form>
                 <form method="POST" action="{% url 'cambiar_estado_servicio' detalle.id %}" class="inline-form">
                     {% csrf_token %}
                     <input type="hidden" name="nuevo_estado" value="FINALIZADO">
-                    <button type="submit" class="btn btn-success btn-sm" {% if detalle.estado == 'FINALIZADO' %}disabled{% endif %}>Finalizar</button>
+                    <button type="submit" class="btn btn-success btn-sm" 
+                            onclick="atenuarBotones(this)"
+                            style="opacity: {% if detalle.estado == 'FINALIZADO' %}1{% else %}0.4{% endif %};" 
+                            {% if detalle.estado == 'FINALIZADO' %}disabled{% endif %}>Finalizar</button>
                 </form>
             </div>
 
+            <!-- 🆕 FECHAS CORREGIDAS -->
             {% if detalle.fecha_inicio %}
             <div class="text-muted" style="font-size:12px; margin-top:5px;">
-                Inicio: {%localtime on %} {{ detalle.fecha_inicio|date:"d/m/Y H:i" }} {%endlocaltime %}
-                {% if detalle.fecha_fin %} | Fin: {{ detalle.fecha_fin|date:"d/m/Y H:i" }}{% endif %}
+                <strong>Inicio:</strong> {{ detalle.fecha_inicio|date:"d/m/Y H:i" }}
+                {% if detalle.fecha_fin %}
+                    | <strong>Fin:</strong> {{ detalle.fecha_fin|date:"d/m/Y H:i" }}
+                {% endif %}
             </div>
             {% endif %}
         </div>
@@ -209,7 +221,6 @@
 </div>
 
 <!-- BOTONES DE ACCIÓN -->
-<!-- BOTONES DE ACCIÓN -->
 <div class="flex flex-wrap" style="margin-top:15px;">
     <a href="{% url 'modo_taller' %}" class="btn btn-gray">Volver</a>
     <a href="{% url 'orden_pdf' orden.id %}" class="btn btn-primary" target="_blank">📄 Recibo</a>
@@ -255,6 +266,24 @@
 
     function cerrarEditarPrecio(detalleId) {
         document.getElementById('editarPrecio-' + detalleId).style.display = 'none';
+    }
+
+    // 🆕 Función para atenuar los otros botones al hacer clic
+    function atenuarBotones(botonClickeado) {
+        // Buscar el contenedor padre para no afectar a otros servicios
+        var contenedor = botonClickeado.closest('.botones-estado');
+        if (!contenedor) return;
+
+        // Obtener todos los botones de ESTE servicio
+        var botones = contenedor.querySelectorAll('button');
+
+        // Poner todos al 40% de opacidad
+        botones.forEach(function(btn) {
+            btn.style.opacity = '0.4';
+        });
+
+        // El botón clickeado se queda al 100%
+        botonClickeado.style.opacity = '1';
     }
 </script>
 

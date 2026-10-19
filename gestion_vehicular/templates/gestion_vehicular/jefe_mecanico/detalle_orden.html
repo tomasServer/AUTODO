@@ -8,9 +8,24 @@
 <!-- ============ INFORMACIÓN GENERAL ============ -->
 <div class="card">
     <div class="grid grid-2">
-        <div><strong>Placa:</strong> {{ orden.id_vehiculo.placa }}</div>
+        <div>
+            <strong>Placa:</strong>
+            {% if orden.id_vehiculo.placa %}
+                {{ orden.id_vehiculo.placa }}
+            {% else %}
+                <span style="color:#e67e22; font-style:italic;">Sin placa</span>
+            {% endif %}
+        </div>
+        <div>
+            <strong>VIN:</strong>
+            {% if orden.id_vehiculo.vin %}
+                <code style="font-family: monospace;">{{ orden.id_vehiculo.vin }}</code>
+            {% else %}
+                <span style="color:#95a5a6;">—</span>
+            {% endif %}
+        </div>
         <div><strong>Vehículo:</strong> {{ orden.id_vehiculo.marca|default:"" }} {{ orden.id_vehiculo.modelo|default:"" }}</div>
-        <div><strong>Cliente:</strong> {{ orden.id_vehiculo.id_cliente.nombre|default:"Sin cliente" }}</div>
+        <div><strong>Cliente:</strong> {{ orden.id_vehiculo.id_cliente.nombre|default:"Sin cliente" }} {{ orden.id_vehiculo.id_cliente.apellido|default:"" }}</div>
         <div><strong>Teléfono:</strong> {{ orden.id_vehiculo.id_cliente.telefono|default:"-" }}</div>
         <div><strong>Kilometraje:</strong> {{ orden.id_vehiculo.kilometraje_actual|default:"0" }} km</div>
         <div>
@@ -32,7 +47,12 @@
     <h3>Servicios</h3>
     {% for d in orden.detalles_servicio.all %}
     <div class="flex-between" style="padding:8px 0; border-bottom:1px solid #ecf0f1;">
-        <span>{{ d.id_servicio.nombre }}</span>
+        <span>
+            {{ d.id_servicio.nombre }}
+            {% if d.id_mecanico %}
+                <small style="color:#7f8c8d; margin-left:8px;">({{ d.id_mecanico.nombre }})</small>
+            {% endif %}
+        </span>
         <strong>Bs. {{ d.precio_cobrado }}</strong>
     </div>
     {% empty %}

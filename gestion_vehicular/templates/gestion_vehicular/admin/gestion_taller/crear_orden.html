@@ -66,7 +66,12 @@
         <summary style="cursor:pointer;">Ver todos los componentes</summary>
         <ul style="margin-top:8px; padding-left:20px;">
             {% for comp in revision_detalle.componentes %}
-            <li>{{ comp.nombre }} - <strong>{{ comp.estado }}</strong></li>
+            <li>
+                {{ comp.nombre }} - <strong>{{ comp.estado }}</strong>
+                {% if comp.nota %}
+                    <span style="color:#e67e22; font-size:0.85rem; margin-left:5px;">📝 {{ comp.nota }}</span>
+                {% endif %}
+            </li>
             {% endfor %}
         </ul>
     </details>
@@ -611,9 +616,6 @@
                     setVal('anio', v.anio);
                     setVal('color', v.color);
                     setVal('kilometraje', v.kilometraje);
-
-
-
 
                     // Actualizar contador de VIN
                     const vinEl = document.getElementById('vin');

@@ -1,9 +1,20 @@
 {% extends 'gestion_vehicular/jefe_mecanico/base_jefe.html' %}
-{% block title %}Registrar Pago{% endblock %}
+{% block title %}Registrar Pago - Orden Nº {{ orden.id }}{% endblock %}
 
 {% block content %}
 
-<h2>Registrar Pago</h2>
+<h2>Registrar Pago - Orden Nº {{ orden.id }}</h2>
+<p style="margin-bottom: 15px; color: #555;">
+    <strong>Vehículo:</strong> 
+    {% if orden.id_vehiculo.placa %}
+        {{ orden.id_vehiculo.placa }}
+    {% elif orden.id_vehiculo.vin %}
+        {{ orden.id_vehiculo.vin }}
+    {% else %}
+        Sin placa
+    {% endif %}
+    — {{ orden.id_vehiculo.marca|default:"" }} {{ orden.id_vehiculo.modelo|default:"" }}
+</p>
 
 <div class="card">
     <h3>Resumen de Cobro</h3>
@@ -39,9 +50,9 @@
             <label>Método de Pago *</label>
             <select name="metodo_pago" required>
                 <option value="">Seleccione...</option>
-                <option value="EFECTIVO">Efectivo</option>
-                <option value="TRANSFERENCIA">Transferencia</option>
-                <option value="QR">Código QR</option>
+                <option value="EFECTIVO">💵 Efectivo</option>
+                <option value="TRANSFERENCIA">🏦 Transferencia</option>
+                <option value="QR">📱 Código QR</option>
             </select>
         </div>
         

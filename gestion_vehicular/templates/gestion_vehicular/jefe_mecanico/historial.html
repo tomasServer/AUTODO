@@ -45,7 +45,60 @@
     </div>
 </div>
 
-<!-- ============ HISTORIAL DE SERVICIOS ============ -->
+<!-- ============ HISTORIAL DE REVISIONES ============ -->
+<div class="card">
+    <h3>Historial de Revisiones</h3>
+    {% if revisiones %}
+    <div class="grid">
+        {% for revision in revisiones %}
+        <div style="border:1px solid #ecf0f1; border-radius:6px; padding:12px 15px; margin-bottom: 10px;">
+            <!-- ENCABEZADO DE LA REVISIÓN -->
+            <div class="grid grid-4" style="margin-bottom:10px;">
+                <div><strong>Fecha:</strong> {{ revision.fecha_revision|date:"d/m/Y H:i" }}</div>
+                <div><strong>Tipo:</strong> {{ revision.tipo_revision }}</div>
+                <div><strong>Salud:</strong> {{ revision.isv_porcentaje|default:"0" }}%</div>
+                <div>
+                    <strong>Estado:</strong>
+                    <span class="badge {% if revision.isv_porcentaje >= 80 %}badge-success{% elif revision.isv_porcentaje >= 50 %}badge-warning{% else %}badge-danger{% endif %}">
+                        {% if revision.isv_porcentaje >= 80 %}BUENO
+                        {% elif revision.isv_porcentaje >= 50 %}REGULAR
+                        {% else %}CRÍTICO{% endif %}
+                    </span>
+                </div>
+            </div>
+
+            <!-- DETALLE DE COMPONENTES -->
+            <div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap:8px;">
+                {% for detalle in revision.detalles.all %}
+                <div style="padding:8px 10px; background:#f8f9fa; border-radius:4px; border-left:3px solid
+                    {% if detalle.estado == 'OK' %}#27ae60
+                    {% elif detalle.estado == 'REGULAR' %}#e67e22
+                    {% else %}#c0392b{% endif %};">
+                    <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
+                        <span style="font-size:0.85rem; font-weight:600;">{{ detalle.id_componente.nombre }}</span>
+                        <span class="badge {% if detalle.estado == 'OK' %}badge-success{% elif detalle.estado == 'REGULAR' %}badge-warning{% else %}badge-danger{% endif %}" style="font-size:0.7rem;">
+                            {{ detalle.estado }}
+                        </span>
+                    </div>
+
+                    {# Mostrar nota solo si existe #}
+                    {% if detalle.nota and detalle.nota.strip %}
+                    <div style="margin-top:5px; font-size:0.78rem; color:#555; font-style:italic;">
+                        📝 {{ detalle.nota }}
+                    </div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <p class="text-muted">No hay revisiones registradas</p>
+    {% endif %}
+</div>
+
+<!-- ============ HISTORIAL DE SERVICIOS (ÓRDENES) ============ -->
 <div class="card">
     <h3>Historial de Servicios</h3>
     {% if ordenes %}

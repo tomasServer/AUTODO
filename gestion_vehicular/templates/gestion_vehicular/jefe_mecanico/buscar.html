@@ -7,14 +7,14 @@
 
 <!-- Formulario de búsqueda -->
 <div class="card">
-    <form method="GET" action="{% url 'buscar_vehiculo' %}" style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
-        <input type="text" name="placa" placeholder="Ingrese Placa o VIN..." value="{{ placa }}"
+    <form method="GET" action="{% url 'buscar_vehiculo' %}" class="flex flex-wrap" id="formBuscar">
+        <input type="text" name="placa" id="busquedaInput" placeholder="Ingrese Placa o VIN..." value="{{ placa }}"
                style="flex:1; min-width:200px; text-transform:uppercase;"
                oninput="this.value = this.value.toUpperCase()">
         <button type="submit" class="btn btn-primary">Buscar</button>
     </form>
-    <small style="color:#7f8c8d; font-size:0.78rem; display:block; margin-top:6px;">
-        💡 Puedes buscar por <strong>placa</strong> (ej: ABC-123) o por <strong>VIN</strong> (ej: 1HGBH41JXMN109186).
+    <small id="busqueda-helper" style="color:#7f8c8d; font-size:0.78rem; display:block; margin-top:6px;">
+        💡 Placa: 3-8 caracteres · VIN: exactamente 17
     </small>
 </div>
 
@@ -132,11 +132,87 @@
         <a href="{% url 'revision_rapida_placa' %}?placa={{ placa }}" class="btn btn-warning btn-lg">
             🔍 Revisión Visita
         </a>
-        <a href="{% url 'crear_orden' %}?placa={{ placa }}" class="btn btn-success btn-lg">
-            📋 Crear Orden
-        </a>
+        
+        {# 🆕 Crear Orden: si es largo (>8) → VIN, si no → Placa #}
+        {% if placa|length > 8 %}
+            <a href="{% url 'crear_orden' %}?vin={{ placa }}" class="btn btn-success btn-lg">
+                📋 Crear Orden
+            </a>
+        {% else %}
+            <a href="{% url 'crear_orden' %}?placa={{ placa }}" class="btn btn-success btn-lg">
+                📋 Crear Orden
+            </a>
+        {% endif %}
     </div>
 </div>
 {% endif %}
+
+<!-- 🆕 VALIDACIÓN DE BÚSQUEDA -->
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const form = document.getElementById('formBuscar');
+    const input = document.getElementById('busquedaInput');
+    const helper = document.getElementById('busqueda-helper');
+
+    if (!form || !input) return;
+
+    function actualizarHelper() {
+        if (!helper) return;
+        const len = input.value.trim().length;
+
+        if (len === 0) {
+            helper.textContent = '💡 Placa: 3-8 caracteres · VIN: exactamente 17';
+            helper.style.color = '#7f8c8d';
+        } else if (len >= 3 && len <= 8) {
+            helper.textContent = `✓ ${len} caracteres — parece una placa`;
+            helper.style.color = '#27ae60';
+        } else if (len === 17) {
+            helper.textContent = `✓ ${len} caracteres — parece un VIN`;
+            helper.style.color = '#27ae60';
+        } else if (len < 17) {
+            helper.textContent = `⚠️ ${len} caracteres — si es VIN, faltan ${17 - len}`;
+            helper.style.color = '#e67e22';
+        } else {
+            helper.textContent = `⚠️ ${len} caracteres — inválido`;
+            helper.style.color = '#e74c3c';
+        }
+    }
+
+    input.addEventListener('input', actualizarHelper);
+    actualizarHelper();
+
+    form.addEventListener('submit', function (e) {
+        const valor = input.value.trim().toUpperCase();
+        if (!valor) return;
+
+        const len = valor.length;
+
+        if (len >= 3 && len <= 8) return;
+        if (len === 17) return;
+
+        e.preventDefault();
+        e.stopPropagation();
+
+        let mensaje = '⚠️ Búsqueda no válida.\n\n';
+        mensaje += `Escribiste ${len} caracteres.\n\n`;
+        mensaje += '• Una PLACA debe tener entre 3 y 8 caracteres.\n';
+        mensaje += '• Un VIN debe tener exactamente 17 caracteres.\n\n';
+
+        if (len < 17) {
+            mensaje += `💡 Si es un VIN, le faltan ${17 - len} carácter(es).`;
+        } else {
+            mensaje += `💡 Si es una placa, tiene ${len - 8} carácter(es) de más.`;
+        }
+
+        setTimeout(function () {
+            alert(mensaje);
+            input.focus();
+            input.select();
+        }, 50);
+
+        return false;
+    });
+});
+</script>
 
 {% endblock %}

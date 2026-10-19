@@ -399,16 +399,14 @@ def crear_orden(request):
                     cantidad_int = int(cantidad) if cantidad else 1
                     precio_u = float(precio_producto) if precio_producto else float(producto.precio_venta)
 
-                    with connection.cursor() as cursor:
-                        cursor.execute(
-                            "INSERT INTO detalle_producto "
-                            "(id_orden, id_producto, cantidad, costo_unitario, precio_unitario, registrado_por) "
-                            "VALUES (%s, %s, %s, %s, %s, %s)",
-                            [orden.id, producto.id, cantidad_int,
-                             producto.costo_unitario,
-                             precio_u,
-                             request.user.id if request.user.is_authenticated else None]
-                        )
+                    DetalleProducto.objects.create(
+                        id_orden=orden,
+                        id_producto=producto,
+                        cantidad=cantidad_int,
+                        costo_unitario=producto.costo_unitario,
+                        precio_unitario=precio_u,
+                        registrado_por=request.user if request.user.is_authenticated else None,
+                    )
 
                     producto.stock_actual -= cantidad_int
                     producto.save()
@@ -535,16 +533,14 @@ def agregar_producto_orden(request, orden_id):
             cantidad_int = int(cantidad)
             precio_u = float(precio_unitario) if precio_unitario else float(producto.precio_venta)
             
-            with connection.cursor() as cursor:
-                cursor.execute(
-                    "INSERT INTO detalle_producto "
-                    "(id_orden, id_producto, cantidad, costo_unitario, precio_unitario, registrado_por) "
-                    "VALUES (%s, %s, %s, %s, %s, %s)",
-                    [orden.id, producto.id, cantidad_int, 
-                     producto.costo_unitario, 
-                     precio_u,
-                     request.user.id if request.user.is_authenticated else None]
-                )
+            DetalleProducto.objects.create(
+                id_orden=orden,
+                id_producto=producto,
+                cantidad=cantidad_int,
+                costo_unitario=producto.costo_unitario,
+                precio_unitario=precio_u,
+                registrado_por=request.user if request.user.is_authenticated else None,
+            )
             
             producto.stock_actual -= cantidad_int
             producto.save()
@@ -680,9 +676,8 @@ def cambiar_estado_servicio(request, detalle_id):
     
     return redirect('taller_detalle', orden_id=orden.id)
 
-# ============================================================
+
 # HALLAZGOS
-# ============================================================
 
 def agregar_hallazgo_orden(request, orden_id):
     orden = get_object_or_404(OrdenTrabajo, id=orden_id)
@@ -706,9 +701,9 @@ def agregar_hallazgo_orden(request, orden_id):
     return redirect('taller_detalle', orden_id=orden.id)
 
 
-# ============================================================
+
 # EDITAR PRECIO DE SERVICIO
-# ============================================================
+
 
 @login_required
 def editar_precio_servicio(request, detalle_id):
@@ -816,16 +811,14 @@ def cancelar_visita(request):
                             cantidad_int = int(cantidad) if cantidad else 1
                             precio_u = float(precio) if precio else float(producto.precio_venta)
                             
-                            with connection.cursor() as cursor:
-                                cursor.execute(
-                                    "INSERT INTO detalle_producto "
-                                    "(id_orden, id_producto, cantidad, costo_unitario, precio_unitario, registrado_por) "
-                                    "VALUES (%s, %s, %s, %s, %s, %s)",
-                                    [orden.id, producto.id, cantidad_int, 
-                                     producto.costo_unitario, 
-                                     precio_u,
-                                     request.user.id if request.user.is_authenticated else None]
-                                )
+                            DetalleProducto.objects.create(
+                                id_orden=orden,
+                                id_producto=producto,
+                                cantidad=cantidad_int,
+                                costo_unitario=producto.costo_unitario,
+                                precio_unitario=precio_u,
+                                registrado_por=request.user if request.user.is_authenticated else None,
+                            )
                             
                             producto.stock_actual -= cantidad_int
                             producto.save()
