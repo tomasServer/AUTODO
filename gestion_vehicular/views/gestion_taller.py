@@ -386,6 +386,8 @@ def crear_orden(request):
                     )
 
         # ============ GUARDAR PRODUCTOS ============
+        # ============ GUARDAR PRODUCTOS ============
+                # ============ GUARDAR PRODUCTOS ============
         for key in request.POST:
             if key.startswith('producto_id_'):
                 num = key.split('_')[-1]
@@ -398,14 +400,17 @@ def crear_orden(request):
                     cantidad_int = int(cantidad) if cantidad else 1
                     precio_u = float(precio_producto) if precio_producto else float(producto.precio_venta)
 
-                    DetalleProducto.objects.create(
-                        id_orden=orden,
-                        id_producto=producto,
-                        cantidad=cantidad_int,
-                        costo_unitario=producto.costo_unitario,
-                        precio_unitario=precio_u,
-                        registrado_por=request.user if request.user.is_authenticated else None,
-                    )
+                    # 🆕 USAMOS SQL PURO PARA EVITAR EL ERROR DE COLUMNA GENERADA
+                    with connection.cursor() as cursor:
+                        cursor.execute(
+                            "INSERT INTO detalle_producto "
+                            "(id_orden, id_producto, cantidad, costo_unitario, precio_unitario, registrado_por) "
+                            "VALUES (%s, %s, %s, %s, %s, %s)",
+                            [orden.id, producto.id, cantidad_int, 
+                             producto.costo_unitario, 
+                             precio_u,
+                             request.user.id if request.user.is_authenticated else None]
+                        )
 
                     producto.stock_actual -= cantidad_int
                     producto.save()
@@ -532,14 +537,17 @@ def agregar_producto_orden(request, orden_id):
             cantidad_int = int(cantidad)
             precio_u = float(precio_unitario) if precio_unitario else float(producto.precio_venta)
             
-            DetalleProducto.objects.create(
-                id_orden=orden,
-                id_producto=producto,
-                cantidad=cantidad_int,
-                costo_unitario=producto.costo_unitario,
-                precio_unitario=precio_u,
-                registrado_por=request.user if request.user.is_authenticated else None,
-            )
+            # 🆕 USAMOS SQL PURO PARA EVITAR EL ERROR DE COLUMNA GENERADA
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    "INSERT INTO detalle_producto "
+                    "(id_orden, id_producto, cantidad, costo_unitario, precio_unitario, registrado_por) "
+                    "VALUES (%s, %s, %s, %s, %s, %s)",
+                    [orden.id, producto.id, cantidad_int, 
+                     producto.costo_unitario, 
+                     precio_u,
+                     request.user.id if request.user.is_authenticated else None]
+                )
             
             producto.stock_actual -= cantidad_int
             producto.save()
@@ -772,10 +780,7 @@ def eliminar_producto_orden(request, detalle_id):
     messages.success(request, f'Producto "{nombre}" eliminado. Stock devuelto.')
     return redirect('taller_detalle', orden_id=orden.id)
 
-
-# ============================================================
 # CANCELAR VISITA
-# ============================================================
 
 def cancelar_visita(request):
     if request.method == 'POST':
@@ -818,14 +823,18 @@ def cancelar_visita(request):
                             producto = get_object_or_404(Producto, id=producto_id)
                             cantidad_int = int(cantidad) if cantidad else 1
                             precio_u = float(precio) if precio else float(producto.precio_venta)
-                            DetalleProducto.objects.create(
-                                id_orden=orden,
-                                id_producto=producto,
-                                cantidad=cantidad_int,
-                                costo_unitario=producto.costo_unitario,
-                                precio_unitario=precio_u,
-                                registrado_por=request.user if request.user.is_authenticated else None,
-                            )
+                            
+                            # 🆕 USAMOS SQL PURO PARA EVITAR EL ERROR DE COLUMNA GENERADA
+                            with connection.cursor() as cursor:
+                                cursor.execute(
+                                    "INSERT INTO detalle_producto "
+                                    "(id_orden, id_producto, cantidad, costo_unitario, precio_unitario, registrado_por) "
+                                    "VALUES (%s, %s, %s, %s, %s, %s)",
+                                    [orden.id, producto.id, cantidad_int, 
+                                     producto.costo_unitario, 
+                                     precio_u,
+                                     request.user.id if request.user.is_authenticated else None]
+                                )
                             
                             producto.stock_actual -= cantidad_int
                             producto.save()

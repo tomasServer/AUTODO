@@ -85,6 +85,7 @@ class DetalleProducto(models.Model):
     cantidad = models.IntegerField()
     costo_unitario = models.DecimalField(max_digits=10, decimal_places=2)
     precio_unitario = models.DecimalField(max_digits=10, decimal_places=2)
+
     subtotal_costo = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
     subtotal_precio = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
     registrado_por = models.ForeignKey('Usuario', models.DO_NOTHING, db_column='registrado_por', blank=True, null=True)
@@ -92,6 +93,11 @@ class DetalleProducto(models.Model):
     class Meta:
         managed = False
         db_table = 'detalle_producto'
+
+    def save(self, *args, **kwargs):
+        self.subtotal_costo = self.costo_unitario * self.cantidad
+        self.subtotal_precio = self.precio_unitario * self.cantidad
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return f"Producto en orden {self.id_orden_id}"
