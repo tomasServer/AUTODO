@@ -1,4 +1,4 @@
-{% extends 'gestion_vehicular/jefe_mecanico/base_jefe.html' %}
+{% extends 'gestion_vehicular/jefe_mecanico/base_Jefe.html' %}
 {% block title %}Taller - Orden Nº {{ orden.id }}{% endblock %}
 
 {% block extra_css %}
@@ -238,7 +238,7 @@
                     <td>{{ detalle.id_producto.nombre }}</td>
                     <td>{{ detalle.cantidad }}</td>
                     <td>Bs. {{ detalle.precio_unitario|default:"0.00" }}</td>
-                    <td><strong>Bs. {{ detalle.subtotal_precio|default:"0.00" }}</strong></td>
+                    <td><strong>Bs. {% widthratio detalle.precio_unitario 1 detalle.cantidad %}</strong></td>
                 </tr>
                 {% endfor %}
             </tbody>
