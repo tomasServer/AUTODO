@@ -11,7 +11,7 @@
             placeholder="Ingrese Placa o VIN..."
             value="{{ placa }}"
             style="flex:1; min-width:200px; text-transform:uppercase;"
-            oninput="this.value = this.value.toUpperCase()">
+            oninput="limpiarYMayusculas(this)">
         <button type="submit" class="btn btn-primary">Buscar</button>
     </form>
     <small id="busqueda-helper" style="color:#7f8c8d; font-size:0.78rem; display:block; margin-top:6px;">
@@ -53,7 +53,7 @@
 
     <div class="flex flex-wrap mt-10">
         <a href="{% url 'crear_orden' %}?vehiculo_id={{ vehiculo.id }}" class="btn btn-primary">+ Nueva Orden</a>
-        {#{% if vehiculo.placa %}&placa={{ vehiculo.placa }}{% endif %}{% if vehiculo.vin %}&vin={{ vehiculo.vin }}{% endif %}" class="btn btn-primary"#}
+
         {# Revisión rápida: usar placa si existe, si no el VIN #}
         {% if vehiculo.placa %}
         <a href="{% url 'revision_rapida_placa' %}?placa={{ vehiculo.placa }}" class="btn btn-warning">Revisión</a>
@@ -123,7 +123,6 @@
             🔍 Revisión Visita
         </a>
 
-        {# Crear Orden directa #}
         {# Crear Orden directa: si es largo (>8) → VIN, si no → Placa #}
         {% if placa|length > 8 %}
             <a href="{% url 'crear_orden' %}?vin={{ placa }}"
@@ -141,27 +140,31 @@
 {% endif %}
 
 <script>
+    // 🆕 Función para limpiar el input (quita guiones y espacios, y pone mayúsculas)
+    function limpiarYMayusculas(input) {
+        // Reemplaza cualquier cosa que no sea letra o número
+        input.value = input.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+        
+        // Actualiza el texto de ayuda si la función existe
+        if (typeof actualizarHelper === 'function') {
+            actualizarHelper();
+        }
+    }
+
     function validarBusqueda(e) {
         const input = document.getElementById('busquedaInput');
+        // Limpiamos antes de validar
+        limpiarYMayusculas(input);
+        
         const valor = input.value.trim();
-
-        if (!valor){
-            return true;
-        }
+        if (!valor) return true;
+        
         const len = valor.length;
-
-        if (len >= 3 && len <= 8) {
-            return true;
-        }
-
-        if (len === 17) {
-            return true;
-        }
+        if (len >= 3 && len <= 8) return true;
+        if (len === 17) return true;
 
         e.preventDefault();
-
-        
-        let mensaje = 'Por favor, ingresa una placa (3-8 caracteres) o un VIN (17 caracteres).';
+        let mensaje = 'Por favor, ingresa una placa (3-8 caracteres) o un VIN (17 caracteres).\nNo uses guiones (-).';
         alert(mensaje);
         input.focus();
         return false;
@@ -169,12 +172,15 @@
 
     document.addEventListener('DOMContentLoaded', function () {
         const input = document.getElementById('busquedaInput');
+        const helper = document.getElementById('busqueda-helper');
+        
         if (!input || !helper) return;
-        //mostrar
-        function mostrarHelper() {
+
+        // 🆕 Hacemos que actualizarHelper sea global para que limpiarYMayusculas pueda llamarla
+        window.actualizarHelper = function() {
             const len = input.value.trim().length;
             if (len === 0) {
-                helper.textContent = '💡 Puedes buscar por <strong>placa</strong> o por <strong>VIN</strong>.';
+                helper.textContent = '💡 Puedes buscar por placa 3-8 caracteres o por VIN 17 caracteres.';
                 helper.style.color = '#7f8c8d';
             } else if (len >= 3 && len <= 8) {
                 helper.textContent = `✓ ${len} caracteres: parece una placa válida.`;
@@ -186,11 +192,11 @@
                 helper.textContent = ` ⚠️ ${len} caracteres: no es una placa ni un VIN válido.`;
                 helper.style.color = '#e74c3c';
             }
-        }
+        };
 
-        input.addEventListener('input', actualizarHelper);
-        input.addEventListener('focus', actualizarHelper);
-        actualizarHelper();
+        input.addEventListener('input', window.actualizarHelper);
+        input.addEventListener('focus', window.actualizarHelper);
+        window.actualizarHelper();
     });
 </script>
 {% endblock %}

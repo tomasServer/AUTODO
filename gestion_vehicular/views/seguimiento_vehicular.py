@@ -10,6 +10,7 @@ from ..models import *
 from django.http import JsonResponse
 from django.db.models import Q
 from django.db import IntegrityError
+from .gestion_administrativa import registrar_auditoria # 🆕 Importamos auditoría
 
 
 def buscar_vehiculo(request):
@@ -144,6 +145,10 @@ def revision_tecnica(request, orden_id):
         revision.isv_porcentaje = round(((ok * 100) + (regular * 50)) / total, 2) if total > 0 else 0
         revision.save()
 
+        # 🆕 REGISTRAR AUDITORÍA
+        ident = orden.id_vehiculo.placa or orden.id_vehiculo.vin or f'#{orden.id_vehiculo.id}'
+        registrar_auditoria(request, 'CREAR', 'REVISIONES', f'Realizó una Revisión {tipo} al vehículo {ident} (ISV: {revision.isv_porcentaje}%).')
+
         messages.success(request, f'Revisión guardada. ISV: {revision.isv_porcentaje}%')
         return redirect('detalle_orden', orden_id=orden.id)
 
@@ -203,24 +208,6 @@ def rechazar_hallazgo(request, hallazgo_id):
 
 
 ##codigo 22/08/2026 23:59
-def revision_rapida_placa(request):
-    """Revisión rápida para vehículo nuevo (sin orden formal)"""
-    placa = request.GET.get('placa', '')
-    componentes = Componente.objects.filter(en_visita=True).order_by('orden')
-    notas_predefinidas = NotaPredefinida.objects.all()  # 🆕
-
-    if request.user.id_rol_id == 2:  # JEFE
-        template = 'gestion_vehicular/jefe_mecanico/revision_rapida.html'
-    else:  # ADMIN
-        template = 'gestion_vehicular/admin/seguimiento_vehicular/revision_rapida.html'
-
-    return render(request, template, {
-        'placa': placa,
-        'componentes': componentes,
-        'notas_predefinidas': notas_predefinidas,  
-    })
-
-
 def revision_rapida_placa(request):
     """Revisión rápida para vehículo nuevo (sin orden formal)"""
     placa = request.GET.get('placa', '')
@@ -327,6 +314,10 @@ def guardar_revision_rapida(request):
             'resumen': estados,
             'componentes': detalles,
         }
+
+        # 🆕 REGISTRAR AUDITORÍA
+        ident = vehiculo.placa or vehiculo.vin or f'#{vehiculo.id}'
+        registrar_auditoria(request, 'CREAR', 'REVISIONES', f'Realizó una Visita Rápida al vehículo {ident} (ISV: {estado_porcentaje}%).')
 
         messages.success(request, f"Revisión guardada. Estado del vehículo: {estado_porcentaje}%")
         return redirect(f'/orden/crear/?visita_id={orden.id}&nueva_visita=1')

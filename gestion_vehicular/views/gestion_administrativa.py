@@ -6,7 +6,9 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.utils import timezone
 from django.db.models import Q, Sum, Count
 from django.contrib import messages
+from django.contrib.auth.decorators import login_required
 from ..models import *
+from django.core.paginator import Paginator
 
 
 def dashboard_admin(request):
@@ -173,7 +175,6 @@ def dashboard_ayudante(request):
 
 
 
-
 def registrar_pago(request, orden_id):
     orden = get_object_or_404(OrdenTrabajo, id=orden_id)
     
@@ -206,6 +207,15 @@ def registrar_pago(request, orden_id):
         )
         orden.estado_orden = 'COBRADA'
         orden.save()
+        
+        # 🆕 REGISTRAR AUDITORÍA
+        registrar_auditoria(
+            request, 
+            'COBRAR', 
+            'TALLER', 
+            f'Cobró la orden #{orden.id} por un total de Bs. {total_general} (Método: {request.POST.get("metodo_pago")})'
+        )
+        
         messages.success(request, f'Pago registrado. Total: Bs. {total_general}')
         return redirect('modo_taller')
     elif request.method == 'POST' and not puede_cobrar:
@@ -239,7 +249,7 @@ def lista_insumos(request):
 
 def crear_insumo(request):
     if request.method == 'POST':
-        Producto.objects.create(
+        producto = Producto.objects.create(
             codigo=request.POST.get('codigo'),
             nombre=request.POST.get('nombre'),
             descripcion=request.POST.get('descripcion', ''),
@@ -248,6 +258,10 @@ def crear_insumo(request):
             stock_actual=request.POST.get('stock_actual', 0),
             activo=True
         )
+        
+        # 🆕 REGISTRAR AUDITORÍA
+        registrar_auditoria(request, 'CREAR', 'INSUMOS', f'Creó el insumo "{producto.nombre}" con stock {producto.stock_actual}')
+        
         messages.success(request, 'Producto agregado')
         return redirect('lista_insumos')
     return render(request, 'gestion_vehicular/admin/gestion_administrativa/insumos_crear.html')
@@ -263,6 +277,10 @@ def editar_insumo(request, producto_id):
         p.precio_venta = request.POST.get('precio_venta')
         p.stock_actual = request.POST.get('stock_actual')
         p.save()
+        
+        # 🆕 REGISTRAR AUDITORÍA
+        registrar_auditoria(request, 'EDITAR', 'INSUMOS', f'Editó el insumo "{p.nombre}" (Nuevo precio: Bs. {p.precio_venta})')
+        
         messages.success(request, 'Producto actualizado')
         return redirect('lista_insumos')
     return render(request, 'gestion_vehicular/admin/gestion_administrativa/insumos_editar.html', {'producto': p})
@@ -272,6 +290,10 @@ def desactivar_insumo(request, producto_id):
     p = get_object_or_404(Producto, id=producto_id)
     p.activo = False
     p.save()
+    
+    # 🆕 REGISTRAR AUDITORÍA
+    registrar_auditoria(request, 'ELIMINAR', 'INSUMOS', f'Desactivó el insumo "{p.nombre}" del inventario')
+    
     messages.success(request, f'Producto "{p.nombre}" desactivado')
     return redirect('lista_insumos')
 
@@ -291,7 +313,7 @@ def lista_servicios(request):
 def crear_servicio(request):
     """Crear un nuevo servicio"""
     if request.method == 'POST':
-        Servicio.objects.create(
+        servicio = Servicio.objects.create(
             id_tipo_servicio_id=request.POST.get('tipo_servicio'),
             nombre=request.POST.get('nombre'),
             descripcion=request.POST.get('descripcion', ''),
@@ -300,6 +322,10 @@ def crear_servicio(request):
             tiempo_estimado_minutos=request.POST.get('tiempo_estimado_minutos'),
             activo=True,
         )
+        
+        # 🆕 REGISTRAR AUDITORÍA
+        registrar_auditoria(request, 'CREAR', 'SERVICIOS', f'Creó el servicio "{servicio.nombre}" por Bs. {servicio.precio_mano_obra}')
+        
         messages.success(request, 'Servicio agregado')
         return redirect('lista_servicios')
     
@@ -320,6 +346,10 @@ def editar_servicio(request, servicio_id):
         servicio.precio_mano_obra = request.POST.get('precio_mano_obra')
         servicio.tiempo_estimado_minutos = request.POST.get('tiempo_estimado_minutos')
         servicio.save()
+        
+        # 🆕 REGISTRAR AUDITORÍA
+        registrar_auditoria(request, 'EDITAR', 'SERVICIOS', f'Editó el servicio "{servicio.nombre}" (Nuevo precio: Bs. {servicio.precio_mano_obra})')
+        
         messages.success(request, 'Servicio actualizado')
         return redirect('lista_servicios')
     
@@ -335,6 +365,10 @@ def desactivar_servicio(request, servicio_id):
     servicio = get_object_or_404(Servicio, id=servicio_id)
     servicio.activo = False
     servicio.save()
+    
+    # 🆕 REGISTRAR AUDITORÍA
+    registrar_auditoria(request, 'ELIMINAR', 'SERVICIOS', f'Desactivó el servicio "{servicio.nombre}"')
+    
     messages.success(request, f'Servicio "{servicio.nombre}" desactivado')
     return redirect('lista_servicios')
 
@@ -527,4 +561,54 @@ def gestionar_revisiones(request):
     
     return render(request, 'gestion_vehicular/admin/gestion_administrativa/revisiones.html', {
         'componentes': componentes,
+    })
+
+
+# ============================================================
+# AUDITORÍA (BITÁCORA)
+# ============================================================
+
+def registrar_auditoria(request, accion, modulo, descripcion):
+    """Función helper para guardar un registro de auditoría"""
+    try:
+        usuario = request.user if request.user.is_authenticated else None
+        Auditoria.objects.create(
+            id_usuario=usuario,
+            accion=accion,
+            modulo=modulo,
+            descripcion=descripcion,
+            fecha=timezone.now()
+        )
+    except Exception as e:
+        print(f"Error al guardar auditoría: {e}")
+
+@login_required
+def ver_auditoria(request):
+    # Solo Admin
+    if request.user.id_rol_id != 1:
+        messages.error(request, 'No tienes permisos para ver la auditoría.')
+        return redirect('dashboard')
+
+    busqueda = request.GET.get('q', '').strip()
+    
+    # Traer los registros más recientes
+    auditorias = Auditoria.objects.select_related('id_usuario').all()
+
+    # Filtro de búsqueda
+    if busqueda:
+        auditorias = auditorias.filter(
+            Q(descripcion__icontains=busqueda) |
+            Q(id_usuario__nombre__icontains=busqueda) |
+            Q(id_usuario__apellido__icontains=busqueda) |
+            Q(modulo__icontains=busqueda) |
+            Q(accion__icontains=busqueda)
+        )
+
+    # Paginación (50 por página)
+    paginator = Paginator(auditorias, 50)
+    page_obj = paginator.get_page(request.GET.get('page'))
+
+    return render(request, 'gestion_vehicular/admin/gestion_administrativa/auditoria.html', {
+        'page_obj': page_obj,
+        'busqueda': busqueda,
     })

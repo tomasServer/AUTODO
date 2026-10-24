@@ -2,7 +2,7 @@
 #@email:   20461973hola@gmail.com
 #@date:    2026-10-13
 #@version: 0.0.1
-
+from django.utils import timezone
 
 from django.db import models
 
@@ -395,3 +395,22 @@ class DetalleVentaRapida(models.Model):
         managed = False
         db_table = 'detalle_venta_rapida'
 
+#auditoria.........................
+class Auditoria(models.Model):
+    id_usuario = models.ForeignKey(
+        'Usuario', models.DO_NOTHING,
+        db_column='id_usuario', blank=True, null=True,
+        related_name='auditorias'
+    )
+    accion = models.CharField(max_length=20)
+    modulo = models.CharField(max_length=50)
+    descripcion = models.TextField()
+    fecha = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        managed = False
+        db_table = 'auditoria'
+        ordering = ['-fecha']
+
+    def __str__(self):
+        return f"[{self.accion}] {self.modulo}: {self.descripcion[:50]}"

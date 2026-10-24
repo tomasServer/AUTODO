@@ -14,6 +14,7 @@ from xhtml2pdf import pisa
 from django.template.loader import render_to_string
 from django.http import HttpResponse
 import re
+from .gestion_administrativa import registrar_auditoria  # 🆕 Importamos auditoría
 
 
 def _revisar_estado_orden(orden):
@@ -194,14 +195,8 @@ def crear_orden(request):
         cliente = None
         cliente_creado = False
 
-        print(f"\n🔍 DEBUG crear_orden:")
-        print(f"   CI recibido: '{cliente_ci}'")
-        print(f"   Nombre recibido: '{cliente_nombre}'")
-        print(f"   Placa: '{placa_norm}' | VIN: '{vin_norm}'")
-
         if cliente_ci:
             cliente_existente = Cliente.objects.filter(ci=cliente_ci).first()
-            print(f"   Cliente encontrado por CI: {cliente_existente}")
 
             if cliente_existente:
                 cambios = []
@@ -217,9 +212,6 @@ def crear_orden(request):
 
                 if cambios:
                     cliente_existente.save(update_fields=cambios)
-                    print(f"   ✏️ Cliente actualizado: {cambios}")
-                else:
-                    print(f"   ⏭️ Cliente existente sin cambios")
 
                 cliente = cliente_existente
 
@@ -231,10 +223,8 @@ def crear_orden(request):
                     ci=cliente_ci,
                 )
                 cliente_creado = True
-                print(f"   🆕 CLIENTE NUEVO CREADO: {cliente.nombre} (id={cliente.id})")
 
         else:
-            print(f"   ⚠️ CI vacío, buscando por teléfono")
             if cliente_telefono:
                 cliente = Cliente.objects.filter(telefono=cliente_telefono).first()
                 if cliente:
@@ -346,6 +336,11 @@ def crear_orden(request):
             orden.observacion_general = observacion
             orden.estado_orden = 'PENDIENTE'
             orden.save()
+            
+            # 🆕 REGISTRAR AUDITORÍA
+            ident_visita = vehiculo.placa or vehiculo.vin or f'#{vehiculo.id}'
+            registrar_auditoria(request, 'EDITAR', 'TALLER', f'Convirtió la Visita #{orden.id} en Orden formal para {ident_visita}.')
+            
             messages.info(request, f'Visita #{orden.id} convertida a PENDIENTE.')
         else:
             orden = OrdenTrabajo.objects.create(
@@ -358,6 +353,10 @@ def crear_orden(request):
                 fecha_ingreso=timezone.now(),
                 fecha_creacion=timezone.now(),
             )
+            
+            # 🆕 REGISTRAR AUDITORÍA
+            ident_nueva = vehiculo.placa or vehiculo.vin or f'#{vehiculo.id}'
+            registrar_auditoria(request, 'CREAR', 'TALLER', f'Creó la Orden #{orden.id} para el vehículo {ident_nueva}.')
 
         # 🆕 Avisar cliente nuevo
         if cliente_creado:
@@ -677,7 +676,9 @@ def cambiar_estado_servicio(request, detalle_id):
     return redirect('taller_detalle', orden_id=orden.id)
 
 
+# ============================================================
 # HALLAZGOS
+# ============================================================
 
 def agregar_hallazgo_orden(request, orden_id):
     orden = get_object_or_404(OrdenTrabajo, id=orden_id)
@@ -701,9 +702,9 @@ def agregar_hallazgo_orden(request, orden_id):
     return redirect('taller_detalle', orden_id=orden.id)
 
 
-
+# ============================================================
 # EDITAR PRECIO DE SERVICIO
-
+# ============================================================
 
 @login_required
 def editar_precio_servicio(request, detalle_id):
@@ -745,6 +746,9 @@ def eliminar_servicio_orden(request, detalle_id):
     # ✅ Revisar estado de la orden después de eliminar
     _revisar_estado_orden(orden)
     
+    # 🆕 REGISTRAR AUDITORÍA
+    registrar_auditoria(request, 'ELIMINAR', 'TALLER', f'Eliminó el servicio "{nombre}" de la orden #{orden.id}.')
+    
     messages.success(request, f'Servicio "{nombre}" eliminado de la orden.')
     return redirect('taller_detalle', orden_id=orden.id)
 
@@ -761,6 +765,10 @@ def eliminar_producto_orden(request, detalle_id):
     
     nombre = producto.nombre if producto else 'Producto'
     detalle.delete()
+    
+    # 🆕 REGISTRAR AUDITORÍA
+    registrar_auditoria(request, 'ELIMINAR', 'TALLER', f'Eliminó el producto "{nombre}" de la orden #{orden.id} y devolvió el stock.')
+    
     messages.success(request, f'Producto "{nombre}" eliminado. Stock devuelto.')
     return redirect('taller_detalle', orden_id=orden.id)
 
@@ -798,7 +806,7 @@ def cancelar_visita(request):
                                 estado='PENDIENTE',
                             )
                 
-                # Guardar productos adicionales (SQL crudo)
+                # Guardar productos adicionales
                 for key in request.POST:
                     if key.startswith('producto_') and not key.startswith('precio_producto_'):
                         num = key.split('_')[-1]
@@ -810,7 +818,6 @@ def cancelar_visita(request):
                             producto = get_object_or_404(Producto, id=producto_id)
                             cantidad_int = int(cantidad) if cantidad else 1
                             precio_u = float(precio) if precio else float(producto.precio_venta)
-                            
                             DetalleProducto.objects.create(
                                 id_orden=orden,
                                 id_producto=producto,
@@ -825,6 +832,10 @@ def cancelar_visita(request):
                 
                 orden.estado_orden = 'CANCELADA'
                 orden.save()
+                
+                # 🆕 REGISTRAR AUDITORÍA
+                registrar_auditoria(request, 'EDITAR', 'TALLER', f'Canceló la Visita #{orden.id} del vehículo {placa}.')
+                
                 messages.success(request, 'Visita guardada como cancelada con los servicios cotizados')
             else:
                 messages.warning(request, 'No se encontró visita activa')
@@ -851,13 +862,9 @@ def convertir_visita_en_orden(request, orden_id):
     return redirect(f'/orden/crear/?visita_id={orden.id}')
 
 
-
-    # ============================================================
+# ============================================================
 # GENERAR PDF DE LA ORDEN (xhtml2pdf)
 # ============================================================
-
-
-
 
 def orden_pdf(request, orden_id):
     """Genera un PDF con los servicios, insumos y totales de la orden."""
