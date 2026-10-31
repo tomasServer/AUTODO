@@ -2,51 +2,104 @@
 {% block title %}Nueva Orden{% endblock %}
 
 {% block extra_css %}
+<!-- Select2 CSS -->
 <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 <style>
-    .select2-container { min-width: 0 !important; }
-    .select2-container--default .select2-selection--single {
-        height: 38px;
-        border: 1px solid #bdc3c7;
-    }
-    .select2-container--default .select2-selection--single .select2-selection__rendered {
-        line-height: 36px;
-    }
-    .select2-container--default .select2-selection--single .select2-selection__arrow {
-        height: 36px;
-    }
+    .select2-container { min-width: 150px; }
+    .select2-container .select2-selection--single { height: 38px; padding: 5px; border: 1px solid #bdc3c7; }
+    .select2-container--default .select2-selection--single .select2-selection__rendered { line-height: 26px; }
+    .select2-container--default .select2-selection--single .select2-selection__arrow { height: 36px; }
+    .grid-5 { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; }
+    @media (max-width: 1100px) { .grid-5 { grid-template-columns: repeat(3, 1fr); } }
+    @media (max-width: 700px) { .grid-5 { grid-template-columns: 1fr; } }
+    #info-vehiculo { animation: fadeIn 0.3s ease-in; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
 </style>
 {% endblock %}
 
 {% block content %}
 
-<h2>Nueva Orden de Trabajo</h2>
+<!-- ====== REVISIÓN Y VISITA ====== -->
+{% if revision_detalle %}
+<div class="card">
+    <h4>Revisión del Vehículo</h4>
+    <p><strong>Estado:</strong> {{ revision_detalle.porcentaje }}%</p>
+    {% if revision_detalle.resumen.malo %}<p><strong>MALO:</strong> {{ revision_detalle.resumen.malo|join:", " }}</p>{% endif %}
+    {% if revision_detalle.resumen.regular %}<p><strong>REGULAR:</strong> {{ revision_detalle.resumen.regular|join:", " }}</p>{% endif %}
+    {% if revision_detalle.resumen.ok %}<p><strong>OK:</strong> {{ revision_detalle.resumen.ok|join:", " }}</p>{% endif %}
+    <details>
+        <summary style="cursor:pointer;">Ver todos los componentes</summary>
+        <ul style="margin-top:8px; padding-left:20px;">
+            {% for comp in revision_detalle.componentes %}
+            <li>
+                {{ comp.nombre }} - <strong>{{ comp.estado }}</strong>
+                {% if comp.nota %}<span style="color:#e67e22; font-size:0.85rem; margin-left:5px;">📝 {{ comp.nota }}</span>{% endif %}
+            </li>
+            {% endfor %}
+        </ul>
+    </details>
+</div>
+{% endif %}
+
+<!-- ====== MENSAJE DE VISITA ====== -->
+{% if orden_visita %}
+    {% if not es_nueva_visita %}
+    <div class="card">
+        <p><strong>Convirtiendo visita {{ orden_visita.id }}</strong></p>
+        <p style="margin:0;">Esta orden está en <strong>VISITA</strong>. Al guardar, pasará a <strong>PENDIENTE</strong>.</p>
+    </div>
+    {% else %}
+    <div class="card">
+        <p><strong>Revisión Rápida Guardada</strong></p>
+        <p style="margin:0;">Visita {{ orden_visita.id }} creada. Agrega servicios para convertirla en orden formal.</p>
+    </div>
+    {% endif %}
+{% endif %}
 
 <div class="card">
     <form method="POST" id="ordenForm" autocomplete="off">
         {% csrf_token %}
 
-        <!-- FILA 1 -->
-        <div class="grid grid-3">
+        <div class="grid grid-5">
             <div>
-                <label>Placa *</label>
-                <input type="text" name="placa" id="placa" required maxlength="8" 
-                       style="text-transform:uppercase;" oninput="validarPlaca(this)" 
-                       value="{{ placa|default:'' }}">
+                <label>Placa <small style="color:#7f8c8d; font-weight:normal;">(o llena el VIN)</small></label>
+                <input type="text" name="placa" id="placa" maxlength="8"
+                    style="text-transform:uppercase;" oninput="validarPlaca(this)"
+                    placeholder="ej: abc123 sin (-)guion"
+                    value="{{ placa|default:'' }}"
+                    {% if bloqueado %}readonly style="text-transform:uppercase; background:#f8f9fa; cursor:not-allowed;"{% endif %}>
+                {% if bloqueado %}
+                <small style="color:#7f8c8d; font-size:0.75rem;">🔒 Placa ya definida</small>
+                {% else %}
+                <small style="color:#7f8c8d; font-size:0.72rem;">3-8 letras. ej: abc123 sin "-"guion</small>
+                {% endif %}
             </div>
             <div>
                 <label>Cliente *</label>
-                <input type="text" name="cliente_nombre" id="cliente_nombre" maxlength="100" required
-                       oninput="validarNombre(this)" placeholder="Nombre del cliente...">
+                <input type="text" name="cliente_nombre" id="cliente_nombre" maxlength="30" required
+                       oninput="validarNombre(this)" placeholder="Nombre del cliente"
+                       value="{{ cliente.nombre|default:'' }}">
+            </div>
+            <div>
+                <label>Apellido *</label>
+                <input type="text" name="cliente_apellido" id="cliente_apellido" maxlength="30" required
+                       oninput="validarNombre(this)" placeholder="Apellido"
+                       value="{{ cliente.apellido|default:'' }}">
+            </div>
+            <div>
+                <label>CI *</label>
+                <input type="text" name="cliente_ci" id="cliente_ci" maxlength="20" required
+                       oninput="validarCI(this)" placeholder="Ej: 12345678"
+                       value="{{ cliente.ci|default:'' }}">
             </div>
             <div>
                 <label>Teléfono *</label>
                 <input type="tel" name="cliente_telefono" id="cliente_telefono" maxlength="8" required
-                       oninput="validarTelefono(this)" placeholder="Ej: 77712345">
+                       oninput="validarTelefono(this)" placeholder="Ej: 77712345"
+                       value="{{ cliente.telefono|default:'' }}">
             </div>
         </div>
 
-        <!-- FILA 2 -->
         <div class="grid grid-4 mt-10">
             <div>
                 <label>Encargado de Revisión *</label>
@@ -58,7 +111,7 @@
                 </select>
             </div>
             <div>
-                <label>Complejidad *</label>
+                <label>Calidad de orden*</label>
                 <select name="complejidad_id" id="complejidad_id" required>
                     <option value="">Seleccione...</option>
                     {% for comp in complejidades %}
@@ -68,7 +121,8 @@
             </div>
             <div>
                 <label>Kilometraje *</label>
-                <input type="number" name="kilometraje" id="kilometraje" value="0" min="0" required>
+                <input type="number" name="kilometraje" id="kilometraje" required
+                       value="{{ vehiculo.kilometraje_actual|default:'0' }}" min="0">
             </div>
             <div style="display:flex; align-items:flex-end;">
                 <button type="button" onclick="toggleExtra()" class="btn btn-warning btn-sm">+ Más datos</button>
@@ -80,42 +134,43 @@
             <div class="grid grid-2">
                 <div>
                     <label>Año del Vehículo</label>
-                    <input type="number" name="anio" min="1950" max="2026">
+                    <input type="number" name="anio" min="1950" max="2026" value="{{ vehiculo.anio|default:'' }}">
                 </div>
                 <div>
                     <label>Color</label>
-                    <input type="text" name="color" maxlength="30">
+                    <input type="text" name="color" maxlength="30" value="{{ vehiculo.color|default:'' }}">
                 </div>
                 <div>
-                    <label>VIN (Chasis)</label>
-                    <input type="text" name="vin" maxlength="17" style="text-transform:uppercase;" 
-                           oninput="this.value = this.value.toUpperCase()">
+                    <label>VIN (Chasis) <small id="vin-contador" style="color:#7f8c8d; font-weight:normal;">0/17</small></label>
+                    <input type="text" name="vin" id="vin" maxlength="17"
+                        style="text-transform:uppercase; font-family: monospace;"
+                        oninput="validarVIN(this)"
+                        placeholder="Ej: 1ASDF21ASDF123456"
+                        value="{{ vin|default:'' }}"
+                        {% if bloqueado %}readonly style="text-transform:uppercase; font-family: monospace; background:#f8f9fa; cursor:not-allowed;"{% endif %}>
+                    <small style="color:#7f8c8d; font-size:0.72rem;">
+                        {% if bloqueado %}🔒 El VIN no se puede modificar{% else %}Máximo 17 caracteres. Solo letras y números.{% endif %}
+                    </small>
                 </div>
                 <div>
                     <label>Observaciones</label>
-                    <textarea name="observacion" rows="2" maxlength="500"></textarea>
+                    <textarea name="observacion" rows="2" maxlength="500">{{ orden_visita.observacion_general|default:'' }}</textarea>
                 </div>
             </div>
         </div>
 
-        <!-- SERVICIOS -->
         <div class="mt-20">
             <label>Servicios</label>
-            <small class="text-muted" style="display:block; margin-bottom:5px; font-size:0.75rem;">
-                Solo puedes agregar servicios rápidos (menos de 30 minutos)
-            </small>
             <div id="serviciosAdicionales"></div>
             <button type="button" onclick="agregarServicio()" class="btn btn-primary btn-sm mt-10">+ Agregar Servicio</button>
         </div>
 
-        <!-- INSUMOS -->
         <div class="mt-20">
             <label>Insumos</label>
             <div id="productosAdicionales"></div>
             <button type="button" onclick="agregarProducto()" class="btn btn-primary btn-sm mt-10">+ Agregar Insumo</button>
         </div>
 
-        <!-- TOTAL -->
         <div class="mt-20">
             <div class="flex-between" style="padding:15px; background:#fef9e7; border-radius:4px;">
                 <strong>Total:</strong>
@@ -123,10 +178,11 @@
             </div>
         </div>
 
-        <!-- BOTONES -->
         <div class="flex mt-20" style="justify-content:flex-end;">
             <button type="button" onclick="cancelarVisita()" class="btn btn-danger">Guardar y Salir</button>
-            <button type="submit" class="btn btn-primary btn-lg">Crear Orden</button>
+            <button type="submit" class="btn btn-primary btn-lg">
+                {% if orden_visita %}Convertir en Orden{% else %}Crear Orden{% endif %}
+            </button>
         </div>
     </form>
 </div>
@@ -138,37 +194,34 @@
     var contadorServicios = 0;
     var contadorProductos = 0;
 
-    function validarPlaca(input) {
+    function validarPlaca(input) { input.value = input.value.toUpperCase().replace(/[^A-Z0-9]/g, ''); if (input.value.length > 8) input.value = input.value.slice(0, 8); }
+    function validarTelefono(input) { input.value = input.value.replace(/[^0-9]/g, ''); if (input.value.length > 8) input.value = input.value.slice(0, 8); }
+    function validarNombre(input) { input.value = input.value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ\s]/g, ''); if (input.value.length > 30) input.value = input.value.slice(0, 30); }
+
+    function validarCI(input) {
+        let val = input.value.toUpperCase();
+        const partes = val.split('-');
+        if (partes.length > 2) { val = partes[0] + '-' + partes.slice(1).join(''); partes.length = 0; partes.push(...val.split('-')); }
+        let numeros = partes[0].replace(/[^0-9]/g, '');
+        let complemento = partes[1] !== undefined ? partes[1].replace(/[^A-Z0-9]/g, '') : null;
+        if (numeros.length > 11) numeros = numeros.slice(0, 11);
+        if (complemento && complemento.length > 2) { complemento = complemento.slice(0, 2); }
+        input.value = complemento !== null ? numeros + '-' + complemento : numeros;
+    }
+
+    function validarVIN(input) {
         input.value = input.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
-        if (input.value.length > 8) input.value = input.value.slice(0, 8);
-    }
-    function validarTelefono(input) {
-        input.value = input.value.replace(/[^0-9]/g, '');
-        if (input.value.length > 8) input.value = input.value.slice(0, 8);
-    }
-    function validarNombre(input) {
-        input.value = input.value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ\s]/g, '');
-        if (input.value.length > 100) input.value = input.value.slice(0, 100);
+        if (input.value.length > 17) input.value = input.value.slice(0, 17);
+        const contador = document.getElementById('vin-contador');
+        if (!contador) return;
+        const len = input.value.length;
+        if (len === 0) { contador.textContent = '0/17'; contador.style.color = '#7f8c8d'; contador.style.fontWeight = 'normal'; }
+        else if (len === 17) { contador.textContent = len + '/17'; contador.style.color = '#27ae60'; contador.style.fontWeight = 'bold'; }
+        else { contador.textContent = len +  '/17'; contador.style.color = '#7f8c8d'; contador.style.fontWeight = 'bold'; }
     }
 
-    function toggleExtra() {
-        var extra = document.getElementById('extra');
-        var btn = event.target;
-        if (extra.classList.contains('hidden')) {
-            extra.classList.remove('hidden');
-            btn.textContent = '- Menos datos';
-        } else {
-            extra.classList.add('hidden');
-            btn.textContent = '+ Más datos';
-        }
-    }
-
-    function cancelarVisita() {
-        if (confirm('¿El cliente se va sin reparar? Se guardará como cancelada.')) {
-            document.getElementById('ordenForm').action = "{% url 'cancelar_visita' %}";
-            document.getElementById('ordenForm').submit();
-        }
-    }
+    function toggleExtra() { var extra = document.getElementById('extra'); var btn = event.target; if (extra.classList.contains('hidden')) { extra.classList.remove('hidden'); btn.textContent = '- Menos datos'; } else { extra.classList.add('hidden'); btn.textContent = '+ Más datos'; } }
+    function cancelarVisita() { if (confirm('¿El cliente se va sin reparar? Se guardará como cancelada.')) { document.getElementById('ordenForm').action = "{% url 'cancelar_visita' %}"; document.getElementById('ordenForm').submit(); } }
 
     function agregarServicio() {
         contadorServicios++;
@@ -178,27 +231,18 @@
         div.innerHTML = `
             <select name="servicio_id_${contadorServicios}" class="servicio-select" style="flex:2; min-width:150px;">
                 <option value="">Seleccione servicio...</option>
-                {% for s in servicios %}
-                <option value="{{ s.id }}" data-precio="{{ s.precio_mano_obra }}">{{ s.nombre }} - Bs. {{ s.precio_mano_obra }}</option>
-                {% endfor %}
+                {% for s in servicios %}<option value="{{ s.id }}" data-precio="{{ s.precio_mano_obra }}">{{ s.nombre }} - Bs. {{ s.precio_mano_obra }}</option>{% endfor %}
             </select>
             <input type="number" name="precio_servicio_${contadorServicios}" step="0.01" value="0.00" placeholder="Precio" style="width:110px;">
             <select name="mecanico_${contadorServicios}" class="mecanico-select" style="flex:1; min-width:120px;">
                 <option value="">Mecánico...</option>
-                {% for mec in mecanicos %}
-                <option value="{{ mec.id }}">{{ mec.nombre_completo }}</option>
-                {% endfor %}
+                {% for mec in mecanicos %}<option value="{{ mec.id }}">{{ mec.nombre_completo }}</option>{% endfor %}
             </select>
             <button type="button" class="btn btn-danger btn-sm">Quitar</button>
         `;
         document.getElementById('serviciosAdicionales').appendChild(div);
-        
         $(div).find('.servicio-select').select2({ placeholder: 'Buscar servicio...', allowClear: true, width: '100%' });
-        $(div).find('.servicio-select').on('change', function() {
-            var precio = $(this).find('option:selected').data('precio') || '0';
-            $(div).find('input[type="number"]').val(precio);
-            actualizarTotal();
-        });
+        $(div).find('.servicio-select').on('change', function() { var precio = $(this).find('option:selected').data('precio') || '0'; $(div).find('input[type="number"]').val(precio); actualizarTotal(); });
         $(div).find('input[type="number"]').on('input', actualizarTotal);
         $(div).find('button').on('click', function() { $(div).remove(); actualizarTotal(); });
     }
@@ -211,22 +255,15 @@
         div.innerHTML = `
             <select name="producto_id_${contadorProductos}" class="producto-select" style="flex:2; min-width:150px;">
                 <option value="">Seleccione insumo...</option>
-                {% for p in productos %}
-                <option value="{{ p.id }}" data-precio="{{ p.precio_venta }}">{{ p.nombre }} - Bs. {{ p.precio_venta }}</option>
-                {% endfor %}
+                {% for p in productos %}<option value="{{ p.id }}" data-precio="{{ p.precio_venta }}">{{ p.nombre }} - Bs. {{ p.precio_venta }}</option>{% endfor %}
             </select>
             <input type="number" name="cantidad_${contadorProductos}" value="1" min="1" placeholder="Cant." style="width:70px;">
             <input type="number" name="precio_producto_${contadorProductos}" step="0.01" value="0.00" placeholder="Precio" style="width:110px;">
             <button type="button" class="btn btn-danger btn-sm">Quitar</button>
         `;
         document.getElementById('productosAdicionales').appendChild(div);
-        
         $(div).find('.producto-select').select2({ placeholder: 'Buscar insumo...', allowClear: true, width: '100%' });
-        $(div).find('.producto-select').on('change', function() {
-            var precio = $(this).find('option:selected').data('precio') || '0';
-            $(div).find('input[type="number"]').eq(1).val(precio);
-            actualizarTotal();
-        });
+        $(div).find('.producto-select').on('change', function() { var precio = $(this).find('option:selected').data('precio') || '0'; $(div).find('input[type="number"]').eq(1).val(precio); actualizarTotal(); });
         $(div).find('input[type="number"]').on('input', actualizarTotal);
         $(div).find('button').on('click', function() { $(div).remove(); actualizarTotal(); });
     }
@@ -245,16 +282,40 @@
 
     document.getElementById('ordenForm').addEventListener('submit', function(e) {
         var placa = document.getElementById('placa');
-        if (!placa.value.trim()) { e.preventDefault(); alert('⚠️ La placa es obligatoria.'); placa.focus(); return; }
-        var cliente = document.getElementById('cliente_nombre');
-        if (!cliente.value.trim()) { e.preventDefault(); alert('⚠️ El nombre del cliente es obligatorio.'); cliente.focus(); return; }
-        var telefono = document.getElementById('cliente_telefono');
-        if (!telefono.value.trim()) { e.preventDefault(); alert('⚠️ El teléfono es obligatorio.'); telefono.focus(); return; }
-        var supervisor = document.getElementById('supervisor_id');
-        if (!supervisor.value) { e.preventDefault(); alert('⚠️ Debe seleccionar un Encargado.'); supervisor.focus(); return; }
-        var complejidad = document.getElementById('complejidad_id');
-        if (!complejidad.value) { e.preventDefault(); alert('⚠️ Debe seleccionar una Complejidad.'); complejidad.focus(); return; }
+        var vin = document.getElementById('vin');
+        var placaVal = placa.value.trim();
+        var vinVal = vin ? vin.value.trim() : '';
+        if (!placaVal && !vinVal) { e.preventDefault(); alert('⚠️ Debes ingresar al menos Placa o VIN.'); placa.focus(); return; }
+        if (placaVal && (placaVal.length < 3 || placaVal.length > 8)) { e.preventDefault(); alert(`⚠️ La placa debe tener entre 3 y 8 caracteres.\nActualmente tiene ${placaVal.length}.`); placa.focus(); return; }
+        if (vinVal && vinVal.length !== 17) { e.preventDefault(); const diff = 17 - vinVal.length; alert(`⚠️ El VIN debe tener exactamente 17 caracteres.\nLe faltan ${diff} carácter(es).`); vin.focus(); return; }
+        
+        var ci = document.getElementById('cliente_ci');
+        if (!/^[0-9]{7,11}(-[A-Z0-9]{1,2})?$/.test(ci.value.trim())) { e.preventDefault(); alert('⚠️ El CI no tiene un formato válido.'); ci.focus(); return; }
+    });
+
+    document.addEventListener('DOMContentLoaded', function () {
+        const vinInputInit = document.getElementById('vin');
+        if (vinInputInit && vinInputInit.value) { validarVIN(vinInputInit); }
+        
+        const placaInput = document.getElementById('placa');
+        if (placaInput) {
+            placaInput.addEventListener('blur', function () {
+                const valor = this.value.trim().toUpperCase();
+                if (!valor || valor.length < 3) return;
+                fetch(`/api/vehiculo/?placa=${encodeURIComponent(valor)}`).then(r => r.json()).then(data => {
+                    if (!data.existe) return;
+                    const v = data.vehiculo; const c = data.cliente;
+                    document.getElementById('anio').value = v.anio || '';
+                    document.getElementById('color').value = v.color || '';
+                    document.getElementById('vin').value = v.vin || '';
+                    document.getElementById('kilometraje').value = v.kilometraje || '';
+                    document.getElementById('cliente_nombre').value = c.nombre || '';
+                    document.getElementById('cliente_apellido').value = c.apellido || '';
+                    document.getElementById('cliente_telefono').value = c.telefono || '';
+                    document.getElementById('cliente_ci').value = c.ci || '';
+                });
+            });
+        }
     });
 </script>
-
 {% endblock %}

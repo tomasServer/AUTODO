@@ -1,4 +1,4 @@
-{% extends 'gestion_vehicular/jefe_mecanico/base_Jefe.html' %}
+{% extends 'gestion_vehicular/jefe_mecanico/base_jefe.html' %}
 {% block title %}Taller - Orden Nº {{ orden.id }}{% endblock %}
 
 {% block extra_css %}
@@ -43,7 +43,7 @@
                 <span style="color:#e67e22; font-style:italic;">Sin placa</span>
             {% endif %}
         </div>
-        <div><strong>Complejidadd:</strong> {{ orden.id_complejidad.nombre|default:"No asignado" }}</div>
+        <div><strong>Complejidad:</strong> {{ orden.id_complejidad.nombre|default:"No asignado" }}</div>
         <div><strong>Cliente:</strong> {{ orden.id_vehiculo.id_cliente.nombre|default:"Sin cliente" }} {{ orden.id_vehiculo.id_cliente.apellido|default:"" }}</div>
         <div>
             <strong>Estado:</strong>
@@ -79,23 +79,14 @@
         {% regroup servicios_detalle by estado as servicios_por_estado %}
 
         {% for grupo in servicios_por_estado %}
-            <!-- TÍTULO DEL GRUPO -->
             <h4 class="grupo-servicio">
-                {% if grupo.grouper == 'PENDIENTE' %}
-                    ⏳ Pendientes
-                {% elif grupo.grouper == 'EN_PROCESO' %}
-                    🔧 En Proceso
-                {% elif grupo.grouper == 'FINALIZADO' %}
-                    ✅ Finalizados
-                {% else %}
-                    {{ grupo.grouper }}
-                {% endif %}
-                <span style="color:#7f8c8d; font-weight:normal; font-size:0.8rem;">
-                    ({{ grupo.list|length }})
-                </span>
+                {% if grupo.grouper == 'PENDIENTE' %}⏳ Pendientes
+                {% elif grupo.grouper == 'EN_PROCESO' %}🔧 En Proceso
+                {% elif grupo.grouper == 'FINALIZADO' %}✅ Finalizados
+                {% else %}{{ grupo.grouper }}{% endif %}
+                <span style="color:#7f8c8d; font-weight:normal; font-size:0.8rem;">({{ grupo.list|length }})</span>
             </h4>
 
-            <!-- SERVICIOS DEL GRUPO -->
             {% for detalle in grupo.list %}
             <div style="padding:10px 0; border-bottom:1px solid #ecf0f1;">
                 <div class="flex-between flex-wrap">
@@ -132,7 +123,6 @@
                 </div>
 
                 {% if user.id_rol_id == 1 or detalle.id_mecanico_id == user.id or es_encargado %}
-                <!-- 🆕 BOTONES DE ESTADO CON ATENUACIÓN -->
                 <div class="flex flex-wrap botones-estado" style="margin-top:8px;">
                     <form method="POST" action="{% url 'cambiar_estado_servicio' detalle.id %}" class="inline-form">
                         {% csrf_token %}
@@ -362,7 +352,6 @@
         document.getElementById('editarPrecio-' + detalleId).style.display = 'none';
     }
 
-    // 🆕 Función para atenuar los otros botones al hacer clic
     function atenuarBotones(botonClickeado) {
         var contenedor = botonClickeado.closest('.botones-estado');
         if (!contenedor) return;

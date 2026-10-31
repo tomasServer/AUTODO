@@ -3,39 +3,44 @@
 
 {% block content %}
 
-<h2>Panel de Ayudante</h2>
+<h1 style="color:#1a252f; font-size:1.3rem;">Panel de Ayudante</h1>
+<p class="text-muted" style="margin-bottom:15px; font-size:0.85rem;">{{ hoy|date:"l d \d\e F \d\e Y" }}</p>
 
-<!-- ============ MIS ÓRDENES PENDIENTES ============ -->
+<!-- ============ ÓRDENES ASIGNADAS ============ -->
 <div class="card">
-    <h3>Mis Órdenes Pendientes</h3>
+    <h3>Mis Órdenes Asignadas</h3>
     {% if ordenes_trabajo %}
-    <div class="table-responsive scroll-y" style="max-height:300px;">
+    <div class="scroll-y" style="max-height:250px;">
         <table>
             <thead>
                 <tr>
-                    <th>Nº Orden</th>
-                    <th>Placa</th>
+                    <th>Orden</th>
+                    <th>Placa / VIN</th>
                     <th>Vehículo</th>
                     <th>Estado</th>
-                    <th>Acción</th>
+                    <th>Acciones</th>
                 </tr>
             </thead>
             <tbody>
-                {% for orden in ordenes_trabajo %}
+                {% for o in ordenes_trabajo %}
                 <tr>
-                    <td><strong>Nº {{ orden.id }}</strong></td>
-                    <td>{{ orden.id_vehiculo.placa }}</td>
-                    <td>{{ orden.id_vehiculo.marca|default:"" }} {{ orden.id_vehiculo.modelo|default:"" }}</td>
+                    <td><strong>Nº {{ o.id }}</strong></td>
+                    <td>
+                        {% if o.id_vehiculo.placa %}{{ o.id_vehiculo.placa }}
+                        {% elif o.id_vehiculo.vin %}<span style="font-family:monospace; font-size:0.8rem;">{{ o.id_vehiculo.vin }}</span>
+                        {% else %}<span style="color:#e67e22; font-style:italic;">Sin placa</span>{% endif %}
+                    </td>
+                    <td>{{ o.id_vehiculo.marca|default:"" }} {{ o.id_vehiculo.modelo|default:"" }}</td>
                     <td>
                         <span class="badge 
-                            {% if orden.estado_orden == 'EN_PROCESO' %}badge-info
-                            {% elif orden.estado_orden == 'VISITA' %}badge-info
+                            {% if o.estado_orden == 'EN_PROCESO' %}badge-info
+                            {% elif o.estado_orden == 'VISITA' %}badge-primary
                             {% else %}badge-warning{% endif %}">
-                            {{ orden.estado_orden }}
+                            {{ o.estado_orden }}
                         </span>
                     </td>
                     <td>
-                        <a href="{% url 'taller_detalle' orden.id %}" class="btn btn-warning btn-sm">Trabajar</a>
+                        <a href="{% url 'trabajar_orden_ayudante' o.id %}" class="btn btn-warning btn-sm">Trabajar</a>
                     </td>
                 </tr>
                 {% endfor %}
@@ -43,15 +48,15 @@
         </table>
     </div>
     {% else %}
-    <p class="text-muted">No tienes órdenes pendientes.</p>
+    <p class="text-muted">No tienes órdenes asignadas por ahora.</p>
     {% endif %}
 </div>
 
-<!-- ============ MIS VENTAS RÁPIDAS DE HOY ============ -->
+<!-- ============ VENTAS RÁPIDAS DE HOY ============ -->
 <div class="card">
     <h3>Mis Ventas Rápidas de Hoy</h3>
     {% if ventas_rapidas_lista %}
-    <div class="table-responsive scroll-y" style="max-height:250px;">
+    <div class="scroll-y" style="max-height:200px;">
         <table>
             <thead>
                 <tr>
@@ -63,7 +68,7 @@
             <tbody>
                 {% for v in ventas_rapidas_lista %}
                 <tr>
-                    <td>Nº {{ v.id }}</td>
+                    <td>#{{ v.id }}</td>
                     <td>{{ v.fecha_venta|date:"H:i" }}</td>
                     <td><strong>Bs. {{ v.total|floatformat:2 }}</strong></td>
                 </tr>
@@ -72,7 +77,7 @@
         </table>
     </div>
     {% else %}
-    <p class="text-muted">No has vendido productos hoy.</p>
+    <p class="text-muted">No has registrado ventas hoy.</p>
     {% endif %}
 </div>
 

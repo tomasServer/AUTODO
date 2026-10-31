@@ -374,7 +374,7 @@ class Vehiculo(models.Model):
 
     def __str__(self):
         ident = self.placa or self.vin or f"# {self.pk}"
-        return f"{ident} - {self.marca or ''} {self.modelo or ''}".sprit(' -')
+        return f"{ident} - {self.marca or ''} {self.modelo or ''}".strip(' -')
 
 
 #ventas............................

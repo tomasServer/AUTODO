@@ -259,7 +259,6 @@ def crear_insumo(request):
             activo=True
         )
         
-        # 🆕 REGISTRAR AUDITORÍA
         registrar_auditoria(request, 'CREAR', 'INSUMOS', f'Creó el insumo "{producto.nombre}" con stock {producto.stock_actual}')
         
         messages.success(request, 'Producto agregado')

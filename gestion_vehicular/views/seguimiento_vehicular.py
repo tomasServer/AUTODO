@@ -14,12 +14,13 @@ from .gestion_administrativa import registrar_auditoria # 🆕 Importamos audito
 
 
 def buscar_vehiculo(request):
-    busqueda = request.GET.get('placa', '').strip()  # Acepta placa o VIN
+    busqueda = request.GET.get('placa', '').strip()
     vehiculo = None
     ordenes = None
+    resultados = []
 
     if busqueda:
-        # 🔍 Buscar por placa O por VIN
+        # 🔍 Buscar si es una coincidencia EXACTA de Placa o VIN
         vehiculo = (
             Vehiculo.objects
             .filter(
@@ -29,6 +30,7 @@ def buscar_vehiculo(request):
         )
 
         if vehiculo:
+            # Si es exacto, traemos sus últimas 5 órdenes
             ordenes = (
                 OrdenTrabajo.objects
                 .filter(id_vehiculo=vehiculo)
@@ -39,7 +41,20 @@ def buscar_vehiculo(request):
                 total_productos = sum(d.subtotal_precio or 0 for d in orden.detalles_producto.all())
                 orden.total_orden = total_servicios + total_productos
         else:
-            messages.error(request, f'No se encontró el vehículo con placa/VIN "{busqueda}"')
+            # 🆕 Si NO es exacto, buscar coincidencias en Placa, VIN, Nombre o CI del cliente
+            if len(busqueda) >= 2:
+                resultados = (
+                    Vehiculo.objects
+                    .filter(
+                        Q(placa__icontains=busqueda) | 
+                        Q(vin__icontains=busqueda) |
+                        Q(id_cliente__nombre__icontains=busqueda) |
+                        Q(id_cliente__apellido__icontains=busqueda) |
+                        Q(id_cliente__ci__icontains=busqueda)
+                    )
+                    .select_related('id_cliente')
+                    .order_by('placa')[:50]
+                )
 
     # Elegir template según rol
     if request.user.id_rol_id == 2:  # JEFE
@@ -51,6 +66,7 @@ def buscar_vehiculo(request):
         'vehiculo': vehiculo,
         'ordenes': ordenes,
         'placa': busqueda,
+        'resultados': resultados,  # 🆕 Enviamos la lista de resultados
     })
 
 

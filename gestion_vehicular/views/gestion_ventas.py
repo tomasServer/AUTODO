@@ -6,12 +6,15 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.utils import timezone
 from django.contrib import messages
 from django.db import connection
-from ..models import Producto, VentaRapida, DetalleVentaRapida, Usuario, Cliente
-from decimal import Decimal
+from django.shortcuts import render, redirect, get_object_or_404
+from django.utils import timezone
 from django.http import HttpResponse
 from django.template.loader import render_to_string
 from xhtml2pdf import pisa
-from .gestion_administrativa import registrar_auditoria  # 🆕 Importamos auditoría
+from decimal import Decimal
+from ..models import Producto, VentaRapida, DetalleVentaRapida, Usuario, Cliente
+from .gestion_administrativa import registrar_auditoria
+
 
 def venta_rapida(request):
     """Muestra el formulario de venta rápida"""
@@ -78,7 +81,7 @@ def guardar_venta_rapida(request):
             fecha_venta=timezone.now(),
             registrado_por=request.user if request.user.is_authenticated else None,
             id_cliente=cliente,
-            metodo_pago=request.POST.get('metodo_pago', 'EFECTIVO'), # 🆕 Agregado método de pago
+            metodo_pago=request.POST.get('metodo_pago', 'EFECTIVO'),
         )
         
         total = Decimal('0.00')
@@ -145,7 +148,15 @@ def detalle_venta(request, venta_id):
     """Muestra el detalle de una venta rápida"""
     venta = get_object_or_404(VentaRapida, id=venta_id)
     
-    return render(request, 'gestion_vehicular/admin/gestion_ventas/detalle_venta.html', {
+    # 🆕 Elegir template según el rol
+    if request.user.id_rol_id == 2:  # JEFE
+        template = 'gestion_vehicular/jefe_mecanico/detalle_venta.html'
+    elif request.user.id_rol_id == 3:  # AYUDANTE
+        template = 'gestion_vehicular/ayudante/detalle_venta.html'
+    else:  # ADMIN
+        template = 'gestion_vehicular/admin/gestion_ventas/detalle_venta.html'
+    
+    return render(request, template, {
         'venta': venta,
     })
 

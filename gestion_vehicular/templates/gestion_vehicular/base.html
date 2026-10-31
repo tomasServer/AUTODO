@@ -83,10 +83,16 @@
         /* ========== SIDEBAR ========== */
         .sidebar { 
             width: 220px;
-            background: #1a252f;
+            background: #314557;
             color: #bdc3c7;
             padding: 1.2rem 0.8rem;
             flex-shrink: 0;
+            
+            /* 🆕 Hace que se quede fijo al bajar */
+            position: sticky;
+            top: 55px; /* Esto es el alto de tu navbar */
+            height: calc(100vh - 55px); /* Ocupa el resto de la pantalla */
+            overflow-y: auto; /* Por si hay muchos links en el menú */
         }
         
         .sidebar h3 { 
@@ -346,11 +352,26 @@
         }
 
         .footer {
-            pading: 1rem;
-            text-align: center;
+            display: flex;
+            justify-content: center; 
+            align-items: center;     
+            gap: 10px;               
+            padding: 5px 1rem;       /* 🆕 5px de alto en lugar de 1rem */
             background: #0E1113;
             color: #F2fafb;
+            font-size: 0.75rem;      /* 🆕 Letra un poco más pequeña */
         }
+
+        .footer .logo-img {
+            height: 20px;            /* 🆕 Logo más pequeño (antes 25px) */
+            width: auto;
+            margin: 0; 
+        }
+
+        .footer p {
+            margin: 0; 
+        }
+
         .logo-container {
             display: flex;
             align-items: center;
@@ -400,9 +421,6 @@
 <body>
     <nav class="navbar">
         <div class="logo-container">
-            <img src="{% static 'gestion_vehicular/img/logo.svg' %}"
-                alt="Logo AUTODO"
-                class="logo-img">
             <span class="logo">AUTODO</span>
         </div>
         <div class="navbar-links">
@@ -435,9 +453,12 @@
     
     {% block extra_js %}{% endblock %}
     {% block footer %}
+
     <footer class="footer">
-        <p> &copy; {%now "Y"%} DIAXO LT. Todos los derechos reservados.</p>
+        <img src="{% static 'gestion_vehicular/img/logo.svg' %}" alt="Logo AUTODO" class="logo-img">
+        <p>&copy; {% now "Y" %} DIAXO LT. Todos los derechos reservados.</p>
     </footer>
+
     {% endblock %}
 </body>
 </html>

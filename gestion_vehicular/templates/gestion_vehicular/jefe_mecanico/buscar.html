@@ -1,4 +1,4 @@
-{% extends 'gestion_vehicular/jefe_mecanico/base_Jefe.html' %}
+{% extends 'gestion_vehicular/jefe_mecanico/base_jefe.html' %}
 {% block title %}Buscar Vehículo{% endblock %}
 
 {% block content %}
@@ -8,17 +8,18 @@
 <div class="card">
     <form method="GET" action="{% url 'buscar_vehiculo' %}" class="flex flex-wrap" id="formBuscar" onsubmit="return validarBusqueda(event)">
         <input type="text" name="placa" id="busquedaInput"
-            placeholder="Ingrese Placa o VIN..."
+            placeholder="Buscar por Placa, VIN, Nombre o CI..."
             value="{{ placa }}"
             style="flex:1; min-width:200px; text-transform:uppercase;"
             oninput="limpiarYMayusculas(this)">
         <button type="submit" class="btn btn-primary">Buscar</button>
     </form>
     <small id="busqueda-helper" style="color:#7f8c8d; font-size:0.78rem; display:block; margin-top:6px;">
-        💡 Puedes buscar por <strong>placa</strong> 3-8 caracteres o por <strong>VIN</strong> 17 caracteres.
+        💡 Busca por Placa, VIN, Nombre o CI.
     </small>
 </div>
 
+<!-- ============ 1. SI ES UN RESULTADO EXACTO ============ -->
 {% if vehiculo %}
 <div class="card">
     <h3>Datos del Vehículo</h3>
@@ -52,20 +53,20 @@
     </div>
 
     <div class="flex flex-wrap mt-10">
-        <a href="{% url 'crear_orden' %}?vehiculo_id={{ vehiculo.id }}" class="btn btn-success">+ Nueva Orden</a>
+        <a href="{% url 'crear_orden' %}?vehiculo_id={{ vehiculo.id }}" class="btn btn-primary">+ Nueva Orden</a>
 
-        {# Revisión: usar placa si existe, si no el VIN #}
+        {# Revisión rápida: usar placa si existe, si no el VIN #}
         {% if vehiculo.placa %}
-        <a href="{% url 'revision_rapida_placa' %}?placa={{ vehiculo.placa }}" class="btn btn-warning">Revisión Rápida</a>
+        <a href="{% url 'revision_rapida_placa' %}?placa={{ vehiculo.placa }}" class="btn btn-warning">Revisión</a>
         {% elif vehiculo.vin %}
-        <a href="{% url 'revision_rapida_placa' %}?placa={{ vehiculo.vin }}" class="btn btn-warning">Revisión Rápida</a>
+        <a href="{% url 'revision_rapida_placa' %}?placa={{ vehiculo.vin }}" class="btn btn-warning">Revisión</a>
         {% endif %}
 
         {# Historial: usar placa si existe, si no el VIN #}
         {% if vehiculo.placa %}
-        <a href="{% url 'historial_vehiculo' vehiculo.placa %}" class="btn btn-info">Ver Historial</a>
+        <a href="{% url 'historial_vehiculo' vehiculo.placa %}" class="btn btn-gray">Ver Historial</a>
         {% elif vehiculo.vin %}
-        <a href="{% url 'historial_vehiculo' vehiculo.vin %}" class="btn btn-info">Ver Historial</a>
+        <a href="{% url 'historial_vehiculo' vehiculo.vin %}" class="btn btn-gray">Ver Historial</a>
         {% endif %}
     </div>
 </div>
@@ -73,37 +74,70 @@
 {% if ordenes %}
 <div class="card">
     <h3>Últimas Órdenes</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>Orden</th>
+                <th>Fecha Ingreso</th>
+                <th>Estado</th>
+                <th>Total</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for orden in ordenes %}
+            <tr>
+                <td><strong>Nº {{ orden.id }}</strong></td>
+                <td>{{ orden.fecha_ingreso|date:"d/m/Y H:i" }}</td>
+                <td><span class="badge {% if orden.estado_orden == 'COBRADA' %}badge-success{% elif orden.estado_orden == 'EN_PROCESO' %}badge-info{% else %}badge-warning{% endif %}">{{ orden.estado_orden }}</span></td>
+                <td>Bs. {{ orden.total_orden|floatformat:2|default:"0.00" }}</td>
+                <td class="flex">
+                    <a href="{% url 'detalle_orden' orden.id %}" class="btn btn-primary btn-sm">Ver</a>
+                    {% if orden.estado_orden == 'CANCELADA' %}
+                    <a href="{% url 'crear_orden' %}?orden_anterior_id={{ orden.id }}" class="btn btn-warning btn-sm">Usar Cotización</a>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endif %}
+
+<!-- ============ 2. SI HAY COINCIDENCIAS PARCIALES ============ -->
+{% elif resultados %}
+<div class="card">
+    <h3>Resultados para "{{ placa }}"</h3>
+    <p style="color:#7f8c8d; font-size:0.9rem; margin-bottom:15px;">
+        Selecciona un vehículo para ver su historial o crear una orden.
+    </p>
     <div class="table-responsive">
         <table>
             <thead>
                 <tr>
-                    <th>Orden</th>
-                    <th>Fecha Ingreso</th>
-                    <th>Estado</th>
-                    <th>Total</th>
+                    <th>Placa</th>
+                    <th>VIN</th>
+                    <th>Marca / Modelo</th>
+                    <th>Cliente</th>
+                    <th>CI</th>
                     <th>Acciones</th>
                 </tr>
             </thead>
             <tbody>
-                {% for orden in ordenes %}
+                {% for v in resultados %}
                 <tr>
-                    <td><strong>Nº {{ orden.id }}</strong></td>
-                    <td>{{ orden.fecha_ingreso|date:"d/m/Y H:i" }}</td>
+                    <td>{% if v.placa %}{{ v.placa }}{% else %}<span style="color:#e67e22; font-style:italic;">Sin placa</span>{% endif %}</td>
+                    <td>{% if v.vin %}<code style="font-size:0.8rem;">{{ v.vin }}</code>{% else %}—{% endif %}</td>
+                    <td>{{ v.marca|default:"" }} {{ v.modelo|default:"" }}</td>
+                    <td>{{ v.id_cliente.nombre|default:"-" }} {{ v.id_cliente.apellido|default:"" }}</td>
+                    <td>{{ v.id_cliente.ci|default:"—" }}</td>
                     <td>
-                        <span class="badge
-                            {% if orden.estado_orden == 'COBRADA' %}badge-success
-                            {% elif orden.estado_orden == 'EN_PROCESO' %}badge-info
-                            {% elif orden.estado_orden == 'CANCELADA' %}badge-danger
-                            {% else %}badge-warning{% endif %}">
-                            {{ orden.estado_orden }}
-                        </span>
-                    </td>
-                    <td>Bs. {{ orden.total_orden|floatformat:2|default:"0.00" }}</td>
-                    <td>
-                        <a href="{% url 'detalle_orden' orden.id %}" class="btn btn-primary btn-sm">Ver</a>
-                        {% if orden.estado_orden == 'CANCELADA' %}
-                        <a href="{% url 'crear_orden' %}?orden_anterior_id={{ orden.id }}" class="btn btn-warning btn-sm">Usar Cotización</a>
+                        {% if v.placa %}
+                        <a href="{% url 'historial_vehiculo' v.placa %}" class="btn btn-info btn-sm">Ver Historial</a>
+                        {% elif v.vin %}
+                        <a href="{% url 'historial_vehiculo' v.vin %}" class="btn btn-info btn-sm">Ver Historial</a>
                         {% endif %}
+                        <a href="{% url 'crear_orden' %}?vehiculo_id={{ v.id }}" class="btn btn-success btn-sm">+ Orden</a>
                     </td>
                 </tr>
                 {% endfor %}
@@ -111,12 +145,12 @@
         </table>
     </div>
 </div>
-{% endif %}
 
+<!-- ============ 3. SI NO HAY NADA ============ -->
 {% elif placa %}
 <div class="card text-center">
     <p style="color:#95a5a6; margin-bottom:5px;">
-        No se encontró ningún vehículo con placa o VIN
+        No se encontró ningún vehículo, cliente o CI con "{{ placa }}"
     </p>
     <p style="font-size:1.1rem; margin-bottom:20px;">
         <strong style="font-family: monospace;">{{ placa }}</strong>
@@ -127,35 +161,19 @@
     </p>
 
     <div class="flex" style="justify-content:center; gap:10px; flex-wrap:wrap;">
-        {# Revisión Visita: crea una orden VISITA #}
-        <a href="{% url 'revision_rapida_placa' %}?placa={{ placa }}"
-           class="btn btn-warning btn-lg">
-            🔍 Revisión Visita
-        </a>
-
-        {# Crear Orden directa: si es largo (>8) → VIN, si no → Placa #}
+        <a href="{% url 'revision_rapida_placa' %}?placa={{ placa }}" class="btn btn-warning btn-lg">🔍 Revisión Visita</a>
         {% if placa|length > 8 %}
-            <a href="{% url 'crear_orden' %}?vin={{ placa }}"
-            class="btn btn-success btn-lg">
-                📋 Crear Orden
-            </a>
+            <a href="{% url 'crear_orden' %}?vin={{ placa }}" class="btn btn-primary btn-lg">📋 Crear Orden</a>
         {% else %}
-            <a href="{% url 'crear_orden' %}?placa={{ placa }}"
-            class="btn btn-success btn-lg">
-                📋 Crear Orden
-            </a>
+            <a href="{% url 'crear_orden' %}?placa={{ placa }}" class="btn btn-primary btn-lg">📋 Crear Orden</a>
         {% endif %}
     </div>
 </div>
 {% endif %}
 
 <script>
-    // 🆕 Función para limpiar el input (quita guiones y espacios, y pone mayúsculas)
     function limpiarYMayusculas(input) {
-        // Reemplaza cualquier cosa que no sea letra o número
-        input.value = input.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
-        
-        // Actualiza el texto de ayuda si la función existe
+        input.value = input.value.toUpperCase().replace(/[^A-Z0-9\s]/g, '');
         if (typeof window.actualizarHelper === 'function') {
             window.actualizarHelper();
         }
@@ -163,19 +181,11 @@
 
     function validarBusqueda(e) {
         const input = document.getElementById('busquedaInput');
-        // Limpiamos antes de validar
-        limpiarYMayusculas(input);
-        
         const valor = input.value.trim();
         if (!valor) return true;
-        
-        const len = valor.length;
-        if (len >= 3 && len <= 8) return true;
-        if (len === 17) return true;
-
+        if (valor.length >= 2) return true;
         e.preventDefault();
-        let mensaje = 'Por favor, ingresa una placa (3-8 caracteres) o un VIN (17 caracteres).\nNo uses guiones (-).';
-        alert(mensaje);
+        alert('Por favor, ingresa al menos 2 caracteres para buscar.');
         input.focus();
         return false;
     }
@@ -183,24 +193,16 @@
     document.addEventListener('DOMContentLoaded', function () {
         const input = document.getElementById('busquedaInput');
         const helper = document.getElementById('busqueda-helper');
-        
         if (!input || !helper) return;
 
-        // Hacemos que actualizarHelper sea global para que limpiarYMayusculas pueda llamarla
         window.actualizarHelper = function() {
             const len = input.value.trim().length;
             if (len === 0) {
-                helper.textContent = '💡 Puedes buscar por placa 3-8 caracteres o por VIN 17 caracteres.';
+                helper.textContent = '💡 Busca por Placa, VIN, Nombre o CI.';
                 helper.style.color = '#7f8c8d';
-            } else if (len >= 3 && len <= 8) {
-                helper.textContent = `✓ ${len} caracteres: parece una placa válida.`;
-                helper.style.color = '#27ae60';
-            } else if (len === 17) {
-                helper.textContent = `✓ ${len} caracteres: es un VIN válido.`;
-                helper.style.color = '#27ae60';
             } else {
-                helper.textContent = ` ⚠️ ${len} caracteres: no es una placa ni un VIN válido.`;
-                helper.style.color = '#e74c3c';
+                helper.textContent = `🔍 Buscando "${input.value.toUpperCase()}"...`;
+                helper.style.color = '#2980b9';
             }
         };
 

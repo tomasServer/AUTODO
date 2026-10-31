@@ -1,78 +1,126 @@
 {% extends 'gestion_vehicular/ayudante/base_ayudante.html' %}
-{% block title %}Trabajar Orden Nº {{ orden.id }}{% endblock %}
+{% block title %}Trabajar - Orden Nº {{ orden.id }}{% endblock %}
 
-{% block content %}
-
-<h2>Orden Nº {{ orden.id }}</h2>
-
-<!-- ============ INFO DE LA ORDEN ============ -->
-<div class="card">
-    <div class="grid grid-2">
-        <div><strong>Placa:</strong> {{ orden.id_vehiculo.placa }}</div>
-        <div><strong>Cliente:</strong> {{ orden.id_vehiculo.id_cliente.nombre|default:"Sin cliente" }}</div>
-    </div>
-</div>
-
-<!-- ============ MIS SERVICIOS ============ -->
-<h3 style="margin:15px 0 10px 0;">Mis Servicios</h3>
-
-{% if servicios_detalle %}
-<div class="grid" style="gap:10px;">
-    {% for servicio in servicios_detalle %}
-    <div class="card">
-        <div class="flex-between flex-wrap">
-            <div>
-                <strong>{{ servicio.id_servicio.nombre }}</strong>
-                <span class="badge 
-                    {% if servicio.estado == 'FINALIZADO' %}badge-success
-                    {% elif servicio.estado == 'EN_PROCESO' %}badge-info
-                    {% else %}badge-warning{% endif %}" 
-                    style="margin-left:10px;">
-                    {{ servicio.estado }}
-                </span>
-            </div>
-        </div>
-
-        <div class="flex flex-wrap" style="margin-top:10px;">
-            <form method="POST" action="{% url 'cambiar_estado_servicio' servicio.id %}" class="inline-form">
-                {% csrf_token %}
-                <input type="hidden" name="nuevo_estado" value="PENDIENTE">
-                <button type="submit" class="btn btn-gray btn-sm" {% if servicio.estado == 'PENDIENTE' %}disabled{% endif %}>Pendiente</button>
-            </form>
-            <form method="POST" action="{% url 'cambiar_estado_servicio' servicio.id %}" class="inline-form">
-                {% csrf_token %}
-                <input type="hidden" name="nuevo_estado" value="EN_PROCESO">
-                <button type="submit" class="btn btn-warning btn-sm" {% if servicio.estado == 'EN_PROCESO' %}disabled{% endif %}>En Proceso</button>
-            </form>
-            <form method="POST" action="{% url 'cambiar_estado_servicio' servicio.id %}" class="inline-form">
-                {% csrf_token %}
-                <input type="hidden" name="nuevo_estado" value="FINALIZADO">
-                <button type="submit" class="btn btn-success btn-sm" {% if servicio.estado == 'FINALIZADO' %}disabled{% endif %}>Finalizar</button>
-            </form>
-        </div>
-
-        {% if servicio.fecha_inicio %}
-        <div class="text-muted" style="font-size:12px; margin-top:8px;">
-            Inicio: {{ servicio.fecha_inicio|date:"d/m/Y H:i" }}
-            {% if servicio.fecha_fin %} | Fin: {{ servicio.fecha_fin|date:"d/m/Y H:i" }}{% endif %}
-        </div>
-        {% endif %}
-    </div>
-    {% endfor %}
-</div>
-{% else %}
-<p class="text-muted">No tienes servicios asignados en esta orden.</p>
-{% endif %}
-
-<!-- ============ BOTONES DE ACCIÓN ============ -->
-<div class="flex flex-wrap mt-20">
-    <a href="{% url 'modo_taller' %}" class="btn btn-gray">Volver</a>
-    <a href="{% url 'orden_pdf' orden.id %}" class="btn btn-primary" target="_blank">📄 Recibo</a>
-</div>
-
+{% block extra_css %}
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 <style>
     .inline-form { display: inline; }
     .inline-form .btn { margin-right: 4px; }
+    .grupo-servicio { margin: 12px 0 6px 0; padding: 6px 10px; background: #f0f0f0; border-radius: 4px; font-size: 0.9rem; color: #2c3e50; position: sticky; top: 0; z-index: 2; }
 </style>
+{% endblock %}
+
+{% block content %}
+
+<h2>Trabajar en Orden Nº {{ orden.id }}</h2>
+
+<!-- INFO DE LA ORDEN -->
+<div class="card">
+    <div class="grid grid-4">
+        <div>
+            <strong>Placa / VIN:</strong> 
+            {% if orden.id_vehiculo.placa %}{{ orden.id_vehiculo.placa }}
+            {% elif orden.id_vehiculo.vin %}<span style="font-family: monospace; font-size: 0.85rem;">{{ orden.id_vehiculo.vin }}</span>
+            {% else %}<span style="color:#e67e22; font-style:italic;">Sin placa</span>{% endif %}
+        </div>
+        <div><strong>Complejidad:</strong> {{ orden.id_complejidad.nombre|default:"No asignado" }}</div>
+        <div><strong>Cliente:</strong> {{ orden.id_vehiculo.id_cliente.nombre|default:"Sin cliente" }} {{ orden.id_vehiculo.id_cliente.apellido|default:"" }}</div>
+        <div>
+            <strong>Estado:</strong>
+            <span class="badge 
+                {% if orden.estado_orden == 'POR_COBRAR' %}badge-success
+                {% elif orden.estado_orden == 'EN_PROCESO' %}badge-info
+                {% elif orden.estado_orden == 'VISITA' %}badge-info
+                {% else %}badge-warning{% endif %}">
+                {{ orden.estado_orden }}
+            </span>
+        </div>
+    </div>
+</div>
+
+<!-- ============ SERVICIOS ASIGNADOS ============ -->
+<div class="card">
+    <h3>Mis Servicios Asignados</h3>
+    {% if servicios_detalle %}
+    <div class="table-responsive scroll-y" style="max-height:400px;">
+
+        {% regroup servicios_detalle by estado as servicios_por_estado %}
+
+        {% for grupo in servicios_por_estado %}
+            <h4 class="grupo-servicio">
+                {% if grupo.grouper == 'PENDIENTE' %}⏳ Pendientes
+                {% elif grupo.grouper == 'EN_PROCESO' %}🔧 En Proceso
+                {% elif grupo.grouper == 'FINALIZADO' %}✅ Finalizados
+                {% else %}{{ grupo.grouper }}{% endif %}
+                <span style="color:#7f8c8d; font-weight:normal; font-size:0.8rem;">({{ grupo.list|length }})</span>
+            </h4>
+
+            {% for detalle in grupo.list %}
+            <div style="padding:10px 0; border-bottom:1px solid #ecf0f1;">
+                <div class="flex-between flex-wrap">
+                    <div>
+                        <strong>{{ detalle.id_servicio.nombre }}</strong>
+                        <span class="text-muted" style="font-size:13px; margin-left:10px;">Bs. {{ detalle.precio_cobrado }}</span>
+                    </div>
+                    <div class="flex">
+                        <span class="badge 
+                            {% if detalle.estado == 'PENDIENTE' %}badge-warning
+                            {% elif detalle.estado == 'EN_PROCESO' %}badge-info
+                            {% else %}badge-success{% endif %}">
+                            {{ detalle.estado }}
+                        </span>
+                    </div>
+                </div>
+
+                {% if detalle.id_mecanico_id == user.id %}
+                <div class="flex flex-wrap botones-estado" style="margin-top:8px;">
+                    <form method="POST" action="{% url 'cambiar_estado_servicio_ayudante' detalle.id %}" class="inline-form">
+                        {% csrf_token %}
+                        <input type="hidden" name="nuevo_estado" value="PENDIENTE">
+                        <button type="submit" class="btn btn-gray btn-sm" onclick="atenuarBotones(this)" style="opacity: {% if detalle.estado == 'PENDIENTE' %}1{% else %}0.4{% endif %};" {% if detalle.estado == 'PENDIENTE' %}disabled{% endif %}>Pendiente</button>
+                    </form>
+                    <form method="POST" action="{% url 'cambiar_estado_servicio_ayudante' detalle.id %}" class="inline-form">
+                        {% csrf_token %}
+                        <input type="hidden" name="nuevo_estado" value="EN_PROCESO">
+                        <button type="submit" class="btn btn-warning btn-sm" onclick="atenuarBotones(this)" style="opacity: {% if detalle.estado == 'EN_PROCESO' %}1{% else %}0.4{% endif %};" {% if detalle.estado == 'EN_PROCESO' %}disabled{% endif %}>En Proceso</button>
+                    </form>
+                    <form method="POST" action="{% url 'cambiar_estado_servicio_ayudante' detalle.id %}" class="inline-form">
+                        {% csrf_token %}
+                        <input type="hidden" name="nuevo_estado" value="FINALIZADO">
+                        <button type="submit" class="btn btn-success btn-sm" onclick="atenuarBotones(this)" style="opacity: {% if detalle.estado == 'FINALIZADO' %}1{% else %}0.4{% endif %};" {% if detalle.estado == 'FINALIZADO' %}disabled{% endif %}>Finalizar</button>
+                    </form>
+                </div>
+                {% endif %}
+
+                {% if detalle.fecha_inicio %}
+                <div class="text-muted" style="font-size:12px; margin-top:5px;">
+                    <strong>Inicio:</strong> {{ detalle.fecha_inicio|date:"d/m/Y H:i" }}
+                    {% if detalle.fecha_fin %}| <strong>Fin:</strong> {{ detalle.fecha_fin|date:"d/m/Y H:i" }}{% endif %}
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        {% endfor %}
+    </div>
+    {% else %}
+    <p class="text-muted">No tienes servicios asignados en esta orden.</p>
+    {% endif %}
+</div>
+
+<!-- BOTONES DE ACCIÓN -->
+<div class="flex flex-wrap" style="margin-top:15px;">
+    <a href="{% url 'modo_taller_ayudante' %}" class="btn btn-gray">Volver a Mis Tareas</a>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script>
+    function atenuarBotones(botonClickeado) {
+        var contenedor = botonClickeado.closest('.botones-estado');
+        if (!contenedor) return;
+        var botones = contenedor.querySelectorAll('button');
+        botones.forEach(function(btn) { btn.style.opacity = '0.4'; });
+        botonClickeado.style.opacity = '1';
+    }
+</script>
 
 {% endblock %}

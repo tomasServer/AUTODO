@@ -17,385 +17,311 @@
         margin-bottom: 10px;
     }
 
-    /* ============ TARJETAS ============ */
-    .reporte-card {
-        padding: 15px 20px;
-        margin-bottom: 20px;
+    /* ============ PESTAÑAS ============ */
+    .tabs-container {
+        display: flex;
+        gap: 5px;
+        margin-bottom: 15px;
+        border-bottom: 2px solid #bdc3c7;
+    }
+    .tab-btn {
+        padding: 10px 20px;
+        background: #ecf0f1;
+        border: none;
+        border-radius: 6px 6px 0 0;
+        cursor: pointer;
+        font-weight: 600;
+        color: #7f8c8d;
+        font-size: 0.9rem;
+        transition: all 0.2s;
+    }
+    .tab-btn:hover {
+        background: #e0e6ed;
+        color: #1a252f;
+    }
+    .tab-btn.active {
+        background: #1a252f;
+        color: white;
     }
 
-    /* ============ FILTROS ============ */
-    .form-filtro {
-        display: flex;
-        gap: 10px;
-        align-items: end;
-        margin-bottom: 10px;
-        flex-wrap: wrap;
+    /* ============ CONTENIDO DE PESTAÑAS ============ */
+    .tab-content {
+        display: none;
+        animation: fadeIn 0.3s;
     }
-    .form-filtro label {
-        font-size: 0.8rem;
+    .tab-content.active {
         display: block;
     }
-    .form-filtro input {
-        padding: 8px;
-        font-size: 0.85rem;
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(5px); }
+        to { opacity: 1; transform: translateY(0); }
     }
 
+    /* ============ TARJETAS Y FILTROS ============ */
+    .reporte-card { padding: 15px 20px; margin-bottom: 20px; }
+    .form-filtro { display: flex; gap: 10px; align-items: end; margin-bottom: 10px; flex-wrap: wrap; }
+    .form-filtro label { font-size: 0.8rem; display: block; }
+    .form-filtro input { padding: 8px; font-size: 0.85rem; }
+    
     /* ============ CONTENEDOR SCROLLABLE ============ */
-    .tabla-scroll {
-        max-height: 340px;
-        overflow-y: auto;
-        border: 1px solid #ddd;
-        position: relative;
-    }
-
+    .tabla-scroll { max-height: 400px; overflow-y: auto; border: 1px solid #ddd; position: relative; }
+    
     /* ============ TABLA ============ */
-    .tabla-reporte {
-        font-size: 0.85rem;
-        width: 100%;
-        border-collapse: collapse;
-    }
-    .tabla-reporte thead th {
-        padding: 8px;
-        position: sticky;
-        top: 0;
-        background: #1a252f;
-        color: white;
-        z-index: 1;
-        text-align: left;
-    }
-    .tabla-reporte td {
-        padding: 8px;
-    }
-    .tabla-reporte tbody tr {
-        border-bottom: 1px solid #eee;
-    }
-    .tabla-reporte tbody tr:hover {
-        background: #f7f9fb;
-    }
+    .tabla-reporte { font-size: 0.85rem; width: 100%; border-collapse: collapse; }
+    .tabla-reporte thead th { padding: 8px; position: sticky; top: 0; background: #1a252f; color: white; z-index: 1; text-align: left; }
+    .tabla-reporte td { padding: 8px; }
+    .tabla-reporte tbody tr { border-bottom: 1px solid #eee; }
+    .tabla-reporte tbody tr:hover { background: #f7f9fb; }
 
-    /* ============ LINKS ============ */
-    .link-tabla {
-        color: #2980b9;
-        text-decoration: none;
-        font-weight: 600;
-    }
-    .link-tabla:hover {
-        text-decoration: underline;
-    }
-
-    /* ============ ESTADO VACÍO ============ */
-    .estado-vacio {
-        padding: 15px;
-        text-align: center;
-        color: #7f8c8d;
-    }
-
-    /* ============ PIE DE TABLA (TOTALES) ============ */
-    .tabla-total {
-        background: #1a252f;
-        color: white;
-        padding: 10px 15px;
-        display: flex;
-        justify-content: space-between;
-        position: sticky;
-        bottom: 0;
-    }
-
-    /* ============ LOADING ============ */
-    .tabla-scroll.cargando {
-        opacity: 0.5;
-        pointer-events: none;
-    }
-
-    .sin-registrar {
-        color: #7f8c8d;
-    }
+    /* ============ LINKS Y TOTALES ============ */
+    .link-tabla { color: #2980b9; text-decoration: none; font-weight: 600; }
+    .link-tabla:hover { text-decoration: underline; }
+    .estado-vacio { padding: 15px; text-align: center; color: #7f8c8d; }
+    .tabla-total { background: #1a252f; color: white; padding: 10px 15px; display: flex; justify-content: space-between; position: sticky; bottom: 0; }
+    .tabla-scroll.cargando { opacity: 0.5; pointer-events: none; }
+    .sin-registrar { color: #7f8c8d; }
 </style>
 
 <h1 class="reporte-titulo">Reportes</h1>
 
+<!-- 🆕 PESTAÑAS -->
+<div class="tabs-container">
+    <button class="tab-btn active" onclick="abrirTab('productos', this)">📦 Productos Vendidos</button>
+    <button class="tab-btn" onclick="abrirTab('servicios', this)">🔧 Servicios Realizados</button>
+    <button class="tab-btn" onclick="abrirTab('mecanicos', this)">👨‍🔧 Por Mecánico</button>
+    <button class="tab-btn" onclick="abrirTab('ventas', this)">🛒 Ventas Rápidas</button>
+</div>
+
 <!-- ============ SECCIÓN 1: PRODUCTOS VENDIDOS ============ -->
-<div class="card reporte-card">
-    <h2 class="reporte-subtitulo">Productos Vendidos</h2>
+<div id="tab-productos" class="tab-content active">
+    <div class="card reporte-card">
+        <h2 class="reporte-subtitulo">Productos Vendidos</h2>
+        <form method="GET" class="form-filtro">
+            <div>
+                <label>Desde</label>
+                <input type="date" name="fecha_inicio_p" value="{{ fecha_inicio_p }}">
+            </div>
+            <div>
+                <label>Hasta</label>
+                <input type="date" name="fecha_fin_p" value="{{ fecha_fin_p }}">
+            </div>
+            <div>
+                <label>Producto</label>
+                <input type="text" name="producto" value="{{ producto_buscar }}" placeholder="Buscar producto...">
+            </div>
+            <button type="submit" class="btn btn-primary">Buscar</button>
+        </form>
 
-    <form method="GET" class="form-filtro">
-        <div>
-            <label for="fecha_inicio_p">Desde</label>
-            <input type="date" id="fecha_inicio_p" name="fecha_inicio_p"
-                   value="{{ fecha_inicio_p }}" autocomplete="off">
-        </div>
-        <div>
-            <label for="fecha_fin_p">Hasta</label>
-            <input type="date" id="fecha_fin_p" name="fecha_fin_p"
-                   value="{{ fecha_fin_p }}" autocomplete="off">
-        </div>
-        <div>
-            <label for="producto">Producto</label>
-            <input type="text" id="producto" name="producto"
-                   value="{{ producto_buscar }}" placeholder="Buscar producto..."
-                   autocomplete="off">
-        </div>
-        <button type="submit" class="btn btn-primary">Buscar</button>
-    </form>
-
-    <div id="tabla-productos" class="tabla-scroll">
-        <table class="tabla-reporte">
-            <thead>
-                <tr>
-                    <th>Fecha</th>
-                    <th>Orden</th>
-                    <th>Placa</th>
-                    <th>Producto</th>
-                    <th>Cant.</th>
-                    <th>Precio</th>
-                    <th>Subtotal</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for p in productos_detalle %}
-                <tr>
-                    <td>{{ p.id_orden.fecha_ingreso|date:"d/m/Y" }}</td>
-                    <td>Nº {{ p.id_orden.id }}</td>
-                    <td>{{ p.id_orden.id_vehiculo.placa }}</td>
-                    <td>
-                        <a href="{% url 'detalle_producto_vendido' p.id_producto_id %}" class="link-tabla">
-                            {{ p.id_producto.nombre }}
-                        </a>
-                    </td>
-                    <td>{{ p.cantidad }}</td>
-                    <td>Bs. {{ p.precio_unitario|floatformat:2 }}</td>
-                    <td><strong>Bs. {{ p.subtotal_precio|default:"0.00"|floatformat:2 }}</strong></td>
-                </tr>
-                {% empty %}
-                <tr>
-                    <td colspan="7" class="estado-vacio">No hay productos vendidos</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-
-        <div class="tabla-total">
-            <span><strong>Total de productos vendidos:</strong></span>
-            <span><strong>Bs. {{ total_productos_vendidos|default:"0.00"|floatformat:2 }}</strong></span>
+        <div id="tabla-productos" class="tabla-scroll">
+            <table class="tabla-reporte">
+                <thead>
+                    <tr><th>Fecha</th><th>Orden</th><th>Placa</th><th>Producto</th><th>Cant.</th><th>Precio</th><th>Subtotal</th></tr>
+                </thead>
+                <tbody>
+                    {% for p in productos_detalle %}
+                    <tr>
+                        <td>{{ p.id_orden.fecha_ingreso|date:"d/m/Y" }}</td>
+                        <td>Nº {{ p.id_orden.id }}</td>
+                        <td>{{ p.id_orden.id_vehiculo.placa }}</td>
+                        <td><a href="{% url 'detalle_producto_vendido' p.id_producto_id %}" class="link-tabla">{{ p.id_producto.nombre }}</a></td>
+                        <td>{{ p.cantidad }}</td>
+                        <td>Bs. {{ p.precio_unitario|floatformat:2 }}</td>
+                        <td><strong>Bs. {{ p.subtotal_precio|default:"0.00"|floatformat:2 }}</strong></td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="7" class="estado-vacio">No hay productos vendidos</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            <div class="tabla-total">
+                <span><strong>Total vendido:</strong></span>
+                <span><strong>Bs. {{ total_productos_vendidos|default:"0.00"|floatformat:2 }}</strong></span>
+            </div>
         </div>
     </div>
 </div>
 
 <!-- ============ SECCIÓN 2: SERVICIOS REALIZADOS ============ -->
-<div class="card reporte-card">
-    <h2 class="reporte-subtitulo">Servicios Realizados</h2>
+<div id="tab-servicios" class="tab-content">
+    <div class="card reporte-card">
+        <h2 class="reporte-subtitulo">Servicios Realizados</h2>
+        <form method="GET" class="form-filtro">
+            <div>
+                <label>Desde</label>
+                <input type="date" name="fecha_inicio_s" value="{{ fecha_inicio_s }}">
+            </div>
+            <div>
+                <label>Hasta</label>
+                <input type="date" name="fecha_fin_s" value="{{ fecha_fin_s }}">
+            </div>
+            <div>
+                <label>Servicio</label>
+                <input type="text" name="servicio" value="{{ servicio_buscar }}" placeholder="Buscar servicio...">
+            </div>
+            <button type="submit" class="btn btn-primary">Buscar</button>
+        </form>
 
-    <form method="GET" class="form-filtro">
-        <div>
-            <label for="fecha_inicio_s">Desde</label>
-            <input type="date" id="fecha_inicio_s" name="fecha_inicio_s"
-                   value="{{ fecha_inicio_s }}" autocomplete="off">
-        </div>
-        <div>
-            <label for="fecha_fin_s">Hasta</label>
-            <input type="date" id="fecha_fin_s" name="fecha_fin_s"
-                   value="{{ fecha_fin_s }}" autocomplete="off">
-        </div>
-        <div>
-            <label for="servicio">Servicio</label>
-            <input type="text" id="servicio" name="servicio"
-                   value="{{ servicio_buscar }}" placeholder="Buscar servicio..."
-                   autocomplete="off">
-        </div>
-        <button type="submit" class="btn btn-primary">Buscar</button>
-    </form>
-
-    <div id="tabla-servicios" class="tabla-scroll">
-        <table class="tabla-reporte">
-            <thead>
-                <tr>
-                    <th>Fecha</th>
-                    <th>Orden</th>
-                    <th>Placa</th>
-                    <th>Servicio</th>
-                    <th>Mecánico</th>
-                    <th>Precio</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for s in servicios_detalle %}
-                <tr>
-                    <td>{{ s.fecha_fin|date:"d/m/Y" }}</td>
-                    <td>
-                        <a href="{% url 'detalle_orden' s.id_orden.id %}" class="link-tabla">
-                            Nº {{ s.id_orden.id }}
-                        </a>
-                    </td>
-                    <td>{{ s.id_orden.id_vehiculo.placa }}</td>
-                    <td>{{ s.id_servicio.nombre }}</td>
-                    <td>{{ s.id_mecanico.nombre|default:"No asignado" }}</td>
-                    <td>Bs. {{ s.precio_cobrado|default:"0.00"|floatformat:2 }}</td>
-                </tr>
-                {% empty %}
-                <tr>
-                    <td colspan="6" class="estado-vacio">No hay servicios registrados</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-
-        <div class="tabla-total">
-            <span><strong>Total de servicios realizados:</strong></span>
-            <span><strong>Bs. {{ total_servicios_realizados|default:"0.00"|floatformat:2 }}</strong></span>
+        <div id="tabla-servicios" class="tabla-scroll">
+            <table class="tabla-reporte">
+                <thead>
+                    <tr><th>Fecha</th><th>Orden</th><th>Placa</th><th>Servicio</th><th>Mecánico</th><th>Precio</th></tr>
+                </thead>
+                <tbody>
+                    {% for s in servicios_detalle %}
+                    <tr>
+                        <td>{{ s.fecha_fin|date:"d/m/Y" }}</td>
+                        <td><a href="{% url 'detalle_orden' s.id_orden.id %}" class="link-tabla">Nº {{ s.id_orden.id }}</a></td>
+                        <td>{{ s.id_orden.id_vehiculo.placa }}</td>
+                        <td>{{ s.id_servicio.nombre }}</td>
+                        <td>{{ s.id_mecanico.nombre|default:"No asignado" }}</td>
+                        <td>Bs. {{ s.precio_cobrado|default:"0.00"|floatformat:2 }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="6" class="estado-vacio">No hay servicios registrados</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            <div class="tabla-total">
+                <span><strong>Total servicios:</strong></span>
+                <span><strong>Bs. {{ total_servicios_realizados|default:"0.00"|floatformat:2 }}</strong></span>
+            </div>
         </div>
     </div>
 </div>
 
 <!-- ============ SECCIÓN 3: SERVICIOS POR MECÁNICO ============ -->
-<div class="card reporte-card">
-    <h2 class="reporte-subtitulo">Servicios por Mecánico</h2>
+<div id="tab-mecanicos" class="tab-content">
+    <div class="card reporte-card">
+        <h2 class="reporte-subtitulo">Servicios por Mecánico</h2>
+        <form method="GET" class="form-filtro">
+            <div>
+                <label>Desde</label>
+                <input type="date" name="fecha_inicio_m" value="{{ fecha_inicio_m }}">
+            </div>
+            <div>
+                <label>Hasta</label>
+                <input type="date" name="fecha_fin_m" value="{{ fecha_fin_m }}">
+            </div>
+            <button type="submit" class="btn btn-primary">Buscar</button>
+        </form>
 
-    <form method="GET" class="form-filtro">
-        <div>
-            <label for="fecha_inicio_m">Desde</label>
-            <input type="date" id="fecha_inicio_m" name="fecha_inicio_m"
-                   value="{{ fecha_inicio_m }}" autocomplete="off">
-        </div>
-        <div>
-            <label for="fecha_fin_m">Hasta</label>
-            <input type="date" id="fecha_fin_m" name="fecha_fin_m"
-                   value="{{ fecha_fin_m }}" autocomplete="off">
-        </div>
-        <button type="submit" class="btn btn-primary">Buscar</button>
-    </form>
-
-    <div id="tabla-mecanicos" class="tabla-scroll">
-        <table class="tabla-reporte">
-            <thead>
-                <tr>
-                    <th>Mecánico</th>
-                    <th>Servicios</th>
-                    <th>Total cobrado</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for m in servicios_por_mecanico %}
-                <tr>
-                    <td>
-                        {% if m.id_mecanico__id %}
-                            <a href="{% url 'detalle_mecanico' m.id_mecanico__id %}" class="link-tabla">
-                                {{ m.id_mecanico__nombre|default:"No asignado" }}
-                                {{ m.id_mecanico__apellido|default:"" }}
-                            </a>
-                        {% else %}
-                            No asignado
-                        {% endif %}
-                    </td>
-                    <td><strong>{{ m.total }}</strong></td>
-                    <td>Bs. {{ m.total_cobrado|default:"0.00"|floatformat:2 }}</td>
-                </tr>
-                {% empty %}
-                <tr>
-                    <td colspan="3" class="estado-vacio">No hay datos</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-
-        <div class="tabla-total">
-            <span><strong>Total de servicios por mecánicos:</strong></span>
-            <span><strong>{{ total_servicios_mecanico|default:"0" }}</strong></span>
+        <div id="tabla-mecanicos" class="tabla-scroll">
+            <table class="tabla-reporte">
+                <thead>
+                    <tr><th>Mecánico</th><th>Servicios</th><th>Total cobrado</th></tr>
+                </thead>
+                <tbody>
+                    {% for m in servicios_por_mecanico %}
+                    <tr>
+                        <td>
+                            {% if m.id_mecanico__id %}
+                                <a href="{% url 'detalle_mecanico' m.id_mecanico__id %}" class="link-tabla">{{ m.id_mecanico__nombre }} {{ m.id_mecanico__apellido|default:"" }}</a>
+                            {% else %}
+                                No asignado
+                            {% endif %}
+                        </td>
+                        <td><strong>{{ m.total }}</strong></td>
+                        <td>Bs. {{ m.total_cobrado|default:"0.00"|floatformat:2 }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="3" class="estado-vacio">No hay datos</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            <div class="tabla-total">
+                <span><strong>Total servicios:</strong></span>
+                <span><strong>{{ total_servicios_mecanico|default:"0" }}</strong></span>
+            </div>
         </div>
     </div>
 </div>
 
 <!-- ============ SECCIÓN 4: VENTAS RÁPIDAS ============ -->
-<div class="card reporte-card">
-    <h2 class="reporte-subtitulo">Ventas Rápidas</h2>
+<div id="tab-ventas" class="tab-content">
+    <div class="card reporte-card">
+        <h2 class="reporte-subtitulo">Ventas Rápidas</h2>
+        <form method="GET" class="form-filtro">
+            <div>
+                <label>Desde</label>
+                <input type="date" name="fecha_inicio_v" value="{{ fecha_inicio_v }}">
+            </div>
+            <div>
+                <label>Hasta</label>
+                <input type="date" name="fecha_fin_v" value="{{ fecha_fin_v }}">
+            </div>
+            <div>
+                <label>Cliente (Nombre o CI)</label>
+                <input type="text" name="cliente_v" value="{{ cliente_v_buscar }}" placeholder="Ej: Juan o 12345678">
+            </div>
+            <button type="submit" class="btn btn-primary">Buscar</button>
+        </form>
 
-    <form method="GET" class="form-filtro">
-        <div>
-            <label for="fecha_inicio_v">Desde</label>
-            <input type="date" id="fecha_inicio_v" name="fecha_inicio_v"
-                   value="{{ fecha_inicio_v }}" autocomplete="off">
-        </div>
-        <div>
-            <label for="fecha_fin_v">Hasta</label>
-            <input type="date" id="fecha_fin_v" name="fecha_fin_v"
-                   value="{{ fecha_fin_v }}" autocomplete="off">
-        </div>
-        <div> <!-- 🆕 NUEVO -->
-            <label for="cliente_v">Cliente (nombre o CI)</label>
-            <input type="text" id="cliente_v" name="cliente_v"
-                   value="{{ cliente_v_buscar }}" placeholder="Ej: Juan o 12345678"
-                   autocomplete="off">
-        </div>
-        <button type="submit" class="btn btn-primary">Buscar</button>
-    </form>
-
-    <div id="tabla-ventas" class="tabla-scroll">
-        <table class="tabla-reporte">
-            <thead>
-                <tr>
-                    <th>Fecha</th>
-                    <th>Venta</th>
-                    <th>Cliente</th>
-                    <th>CI</th>
-                    <th>Producto</th>
-                    <th>Cant.</th>
-                    <th>Precio</th>
-                    <th>Subtotal</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for d in ventas_detalle %}
-                <tr>
-                    <td>{{ d.id_venta.fecha_venta|date:"d/m/Y H:i" }}</td>
-                    <td>
-                        <a href="{% url 'detalle_venta' d.id_venta.id %}" class="link-tabla">
-                            N°{{ d.id_venta.id }}
-                        </a>
-                    </td>
-                    <td>
-                        {% if d.id_venta.id_cliente %}
-                            <a href="#" class="link-tabla">
+        <div id="tabla-ventas" class="tabla-scroll">
+            <table class="tabla-reporte">
+                <thead>
+                    <tr><th>Fecha</th><th>Venta</th><th>Cliente</th><th>CI</th><th>Producto</th><th>Cant.</th><th>Precio</th><th>Subtotal</th></tr>
+                </thead>
+                <tbody>
+                    {% for d in ventas_detalle %}
+                    <tr>
+                        <td>{{ d.id_venta.fecha_venta|date:"d/m/Y H:i" }}</td>
+                        <td><a href="{% url 'detalle_venta' d.id_venta.id %}" class="link-tabla">N°{{ d.id_venta.id }}</a></td>
+                        <td>
+                            {% if d.id_venta.id_cliente %}
                                 {{ d.id_venta.id_cliente.nombre }} {{ d.id_venta.id_cliente.apellido|default:"" }}
-                            </a>
-                        {% else %}
-                            <span class="sin-registrar">Sin registrar</span>
-                        {% endif %}
-                    </td>
-                    <td>
-                        {% if d.id_venta.id_cliente.ci %}
-                            {{ d.id_venta.id_cliente.ci }}
-                        {% else %}
-                            <span class="sin-registrar">—</span>
-                        {% endif %}
-                    </td>
-                    <td><strong>{{ d.id_producto.nombre }}</strong></td>
-                    <td>{{ d.cantidad }}</td>
-                    <td>Bs. {{ d.precio_venta|floatformat:2 }}</td>
-                    <td><strong>Bs. {% widthratio d.precio_venta 1 d.cantidad %}</strong></td>
-                </tr>
-                {% empty %}
-                <tr>
-                    <td colspan="8" class="estado-vacio">No hay ventas rápidas</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-
-        <div class="tabla-total">
-            <span><strong>Total de ventas rápidas:</strong></span>
-            <span><strong>Bs. {{ total_ventas_rapidas|default:"0.00"|floatformat:2 }}</strong></span>
+                            {% else %}
+                                <span class="sin-registrar">Sin registrar</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if d.id_venta.id_cliente.ci %}
+                                {{ d.id_venta.id_cliente.ci }}
+                            {% else %}
+                                <span class="sin-registrar">—</span>
+                            {% endif %}
+                        </td>
+                        <td><strong>{{ d.id_producto.nombre }}</strong></td>
+                        <td>{{ d.cantidad }}</td>
+                        <td>Bs. {{ d.precio_venta|floatformat:2 }}</td>
+                        <td><strong>Bs. {% widthratio d.precio_venta 1 d.cantidad %}</strong></td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="8" class="estado-vacio">No hay ventas rápidas</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            <div class="tabla-total">
+                <span><strong>Total ventas:</strong></span>
+                <span><strong>Bs. {{ total_ventas_rapidas|default:"0.00"|floatformat:2 }}</strong></span>
+            </div>
         </div>
     </div>
 </div>
 
 <!-- ============================================================
-     SCRIPT AJAX — Filtros sin recargar la página
+     SCRIPTS (Pestañas + Filtros AJAX)
      ============================================================ -->
 <script>
+// 🆕 FUNCIÓN PARA CAMBIAR DE PESTAÑA
+function abrirTab(idTab, boton) {
+    // Ocultar todos los contenidos
+    document.querySelectorAll('.tab-content').forEach(function(tab) {
+        tab.classList.remove('active');
+    });
+    // Quitar active a todos los botones
+    document.querySelectorAll('.tab-btn').forEach(function(btn) {
+        btn.classList.remove('active');
+    });
+    // Mostrar el seleccionado
+    document.getElementById('tab-' + idTab).classList.add('active');
+    boton.classList.add('active');
+}
+
+// FILTROS AJAX
 (function () {
     'use strict';
-
     var SECCIONES = ['productos', 'servicios', 'mecanicos', 'ventas'];
-    var controllerActual = null; // Para cancelar el fetch anterior
+    var controllerActual = null;
 
     function setCargando(cargando) {
         SECCIONES.forEach(function (sec) {
@@ -411,7 +337,7 @@
             var nuevo  = doc.getElementById('tabla-' + sec);
             var actual = document.getElementById('tabla-' + sec);
             if (nuevo && actual) {
-                var scrollTop = actual.scrollTop; // preservar scroll
+                var scrollTop = actual.scrollTop;
                 actual.innerHTML = nuevo.innerHTML;
                 actual.scrollTop = scrollTop;
             }
@@ -420,22 +346,16 @@
 
     document.addEventListener('DOMContentLoaded', function () {
         var formularios = document.querySelectorAll('.form-filtro');
-
         formularios.forEach(function (form) {
             form.addEventListener('submit', function (e) {
                 e.preventDefault();
-
-                // Cancelar fetch anterior si aún no terminó
-                if (controllerActual) {
-                    controllerActual.abort();
-                }
+                if (controllerActual) controllerActual.abort();
                 controllerActual = new AbortController();
 
                 var params = new URLSearchParams(new FormData(form)).toString();
                 var url = window.location.pathname + (params ? '?' + params : '');
 
                 setCargando(true);
-
                 fetch(url, {
                     headers: { 'X-Requested-With': 'XMLHttpRequest' },
                     signal: controllerActual.signal
@@ -449,7 +369,7 @@
                     window.history.pushState({}, '', url);
                 })
                 .catch(function (error) {
-                    if (error.name === 'AbortError') return; // ignorar cancelaciones
+                    if (error.name === 'AbortError') return;
                     console.error('Error al filtrar:', error);
                 })
                 .finally(function () {
@@ -461,4 +381,4 @@
 })();
 </script>
 
-{% endblock %}
+{% endblock %} 

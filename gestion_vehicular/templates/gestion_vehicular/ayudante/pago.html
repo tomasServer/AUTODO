@@ -1,50 +1,12 @@
 {% extends 'gestion_vehicular/ayudante/base_ayudante.html' %}
-{% block title %}Ver Cobro - Orden Nº {{ orden.id }}{% endblock %}
+{% block title %}Registrar Pago{% endblock %}
 
 {% block content %}
+<h2>Registrar Pago</h2>
 
-<h2>Resumen de Cobro</h2>
-<p class="text-muted mb-20">
-    <strong>Orden Nº {{ orden.id }}</strong> | 
-    Vehículo: {{ orden.id_vehiculo.placa }} | 
-    Cliente: {{ orden.id_vehiculo.id_cliente.nombre|default:"Sin cliente" }}
-</p>
-
-<div class="card">
-    <h3>Resumen de Cobro</h3>
-    <table>
-        <tbody>
-            <tr>
-                <td><strong>Total Servicios (mano de obra)</strong></td>
-                <td class="text-right"><strong>Bs. {{ total_servicios|floatformat:2 }}</strong></td>
-            </tr>
-            <tr>
-                <td><strong>Total Productos</strong></td>
-                <td class="text-right"><strong>Bs. {{ total_productos|floatformat:2 }}</strong></td>
-            </tr>
-            <tr style="background:#1a252f; color:#ffffff;">
-                <td style="font-size:1.2rem;"><strong>TOTAL A COBRAR</strong></td>
-                <td class="text-right" style="font-size:1.8rem; font-weight:700;">Bs. {{ total_general|floatformat:2 }}</td>
-            </tr>
-        </tbody>
-    </table>
-    <div class="text-muted" style="font-size:0.8rem; margin-top:8px;">
-        <i>Los hallazgos no se incluyen en el cobro. Se cotizarán por separado si se autorizan.</i>
-    </div>
+<div class="card text-center" style="padding: 40px;">
+    <h3 style="color: #c0392b;">⚠️ Acceso Denegado</h3>
+    <p>Lo sentimos, solo el Administrador o el Jefe Mecánico pueden registrar pagos.</p>
+    <a href="{% url 'dashboard_ayudante' %}" class="btn btn-primary mt-20">Volver al Inicio</a>
 </div>
-
-<div class="card">
-    <div style="padding:20px; background:#fef9e7; border-radius:4px; text-align:center;">
-        <p style="margin:0; font-size:1.1rem;">
-            <i class="text-muted">Solo el Administrador o Jefe Mecánico pueden confirmar el pago.</i>
-        </p>
-        <p class="text-muted" style="margin:10px 0 0 0; font-size:0.9rem;">
-            Puedes ver el resumen del cobro, pero no tienes permisos para realizarlo.
-        </p>
-        <div class="mt-10">
-            <a href="{% url 'modo_taller' %}" class="btn btn-gray">Volver</a>
-        </div>
-    </div>
-</div>
-
 {% endblock %}

@@ -22,7 +22,6 @@ def login_view(request):
         if usuario is not None:
             auth_login(request, usuario)
             
-            # 🆕 REGISTRAR AUDITORÍA
             registrar_auditoria(
                 request, 
                 'LOGIN', 
@@ -39,7 +38,6 @@ def login_view(request):
 
 
 def logout_view(request):
-    # 🆕 REGISTRAR AUDITORÍA ANTES DE CERRAR SESIÓN
     if request.user.is_authenticated:
         registrar_auditoria(
             request, 
@@ -63,13 +61,13 @@ def dashboard(request):
     return redirect('dashboard_admin')
 
 
-@login_required # 🆕 Agregué login_required para seguridad
+@login_required
 def lista_usuarios(request):
     usuarios = Usuario.objects.select_related('id_rol').all().order_by('nombre')
     return render(request, 'gestion_vehicular/admin/gestion_basica/usuarios_lista.html', {'usuarios': usuarios})
 
 
-@login_required # 🆕 Agregué login_required para seguridad
+@login_required
 def crear_usuario(request):
     if request.method == 'POST':
         from django.contrib.auth.hashers import make_password
@@ -87,7 +85,6 @@ def crear_usuario(request):
             activo=True,
         )
         
-        # 🆕 REGISTRAR AUDITORÍA
         rol_nombre = usuario.id_rol.nombre if usuario.id_rol else 'Desconocido'
         registrar_auditoria(
             request, 
@@ -103,7 +100,7 @@ def crear_usuario(request):
     return render(request, 'gestion_vehicular/admin/gestion_basica/usuarios_crear.html', {'roles': roles})
 
 
-@login_required # 🆕 Agregué login_required para seguridad
+@login_required
 def editar_usuario(request, usuario_id):
     usuario = get_object_or_404(Usuario, id=usuario_id)
     
@@ -121,7 +118,6 @@ def editar_usuario(request, usuario_id):
         
         usuario.save()
         
-        # 🆕 REGISTRAR AUDITORÍA
         detalle = f'Editó al usuario "{usuario.usuario_login}".'
         if nueva_password:
             detalle += ' (Se cambió la contraseña).'

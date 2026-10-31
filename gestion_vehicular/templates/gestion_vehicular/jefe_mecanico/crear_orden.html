@@ -1,4 +1,4 @@
-{% extends 'gestion_vehicular/jefe_mecanico/base_Jefe.html' %}
+{% extends 'gestion_vehicular/jefe_mecanico/base_jefe.html' %}
 {% block title %}Nueva Orden{% endblock %}
 
 {% block extra_css %}
@@ -43,8 +43,6 @@
 {% endblock %}
 
 {% block content %}
-
-<h2>Nueva Orden de Trabajo</h2>
 
 <!-- ====== REVISIÓN Y VISITA ====== -->
 {% if revision_detalle %}
@@ -140,8 +138,8 @@
             </div>
         </div>
 
-        <!-- Caja de info del vehículo autocompletado (comentada porque ya no la mostramos) -->
-        <!-- <div id="info-vehiculo" style="display:none; margin-top:10px; padding:10px; background:#e3f2fd; border-left:4px solid #2196f3; border-radius:4px; font-size:0.9rem;"></div> -->
+        <!-- 
+        <div id="info-vehiculo" style="display:none; margin-top:10px; padding:10px; background:#e3f2fd; border-left:4px solid #2196f3; border-radius:4px; font-size:0.9rem;"></div>-->
       
         <div class="grid grid-4 mt-10">
             <div>
@@ -460,7 +458,6 @@
             return;
         }
         
-        // Validar placa: entre 3 y 8
         if (placaVal && (placaVal.length < 3 || placaVal.length > 8)) {
             e.preventDefault();
             alert(`⚠️ La placa debe tener entre 3 y 8 caracteres.\nActualmente tiene ${placaVal.length}.`);
@@ -468,7 +465,6 @@
             return;
         }
 
-        // Validar VIN: exactamente 17
         if (vinVal && vinVal.length !== 17) {
             e.preventDefault();
             const diff = 17 - vinVal.length;
@@ -499,7 +495,6 @@
             return;
         }
 
-        // Formato: 7-11 dígitos + opcional "-" + 1-2 letras/números
         var regexCI = /^[0-9]{7,11}(-[A-Z0-9]{1,2})?$/;
 
         if (!regexCI.test(ciVal)) {
@@ -595,17 +590,14 @@
                         if (el) el.value = val || '';
                     };
 
-                    const placaEl = document.getElementById('placa');
-                    const vinEl = document.getElementById('vin');
-
                     setVal('placa', v.placa);
                     setVal('vin', v.vin);
                     setVal('anio', v.anio);
                     setVal('color', v.color);
                     setVal('kilometraje', v.kilometraje);
 
-                    if (vinEl && v.vin) {
-                        validarVIN(vinEl);
+                    if (vinInputInit && v.vin) {
+                        validarVIN(vinInputInit);
                     }
 
                     setVal('cliente_nombre', c.nombre);
