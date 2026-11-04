@@ -509,9 +509,13 @@ def detalle_producto_vendido(request, producto_id):
             id_orden__fecha_ingreso__date__lte=fecha_fin
         )
     
+    # 🆕 CALCULAR EL TOTAL DE VENTAS
+    total_ventas = ventas.aggregate(total=Sum('subtotal_precio'))['total'] or 0
+    
     return render(request, 'gestion_vehicular/admin/gestion_administrativa/detalle_producto.html', {
         'producto': producto,
         'ventas': ventas,
+        'total_ventas': total_ventas, # 🆕 ENVIAMOS EL TOTAL AL HTML
         'fecha_inicio': fecha_inicio,
         'fecha_fin': fecha_fin,
     })

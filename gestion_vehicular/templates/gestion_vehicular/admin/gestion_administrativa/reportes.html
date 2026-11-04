@@ -6,85 +6,69 @@
 {% block content %}
 
 <style>
-    /* ============ TÍTULOS ============ */
-    .reporte-titulo {
-        color: #1a252f;
-        margin-bottom: 15px;
-        font-size: 1.3rem;
-    }
-    .reporte-subtitulo {
-        font-size: 1rem;
-        margin-bottom: 10px;
-    }
-
-    /* ============ PESTAÑAS ============ */
+    /* Estilos estrictamente necesarios para las pestañas y tablas */
     .tabs-container {
         display: flex;
         gap: 5px;
         margin-bottom: 15px;
-        border-bottom: 2px solid #bdc3c7;
+        border-bottom: 2px solid #e2e8f0;
     }
     .tab-btn {
         padding: 10px 20px;
-        background: #ecf0f1;
+        background: #f1f5f9;
         border: none;
-        border-radius: 6px 6px 0 0;
+        border-radius: 8px 8px 0 0;
         cursor: pointer;
         font-weight: 600;
-        color: #7f8c8d;
+        color: #64748b;
         font-size: 0.9rem;
         transition: all 0.2s;
     }
-    .tab-btn:hover {
-        background: #e0e6ed;
-        color: #1a252f;
-    }
-    .tab-btn.active {
-        background: #1a252f;
-        color: white;
-    }
-
-    /* ============ CONTENIDO DE PESTAÑAS ============ */
-    .tab-content {
-        display: none;
-        animation: fadeIn 0.3s;
-    }
-    .tab-content.active {
-        display: block;
-    }
-    @keyframes fadeIn {
-        from { opacity: 0; transform: translateY(5px); }
-        to { opacity: 1; transform: translateY(0); }
-    }
-
-    /* ============ TARJETAS Y FILTROS ============ */
-    .reporte-card { padding: 15px 20px; margin-bottom: 20px; }
-    .form-filtro { display: flex; gap: 10px; align-items: end; margin-bottom: 10px; flex-wrap: wrap; }
-    .form-filtro label { font-size: 0.8rem; display: block; }
-    .form-filtro input { padding: 8px; font-size: 0.85rem; }
+    .tab-btn:hover { background: #e2e8f0; color: #1e293b; }
+    .tab-btn.active { background: #1e293b; color: white; }
     
-    /* ============ CONTENEDOR SCROLLABLE ============ */
-    .tabla-scroll { max-height: 400px; overflow-y: auto; border: 1px solid #ddd; position: relative; }
-    
-    /* ============ TABLA ============ */
-    .tabla-reporte { font-size: 0.85rem; width: 100%; border-collapse: collapse; }
-    .tabla-reporte thead th { padding: 8px; position: sticky; top: 0; background: #1a252f; color: white; z-index: 1; text-align: left; }
-    .tabla-reporte td { padding: 8px; }
-    .tabla-reporte tbody tr { border-bottom: 1px solid #eee; }
-    .tabla-reporte tbody tr:hover { background: #f7f9fb; }
+    .tab-content { display: none; animation: fadeIn 0.3s; }
+    .tab-content.active { display: block; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
 
-    /* ============ LINKS Y TOTALES ============ */
-    .link-tabla { color: #2980b9; text-decoration: none; font-weight: 600; }
-    .link-tabla:hover { text-decoration: underline; }
-    .estado-vacio { padding: 15px; text-align: center; color: #7f8c8d; }
-    .tabla-total { background: #1a252f; color: white; padding: 10px 15px; display: flex; justify-content: space-between; position: sticky; bottom: 0; }
+    .form-filtro { display: flex; gap: 10px; align-items: end; margin-bottom: 15px; flex-wrap: wrap; }
+    
+    /* Scroll para las tablas de reportes */
+    .tabla-scroll { 
+        max-height: 400px; 
+        overflow-y: auto; 
+        border: 1px solid #e2e8f0; 
+        border-radius: 8px; 
+        position: relative; 
+        background: white;
+    }
+    .tabla-scroll thead th { 
+        position: sticky; 
+        top: 0; 
+        background: #1e293b; 
+        color: white; 
+        z-index: 10; 
+        text-align: left;
+    }
+    
+    .tabla-total { 
+        background: #1e293b; 
+        color: white; 
+        padding: 12px 15px; 
+        display: flex; 
+        justify-content: space-between; 
+        position: sticky; 
+        bottom: 0; 
+        font-weight: 600;
+    }
     .tabla-scroll.cargando { opacity: 0.5; pointer-events: none; }
-    .sin-registrar { color: #7f8c8d; }
+    .link-tabla { color: #3b82f6; text-decoration: none; font-weight: 600; }
+    .link-tabla:hover { text-decoration: underline; }
 </style>
 
-<h1 class="reporte-titulo">Reportes</h1>
+<h2>Reportes</h2>
 
-<!-- 🆕 PESTAÑAS -->
+<!-- PESTAÑAS -->
 <div class="tabs-container">
     <button class="tab-btn active" onclick="abrirTab('productos', this)">📦 Productos Vendidos</button>
     <button class="tab-btn" onclick="abrirTab('servicios', this)">🔧 Servicios Realizados</button>
@@ -92,31 +76,20 @@
     <button class="tab-btn" onclick="abrirTab('ventas', this)">🛒 Ventas Rápidas</button>
 </div>
 
-<!-- ============ SECCIÓN 1: PRODUCTOS VENDIDOS ============ -->
+<!-- SECCIÓN 1: PRODUCTOS VENDIDOS -->
 <div id="tab-productos" class="tab-content active">
-    <div class="card reporte-card">
-        <h2 class="reporte-subtitulo">Productos Vendidos</h2>
+    <div class="card">
+        <h3>Productos Vendidos</h3>
         <form method="GET" class="form-filtro">
-            <div>
-                <label>Desde</label>
-                <input type="date" name="fecha_inicio_p" value="{{ fecha_inicio_p }}">
-            </div>
-            <div>
-                <label>Hasta</label>
-                <input type="date" name="fecha_fin_p" value="{{ fecha_fin_p }}">
-            </div>
-            <div>
-                <label>Producto</label>
-                <input type="text" name="producto" value="{{ producto_buscar }}" placeholder="Buscar producto...">
-            </div>
+            <div><label>Desde</label><input type="date" name="fecha_inicio_p" value="{{ fecha_inicio_p }}"></div>
+            <div><label>Hasta</label><input type="date" name="fecha_fin_p" value="{{ fecha_fin_p }}"></div>
+            <div><label>Producto</label><input type="text" name="producto" value="{{ producto_buscar }}" placeholder="Buscar..."></div>
             <button type="submit" class="btn btn-primary">Buscar</button>
         </form>
 
         <div id="tabla-productos" class="tabla-scroll">
-            <table class="tabla-reporte">
-                <thead>
-                    <tr><th>Fecha</th><th>Orden</th><th>Placa</th><th>Producto</th><th>Cant.</th><th>Precio</th><th>Subtotal</th></tr>
-                </thead>
+            <table>
+                <thead><tr><th>Fecha</th><th>Orden</th><th>Placa</th><th>Producto</th><th>Cant.</th><th>Precio</th><th>Subtotal</th></tr></thead>
                 <tbody>
                     {% for p in productos_detalle %}
                     <tr>
@@ -129,43 +102,32 @@
                         <td><strong>Bs. {{ p.subtotal_precio|default:"0.00"|floatformat:2 }}</strong></td>
                     </tr>
                     {% empty %}
-                    <tr><td colspan="7" class="estado-vacio">No hay productos vendidos</td></tr>
+                    <tr><td colspan="7" class="text-center text-muted">No hay productos vendidos</td></tr>
                     {% endfor %}
                 </tbody>
             </table>
             <div class="tabla-total">
-                <span><strong>Total vendido:</strong></span>
-                <span><strong>Bs. {{ total_productos_vendidos|default:"0.00"|floatformat:2 }}</strong></span>
+                <span>Total vendido:</span>
+                <span>Bs. {{ total_productos_vendidos|default:"0.00"|floatformat:2 }}</span>
             </div>
         </div>
     </div>
 </div>
 
-<!-- ============ SECCIÓN 2: SERVICIOS REALIZADOS ============ -->
+<!-- SECCIÓN 2: SERVICIOS REALIZADOS -->
 <div id="tab-servicios" class="tab-content">
-    <div class="card reporte-card">
-        <h2 class="reporte-subtitulo">Servicios Realizados</h2>
+    <div class="card">
+        <h3>Servicios Realizados</h3>
         <form method="GET" class="form-filtro">
-            <div>
-                <label>Desde</label>
-                <input type="date" name="fecha_inicio_s" value="{{ fecha_inicio_s }}">
-            </div>
-            <div>
-                <label>Hasta</label>
-                <input type="date" name="fecha_fin_s" value="{{ fecha_fin_s }}">
-            </div>
-            <div>
-                <label>Servicio</label>
-                <input type="text" name="servicio" value="{{ servicio_buscar }}" placeholder="Buscar servicio...">
-            </div>
+            <div><label>Desde</label><input type="date" name="fecha_inicio_s" value="{{ fecha_inicio_s }}"></div>
+            <div><label>Hasta</label><input type="date" name="fecha_fin_s" value="{{ fecha_fin_s }}"></div>
+            <div><label>Servicio</label><input type="text" name="servicio" value="{{ servicio_buscar }}" placeholder="Buscar..."></div>
             <button type="submit" class="btn btn-primary">Buscar</button>
         </form>
 
         <div id="tabla-servicios" class="tabla-scroll">
-            <table class="tabla-reporte">
-                <thead>
-                    <tr><th>Fecha</th><th>Orden</th><th>Placa</th><th>Servicio</th><th>Mecánico</th><th>Precio</th></tr>
-                </thead>
+            <table>
+                <thead><tr><th>Fecha</th><th>Orden</th><th>Placa</th><th>Servicio</th><th>Mecánico</th><th>Precio</th></tr></thead>
                 <tbody>
                     {% for s in servicios_detalle %}
                     <tr>
@@ -177,39 +139,31 @@
                         <td>Bs. {{ s.precio_cobrado|default:"0.00"|floatformat:2 }}</td>
                     </tr>
                     {% empty %}
-                    <tr><td colspan="6" class="estado-vacio">No hay servicios registrados</td></tr>
+                    <tr><td colspan="6" class="text-center text-muted">No hay servicios registrados</td></tr>
                     {% endfor %}
                 </tbody>
             </table>
             <div class="tabla-total">
-                <span><strong>Total servicios:</strong></span>
-                <span><strong>Bs. {{ total_servicios_realizados|default:"0.00"|floatformat:2 }}</strong></span>
+                <span>Total servicios:</span>
+                <span>Bs. {{ total_servicios_realizados|default:"0.00"|floatformat:2 }}</span>
             </div>
         </div>
     </div>
 </div>
 
-<!-- ============ SECCIÓN 3: SERVICIOS POR MECÁNICO ============ -->
+<!-- SECCIÓN 3: SERVICIOS POR MECÁNICO -->
 <div id="tab-mecanicos" class="tab-content">
-    <div class="card reporte-card">
-        <h2 class="reporte-subtitulo">Servicios por Mecánico</h2>
+    <div class="card">
+        <h3>Servicios por Mecánico</h3>
         <form method="GET" class="form-filtro">
-            <div>
-                <label>Desde</label>
-                <input type="date" name="fecha_inicio_m" value="{{ fecha_inicio_m }}">
-            </div>
-            <div>
-                <label>Hasta</label>
-                <input type="date" name="fecha_fin_m" value="{{ fecha_fin_m }}">
-            </div>
+            <div><label>Desde</label><input type="date" name="fecha_inicio_m" value="{{ fecha_inicio_m }}"></div>
+            <div><label>Hasta</label><input type="date" name="fecha_fin_m" value="{{ fecha_fin_m }}"></div>
             <button type="submit" class="btn btn-primary">Buscar</button>
         </form>
 
         <div id="tabla-mecanicos" class="tabla-scroll">
-            <table class="tabla-reporte">
-                <thead>
-                    <tr><th>Mecánico</th><th>Servicios</th><th>Total cobrado</th></tr>
-                </thead>
+            <table>
+                <thead><tr><th>Mecánico</th><th>Servicios</th><th>Total cobrado</th></tr></thead>
                 <tbody>
                     {% for m in servicios_por_mecanico %}
                     <tr>
@@ -224,43 +178,32 @@
                         <td>Bs. {{ m.total_cobrado|default:"0.00"|floatformat:2 }}</td>
                     </tr>
                     {% empty %}
-                    <tr><td colspan="3" class="estado-vacio">No hay datos</td></tr>
+                    <tr><td colspan="3" class="text-center text-muted">No hay datos</td></tr>
                     {% endfor %}
                 </tbody>
             </table>
             <div class="tabla-total">
-                <span><strong>Total servicios:</strong></span>
-                <span><strong>{{ total_servicios_mecanico|default:"0" }}</strong></span>
+                <span>Total servicios:</span>
+                <span>{{ total_servicios_mecanico|default:"0" }}</span>
             </div>
         </div>
     </div>
 </div>
 
-<!-- ============ SECCIÓN 4: VENTAS RÁPIDAS ============ -->
+<!-- SECCIÓN 4: VENTAS RÁPIDAS -->
 <div id="tab-ventas" class="tab-content">
-    <div class="card reporte-card">
-        <h2 class="reporte-subtitulo">Ventas Rápidas</h2>
+    <div class="card">
+        <h3>Ventas Rápidas</h3>
         <form method="GET" class="form-filtro">
-            <div>
-                <label>Desde</label>
-                <input type="date" name="fecha_inicio_v" value="{{ fecha_inicio_v }}">
-            </div>
-            <div>
-                <label>Hasta</label>
-                <input type="date" name="fecha_fin_v" value="{{ fecha_fin_v }}">
-            </div>
-            <div>
-                <label>Cliente (Nombre o CI)</label>
-                <input type="text" name="cliente_v" value="{{ cliente_v_buscar }}" placeholder="Ej: Juan o 12345678">
-            </div>
+            <div><label>Desde</label><input type="date" name="fecha_inicio_v" value="{{ fecha_inicio_v }}"></div>
+            <div><label>Hasta</label><input type="date" name="fecha_fin_v" value="{{ fecha_fin_v }}"></div>
+            <div><label>Cliente (Nombre o CI)</label><input type="text" name="cliente_v" value="{{ cliente_v_buscar }}" placeholder="Ej: Juan..."></div>
             <button type="submit" class="btn btn-primary">Buscar</button>
         </form>
 
         <div id="tabla-ventas" class="tabla-scroll">
-            <table class="tabla-reporte">
-                <thead>
-                    <tr><th>Fecha</th><th>Venta</th><th>Cliente</th><th>CI</th><th>Producto</th><th>Cant.</th><th>Precio</th><th>Subtotal</th></tr>
-                </thead>
+            <table>
+                <thead><tr><th>Fecha</th><th>Venta</th><th>Cliente</th><th>CI</th><th>Producto</th><th>Cant.</th><th>Precio</th><th>Subtotal</th></tr></thead>
                 <tbody>
                     {% for d in ventas_detalle %}
                     <tr>
@@ -270,14 +213,14 @@
                             {% if d.id_venta.id_cliente %}
                                 {{ d.id_venta.id_cliente.nombre }} {{ d.id_venta.id_cliente.apellido|default:"" }}
                             {% else %}
-                                <span class="sin-registrar">Sin registrar</span>
+                                <span class="text-muted">Sin registrar</span>
                             {% endif %}
                         </td>
                         <td>
                             {% if d.id_venta.id_cliente.ci %}
                                 {{ d.id_venta.id_cliente.ci }}
                             {% else %}
-                                <span class="sin-registrar">—</span>
+                                <span class="text-muted">—</span>
                             {% endif %}
                         </td>
                         <td><strong>{{ d.id_producto.nombre }}</strong></td>
@@ -286,33 +229,23 @@
                         <td><strong>Bs. {% widthratio d.precio_venta 1 d.cantidad %}</strong></td>
                     </tr>
                     {% empty %}
-                    <tr><td colspan="8" class="estado-vacio">No hay ventas rápidas</td></tr>
+                    <tr><td colspan="8" class="text-center text-muted">No hay ventas rápidas</td></tr>
                     {% endfor %}
                 </tbody>
             </table>
             <div class="tabla-total">
-                <span><strong>Total ventas:</strong></span>
-                <span><strong>Bs. {{ total_ventas_rapidas|default:"0.00"|floatformat:2 }}</strong></span>
+                <span>Total ventas:</span>
+                <span>Bs. {{ total_ventas_rapidas|default:"0.00"|floatformat:2 }}</span>
             </div>
         </div>
     </div>
 </div>
 
-<!-- ============================================================
-     SCRIPTS (Pestañas + Filtros AJAX)
-     ============================================================ -->
 <script>
-// 🆕 FUNCIÓN PARA CAMBIAR DE PESTAÑA
+// FUNCIÓN PARA CAMBIAR DE PESTAÑA
 function abrirTab(idTab, boton) {
-    // Ocultar todos los contenidos
-    document.querySelectorAll('.tab-content').forEach(function(tab) {
-        tab.classList.remove('active');
-    });
-    // Quitar active a todos los botones
-    document.querySelectorAll('.tab-btn').forEach(function(btn) {
-        btn.classList.remove('active');
-    });
-    // Mostrar el seleccionado
+    document.querySelectorAll('.tab-content').forEach(function(tab) { tab.classList.remove('active'); });
+    document.querySelectorAll('.tab-btn').forEach(function(btn) { btn.classList.remove('active'); });
     document.getElementById('tab-' + idTab).classList.add('active');
     boton.classList.add('active');
 }
@@ -326,8 +259,7 @@ function abrirTab(idTab, boton) {
     function setCargando(cargando) {
         SECCIONES.forEach(function (sec) {
             var cont = document.getElementById('tabla-' + sec);
-            if (!cont) return;
-            cont.classList.toggle('cargando', cargando);
+            if (cont) cont.classList.toggle('cargando', cargando);
         });
     }
 
@@ -345,8 +277,7 @@ function abrirTab(idTab, boton) {
     }
 
     document.addEventListener('DOMContentLoaded', function () {
-        var formularios = document.querySelectorAll('.form-filtro');
-        formularios.forEach(function (form) {
+        document.querySelectorAll('.form-filtro').forEach(function (form) {
             form.addEventListener('submit', function (e) {
                 e.preventDefault();
                 if (controllerActual) controllerActual.abort();
@@ -356,10 +287,7 @@ function abrirTab(idTab, boton) {
                 var url = window.location.pathname + (params ? '?' + params : '');
 
                 setCargando(true);
-                fetch(url, {
-                    headers: { 'X-Requested-With': 'XMLHttpRequest' },
-                    signal: controllerActual.signal
-                })
+                fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' }, signal: controllerActual.signal })
                 .then(function (response) {
                     if (!response.ok) throw new Error('HTTP ' + response.status);
                     return response.text();
@@ -369,16 +297,13 @@ function abrirTab(idTab, boton) {
                     window.history.pushState({}, '', url);
                 })
                 .catch(function (error) {
-                    if (error.name === 'AbortError') return;
-                    console.error('Error al filtrar:', error);
+                    if (error.name !== 'AbortError') console.error('Error al filtrar:', error);
                 })
-                .finally(function () {
-                    setCargando(false);
-                });
+                .finally(function () { setCargando(false); });
             });
         });
     });
 })();
 </script>
 
-{% endblock %} 
+{% endblock %}

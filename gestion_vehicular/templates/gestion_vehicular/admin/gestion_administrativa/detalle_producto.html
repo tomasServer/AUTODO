@@ -3,28 +3,55 @@
 
 {% block content %}
 <h1 style="color:#1a252f; margin-bottom:5px;">{{ producto.nombre }}</h1>
-<p style="color:#7f8c8d; margin-bottom:20px;">Ventas realizadas de este producto</p>
+<p style="color:#7f8c8d; margin-bottom:20px;">
+  Ventas realizadas de este producto — {{ ventas|length }} registro(s)
+</p>
 
-<div class="card" style="padding:15px 20px;">
+<div class="card">
     {% if ventas %}
-    <table style="font-size:0.85rem;">
-        <thead><tr><th>Orden</th><th>Placa</th><th>Fecha</th><th>Cantidad</th><th>Precio Unit.</th><th>Subtotal</th></tr></thead>
-        <tbody>
-            {% for v in ventas %}
-            <tr>
-                <td><a href="{% url 'detalle_orden' v.id_orden.id %}">#{{ v.id_orden.id }}</a></td>
-                <td>{{ v.id_orden.id_vehiculo.placa }}</td>
-                <td>{{ v.id_orden.fecha_ingreso|date:"d/m/Y" }}</td>
-                <td>{{ v.cantidad }}</td>
-                <td>Bs. {{ v.precio_unitario }}</td>
-                <td><strong>Bs. {{ v.subtotal_precio|default:"0.00" }}</strong></td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+    
+    <!-- Usamos table-responsive para que el base le dé el borde y la sombra correcta -->
+    <div class="table-responsive" style="margin-top: 15px;">
+        <table style="width: 100%;">
+            <thead>
+                <tr>
+                    <th>Orden</th>
+                    <th>Placa</th>
+                    <th>Fecha</th>
+                    <th>Cantidad</th>
+                    <th>Precio Unit.</th>
+                    <th>Subtotal</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for v in ventas %}
+                <tr>
+                    <td>
+                      {% if v.id_orden %}
+                        <a href="{% url 'detalle_orden' v.id_orden.id %}" style="color: var(--accent-color); text-decoration: none; font-weight: 600;">#{{ v.id_orden.id }}</a>
+                      {% else %}—{% endif %}
+                    </td>
+                    <td>{{ v.id_orden.id_vehiculo.placa|default:"—" }}</td>
+                    <td>{{ v.id_orden.fecha_ingreso|date:"d/m/Y" }}</td>
+                    <td>{{ v.cantidad }}</td>
+                    <td>Bs. {{ v.precio_unitario|floatformat:2 }}</td>
+                    <td><strong>Bs. {{ v.subtotal_precio|floatformat:2|default:"0.00" }}</strong></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+            <tfoot>
+                <tr>
+                    <td colspan="5" class="text-right" style="font-size: 0.95rem; color: var(--primary-dark);"><strong>Total general:</strong></td>
+                    <td style="font-size: 1rem; color: var(--primary-dark);"><strong>Bs. {{ total_ventas|floatformat:2 }}</strong></td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+    
     {% else %}
-    <p style="color:#7f8c8d;">No hay ventas registradas.</p>
+    <p style="color:#7f8c8d;">No hay ventas registradas para este producto.</p>
     {% endif %}
 </div>
-<a href="{% url 'reportes' %}" class="btn btn-gray" style="margin-top:15px;">Volver a Reportes</a>
+
+<a href="{% url 'reportes' %}" class="btn btn-gray mt-20">Volver a Reportes</a>
 {% endblock %}

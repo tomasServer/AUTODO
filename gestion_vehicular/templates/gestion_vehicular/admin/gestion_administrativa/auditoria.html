@@ -3,16 +3,20 @@
 
 {% block content %}
 
-<h2>Auditoría del Sistema</h2>
-<p style="color:#7f8c8d; font-size:0.9rem; margin-bottom:15px;">
-    Registro histórico de acciones críticas, eliminaciones y movimientos de seguridad.
-</p>
+<div class="flex-between mb-20">
+    <div>
+        <h2>Auditoría del Sistema</h2>
+        <p class="text-muted" style="font-size:0.9rem; margin-top:4px;">
+            Registro histórico de acciones críticas, eliminaciones y movimientos de seguridad.
+        </p>
+    </div>
+</div>
 
 <!-- Buscador -->
 <div class="card">
-    <form method="GET" action="{% url 'ver_auditoria' %}" class="flex flex-wrap">
+    <form method="GET" action="{% url 'ver_auditoria' %}" class="flex flex-wrap" style="gap: 10px;">
         <input type="text" name="q" placeholder="Buscar por usuario, módulo o detalle..." 
-               value="{{ busqueda }}" style="flex:1; min-width:200px;">
+               value="{{ busqueda }}" style="flex:1; min-width:200px; margin-bottom: 0;">
         <button type="submit" class="btn btn-primary">Buscar</button>
         {% if busqueda %}
         <a href="{% url 'ver_auditoria' %}" class="btn btn-gray">Limpiar</a>
@@ -21,9 +25,11 @@
 </div>
 
 <!-- Tabla de Auditoría -->
-<div class="card">
+<div class="card" style="padding: 0; overflow: hidden;"> <!-- El padding 0 es para que la tabla llegue al borde -->
     {% if page_obj %}
-    <div class="table-responsive scroll-y" style="max-height: 600px;">
+    
+    <!-- El contenedor con scroll y bordes redondeados -->
+    <div class="table-responsive scroll-y" style="max-height: 600px; margin: 0;">
         <table>
             <thead style="position: sticky; top: 0; z-index: 10;">
                 <tr>
@@ -37,16 +43,16 @@
             <tbody>
                 {% for a in page_obj %}
                 <tr>
-                    <td style="white-space: nowrap; font-size:0.85rem;">
+                    <td style="white-space: nowrap;">
                         {{ a.fecha|date:"d/m/Y" }} <br>
-                        <span style="color:#7f8c8d;">{{ a.fecha|date:"H:i:s" }}</span>
+                        <span class="text-muted" style="font-size:0.8rem;">{{ a.fecha|date:"H:i:s" }}</span>
                     </td>
                     <td>
                         {% if a.id_usuario %}
                             <strong>{{ a.id_usuario.nombre_completo }}</strong><br>
-                            <small style="color:#7f8c8d;">{{ a.id_usuario.id_rol.nombre }}</small>
+                            <small class="text-muted">{{ a.id_usuario.id_rol.nombre }}</small>
                         {% else %}
-                            <span style="color:#95a5a6;">Sistema</span>
+                            <span class="text-muted">Sistema</span>
                         {% endif %}
                     </td>
                     <td>
@@ -60,25 +66,25 @@
                         {% elif a.accion == 'ELIMINAR' %}
                             <span class="badge badge-danger">ELIMINAR</span>
                         {% elif a.accion == 'COBRAR' %}
-                            <span class="badge badge-success" style="background:#27ae60; color:white;">COBRAR</span>
+                            <span class="badge badge-success">COBRAR</span>
                         {% elif a.accion == 'LOGIN' %}
                             <span class="badge badge-info">LOGIN</span>
                         {% elif a.accion == 'LOGOUT' %}
-                            <span class="badge" style="background:#95a5a6; color:white;">LOGOUT</span>
+                            <span class="badge badge-gray">LOGOUT</span>
                         {% else %}
                             <span class="badge">{{ a.accion }}</span>
                         {% endif %}
                     </td>
-                    <td style="font-size:0.85rem;">{{ a.descripcion }}</td>
+                    <td>{{ a.descripcion }}</td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
     </div>
 
-    <!-- Paginación -->
-    <div class="flex flex-wrap" style="justify-content: space-between; align-items: center; margin-top: 15px;">
-        <div style="font-size:0.85rem; color:#7f8c8d;">
+    <!-- Paginación (con un poco de padding para que no quede pegado al borde) -->
+    <div class="flex flex-wrap" style="justify-content: space-between; align-items: center; padding: 15px;">
+        <div class="text-muted" style="font-size:0.85rem;">
             Mostrando {{ page_obj.start_index }} - {{ page_obj.end_index }} de {{ page_obj.paginator.count }} registros
         </div>
         <div class="flex">

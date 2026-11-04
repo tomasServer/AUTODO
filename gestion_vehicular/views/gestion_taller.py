@@ -569,18 +569,31 @@ def modo_taller(request):
             id_mecanico=request.user
         ).values_list('id_orden_id', flat=True).distinct()
         
-        ordenes_trabajo = OrdenTrabajo.objects.filter(
-            id__in=ordenes_ids,
-            estado_orden__in=['PENDIENTE', 'EN_PROCESO', 'VISITA']
+        # 1. Órdenes de Visita
+        ordenes_visita = OrdenTrabajo.objects.filter(
+            id__in=ordenes_ids, 
+            estado_orden='VISITA'
         ).order_by('fecha_ingreso')
         
+        # 2. Órdenes para Trabajar (Pendientes y En Proceso)
+        ordenes_trabajo = OrdenTrabajo.objects.filter(
+            id__in=ordenes_ids,
+            estado_orden__in=['PENDIENTE', 'EN_PROCESO']
+        ).order_by('fecha_ingreso')
+        
+        # 3. Órdenes para Cobrar
         ordenes_cobrar = OrdenTrabajo.objects.filter(
             id__in=ordenes_ids,
             estado_orden='POR_COBRAR'
         ).order_by('fecha_ingreso')
     else:
+        # Admin y Jefe ven todo
+        ordenes_visita = OrdenTrabajo.objects.filter(
+            estado_orden='VISITA'
+        ).order_by('fecha_ingreso')
+        
         ordenes_trabajo = OrdenTrabajo.objects.filter(
-            estado_orden__in=['PENDIENTE', 'EN_PROCESO', 'VISITA']
+            estado_orden__in=['PENDIENTE', 'EN_PROCESO']
         ).order_by('fecha_ingreso')
         
         ordenes_cobrar = OrdenTrabajo.objects.filter(
@@ -594,11 +607,12 @@ def modo_taller(request):
     else:  # AYUDANTE
         template = 'gestion_vehicular/ayudante/modo_taller.html'
     
+    # 🆕 Enviamos las 3 variables separadas
     return render(request, template, {
+        'ordenes_visita': ordenes_visita,
         'ordenes_trabajo': ordenes_trabajo,
         'ordenes_cobrar': ordenes_cobrar,
     })
-
 
 # ============================================================
 # TALLER DETALLE
@@ -625,6 +639,12 @@ def taller_detalle(request, orden_id):
         puede_agregar = False
     # =============================================
 
+    # 🆕 LÓGICA PARA SABER SI TODOS LOS SERVICIOS ESTÁN FINALIZADOS
+    # Evaluamos los servicios totales de la orden (no solo los que ve el mecánico)
+    servicios_totales = orden.detalles_servicio.all()
+    todos_finalizados = servicios_totales.exists() and all(s.estado == 'FINALIZADO' for s in servicios_totales)
+    # =============================================
+
     if es_admin:
         template = 'gestion_vehicular/admin/gestion_taller/taller_detalle.html'
     elif request.user.id_rol_id == 2:
@@ -640,6 +660,7 @@ def taller_detalle(request, orden_id):
         'mecanicos': mecanicos,
         'es_encargado': es_encargado,
         'puede_agregar': puede_agregar,
+        'todos_finalizados': todos_finalizados, # 🆕 ENVIAMOS LA VARIABLE AL TEMPLATE
     })
 
 
@@ -906,3 +927,18 @@ def orden_pdf(request, orden_id):
         return HttpResponse('Error al generar el PDF', status=500)
     
     return response
+
+#...observaciones de cada orden
+def actualizar_observacion_orden(request, orden_id):
+    """Guarda las observaciones generales de la orden"""
+    orden = get_object_or_404(OrdenTrabajo, id=orden_id)
+    
+    if request.method == 'POST':
+        nueva_obs = request.POST.get('observacion_general', '').strip()
+        orden.observacion_general = nueva_obs
+        orden.save()
+        
+        registrar_auditoria(request, 'EDITAR', 'TALLER', f'Actualizó las observaciones de la orden #{orden.id}.')
+        messages.success(request, 'Observaciones guardadas correctamente.')
+        
+    return redirect('taller_detalle', orden_id=orden.id)

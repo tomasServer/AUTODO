@@ -3,148 +3,169 @@
 
 {% block content %}
 
-<h2>Orden Nº {{ orden.id }}</h2>
+<div class="flex-between mb-20">
+    <h1 style="color:#1a252f; margin:0;">Orden Nº {{ orden.id }}</h1>
+    <span class="badge {% if orden.estado_orden == 'COBRADA' or orden.estado_orden == 'POR_COBRAR' %}badge-success{% elif orden.estado_orden == 'EN_PROCESO' %}badge-info{% elif orden.estado_orden == 'VISITA' %}badge-warning{% else %}badge-danger{% endif %}" style="font-size: 0.9rem; padding: 6px 12px;">
+        {{ orden.estado_orden }}
+    </span>
+</div>
 
-<div class="card">
-
-    <!-- DATOS DEL CLIENTE -->
-    <div class="mb-10">
-        <h3>Datos del Cliente</h3>
-        <div class="grid grid-2">
-            <div><strong>Nombre:</strong> {{ orden.id_vehiculo.id_cliente.nombre|default:"-" }} {{ orden.id_vehiculo.id_cliente.apellido|default:"" }}</div>
-            <div><strong>Teléfono:</strong> {{ orden.id_vehiculo.id_cliente.telefono|default:"-" }}</div>
-        </div>
+<!-- ================= DATOS DEL CLIENTE Y VEHÍCULO ================= -->
+<div class="grid grid-2 mb-20">
+    <!-- Tarjeta Cliente -->
+    <div class="card">
+        <h3>👤 Datos del Cliente</h3>
+        <div style="margin-bottom: 8px;"><strong>Nombre:</strong> {{ orden.id_vehiculo.id_cliente.nombre|default:"-" }} {{ orden.id_vehiculo.id_cliente.apellido|default:"" }}</div>
+        <div><strong>Teléfono:</strong> {{ orden.id_vehiculo.id_cliente.telefono|default:"-" }}</div>
     </div>
 
-    <!-- DATOS DEL VEHÍCULO -->
-    <div class="mb-10">
+    <!-- Tarjeta Vehículo -->
+    <div class="card">
         <div class="flex-between" style="cursor:pointer;" onclick="toggleVehiculo()">
             <h3 style="margin:0;">
                 <span id="flecha-vehiculo" style="display:inline-block; transition:transform 0.3s;">▶</span>
-                Datos del Vehículo
+                🚗 Datos del Vehículo
             </h3>
-            <span class="text-muted" style="font-size:0.8rem;">{{ orden.id_vehiculo.placa }} - Click para ver más</span>
+            <span class="text-muted" style="font-size:0.8rem;">Click para ver más</span>
         </div>
 
-        <!-- Datos BÁSICOS (siempre visibles) -->
-        <div class="grid grid-2" style="margin-top:10px;">
-            <div><strong>Placa:</strong> {{ orden.id_vehiculo.placa }}</div>
-            <div><strong>Estado:</strong> 
-                <span class="badge {% if orden.estado_orden == 'COBRADA' or orden.estado_orden == 'POR_COBRAR' %}badge-success{% elif orden.estado_orden == 'EN_PROCESO' %}badge-info{% elif orden.estado_orden == 'VISITA' %}badge-warning{% else %}badge-danger{% endif %}">
-                    {{ orden.estado_orden }}
-                </span>
-            </div>
+        <div style="margin-top:10px;">
+            <div style="margin-bottom: 8px;"><strong>Placa:</strong> {{ orden.id_vehiculo.placa }}</div>
         </div>
 
         <!-- Datos ADICIONALES (ocultos por defecto) -->
-        <div id="vehiculo-extra" style="display:none; margin-top:10px; padding:10px; background:#f8f9fa; border-radius:4px;">
-            <div class="grid grid-2">
-                <div><strong>Marca:</strong> {{ orden.id_vehiculo.marca|default:"-" }}</div>
-                <div><strong>Modelo:</strong> {{ orden.id_vehiculo.modelo|default:"-" }}</div>
-                <div><strong>Año:</strong> {{ orden.id_vehiculo.anio|default:"-" }}</div>
-                <div><strong>Color:</strong> {{ orden.id_vehiculo.color|default:"-" }}</div>
-                <div><strong>VIN:</strong> {{ orden.id_vehiculo.vin|default:"-" }}</div>
-                <div><strong>Kilometraje:</strong> {{ orden.id_vehiculo.kilometraje_actual|default:"-" }}</div>
-            </div>
-            <div style="margin-top:8px;">
-                <strong>Observaciones:</strong> {{ orden.id_vehiculo.observaciones|default:"-" }}
-            </div>
+        <div id="vehiculo-extra" style="display:none; margin-top:10px; padding:12px; background:#f8fafc; border-radius:8px; border: 1px solid #e2e8f0;">
+            <div style="margin-bottom: 6px;"><strong>Marca:</strong> {{ orden.id_vehiculo.marca|default:"-" }}</div>
+            <div style="margin-bottom: 6px;"><strong>Modelo:</strong> {{ orden.id_vehiculo.modelo|default:"-" }}</div>
+            <div style="margin-bottom: 6px;"><strong>Año:</strong> {{ orden.id_vehiculo.anio|default:"-" }}</div>
+            <div style="margin-bottom: 6px;"><strong>Color:</strong> {{ orden.id_vehiculo.color|default:"-" }}</div>
+            <div style="margin-bottom: 6px;"><strong>VIN:</strong> {{ orden.id_vehiculo.vin|default:"-" }}</div>
+            <div style="margin-bottom: 6px;"><strong>Kilometraje:</strong> {{ orden.id_vehiculo.kilometraje_actual|default:"-" }}</div>
+            <div style="margin-top:8px;"><strong>Observaciones:</strong> {{ orden.id_vehiculo.observaciones|default:"-" }}</div>
         </div>
     </div>
-
-    <!-- DATOS DE LA ORDEN -->
-    <div class="mb-10">
-        <h3>Datos de la Orden</h3>
-        <div class="grid grid-2">
-            <div><strong>Fecha Ingreso:</strong> {{ orden.fecha_ingreso|date:"d/m/Y H:i" }}</div>
-            <div><strong>Fecha Finalización:</strong> {{ orden.fecha_finalizacion|date:"d/m/Y H:i"|default:"-" }}</div>
-            <div><strong>Encargado de Revisión:</strong> {{ orden.id_jefe_tecnico.nombre_completo|default:"Sin asignar" }}</div>
-            <div><strong>Complejidad:</strong> {{ orden.id_complejidad.nombre|default:"-" }}</div>
-            <div><strong>Observaciones:</strong> {{ orden.observacion_general|default:"-" }}</div>
-        </div>
-    </div>
-
-    <!-- SERVICIOS -->
-    <div class="mb-10">
-        <h3>Servicios</h3>
-        {% for d in orden.detalles_servicio.all %}
-        <div class="flex-between" style="padding:6px 0; border-bottom:1px solid #ecf0f1;">
-            <div>
-                <strong>{{ d.id_servicio.nombre }}</strong>
-                <span class="text-muted" style="margin-left:10px;">
-                    {% if d.id_mecanico %}
-                        {{ d.id_mecanico.nombre_completo }}
-                    {% else %}
-                        Sin asignar
-                    {% endif %}
-                </span>
-            </div>
-            <div class="flex">
-                <span>Bs. {{ d.precio_cobrado }}</span>
-                <span class="badge {% if d.estado == 'PENDIENTE' %}badge-warning{% elif d.estado == 'EN_PROCESO' %}badge-info{% else %}badge-success{% endif %}">
-                    {{ d.estado }}
-                </span>
-            </div>
-        </div>
-        {% empty %}
-        <p class="text-muted">Sin servicios</p>
-        {% endfor %}
-    </div>
-
-    <!-- PRODUCTOS -->
-    <div class="mb-10">
-        <h3>Productos</h3>
-        {% for d in orden.detalles_producto.all %}
-        <div class="flex-between" style="padding:6px 0; border-bottom:1px solid #ecf0f1;">
-            <span>{{ d.id_producto.nombre }} x{{ d.cantidad }}</span>
-            <span>Bs. {{ d.subtotal_precio }}</span>
-        </div>
-        {% empty %}
-        <p class="text-muted">Sin productos</p>
-        {% endfor %}
-    </div>
-
-    <!-- HALLAZGOS -->
-    <div class="mb-10">
-        <h3>Hallazgos</h3>
-        {% for h in orden.hallazgos.all %}
-        <div class="flex-between" style="padding:8px 12px; border-left:3px solid 
-            {% if h.estado_autorizacion == 'AUTORIZADO_CLIENTE' %}#1e8449
-            {% elif h.estado_autorizacion == 'RECHAZADO_CLIENTE' %}#c0392b
-            {% else %}#e67e22{% endif %}; 
-            margin-bottom:6px; background:#fef9e7; border-radius:4px;">
-            <div>
-                <span>{{ h.descripcion|truncatechars:50 }}</span>
-                <strong style="margin-left:10px;">Bs. {{ h.costo_estimado|default:"0.00" }}</strong>
-            </div>
-            <div class="flex">
-                <span class="badge {% if h.estado_autorizacion == 'AUTORIZADO_CLIENTE' %}badge-success{% elif h.estado_autorizacion == 'RECHAZADO_CLIENTE' %}badge-danger{% else %}badge-warning{% endif %}">
-                    {{ h.estado_autorizacion }}
-                </span>
-                {% if h.estado_autorizacion == 'PENDIENTE' %}
-                <a href="{% url 'autorizar_hallazgo' h.id %}?accion=autorizar" class="btn btn-primary btn-sm" onclick="return confirm('¿Aceptar este hallazgo?')">Aceptar</a>
-                <a href="{% url 'autorizar_hallazgo' h.id %}?accion=rechazar" class="btn btn-danger btn-sm" onclick="return confirm('¿Rechazar este hallazgo?')">Rechazar</a>
-                {% endif %}
-            </div>
-        </div>
-        {% empty %}
-        <p class="text-muted">Sin hallazgos</p>
-        {% endfor %}
-    </div>
-
-    <!-- TOTALES -->
-    <div class="flex-between" style="background:#1a252f; color:white; padding:10px 15px; border-radius:4px;">
-        <span>Servicios: Bs. {{ total_servicios|floatformat:2 }}</span>
-        <span>Productos: Bs. {{ total_productos|floatformat:2 }}</span>
-        <strong>Total: Bs. {{ total_general|floatformat:2 }}</strong>
-    </div>
-
 </div>
 
-<div class="flex flex-wrap mt-10">
-    <a href="{% url 'modo_taller' %}" class="btn btn-gray">Volver</a>
+<!-- ================= DATOS DE LA ORDEN ================= -->
+<div class="card mb-20">
+    <h3>📋 Datos de la Orden</h3>
+    <div class="grid grid-2">
+        <div style="margin-bottom: 8px;"><strong>Fecha Ingreso:</strong> {{ orden.fecha_ingreso|date:"d/m/Y H:i" }}</div>
+        <div style="margin-bottom: 8px;"><strong>Fecha Finalización:</strong> {{ orden.fecha_finalizacion|date:"d/m/Y H:i"|default:"-" }}</div>
+        <div style="margin-bottom: 8px;"><strong>Encargado:</strong> {{ orden.id_jefe_tecnico.nombre_completo|default:"Sin asignar" }}</div>
+        <div style="margin-bottom: 8px;"><strong>Complejidad:</strong> {{ orden.id_complejidad.nombre|default:"-" }}</div>
+    </div>
+    <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid #f1f5f9;">
+        <strong>Observaciones:</strong> {{ orden.observacion_general|default:"-" }}
+    </div>
+</div>
+
+<!-- ================= SERVICIOS ================= -->
+<div class="card mb-20">
+    <h3>🔧 Servicios</h3>
+    {% if orden.detalles_servicio.all %}
+    <div class="table-responsive">
+        <table style="width:100%;">
+            <thead>
+                <tr>
+                    <th>Servicio</th>
+                    <th>Mecánico</th>
+                    <th>Precio</th>
+                    <th>Estado</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for d in orden.detalles_servicio.all %}
+                <tr>
+                    <td><strong>{{ d.id_servicio.nombre }}</strong></td>
+                    <td>{{ d.id_mecanico.nombre_completo|default:"Sin asignar" }}</td>
+                    <td>Bs. {{ d.precio_cobrado|floatformat:2 }}</td>
+                    <td>
+                        <span class="badge {% if d.estado == 'PENDIENTE' %}badge-warning{% elif d.estado == 'EN_PROCESO' %}badge-info{% else %}badge-success{% endif %}">
+                            {{ d.estado }}
+                        </span>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p class="text-muted">No hay servicios registrados.</p>
+    {% endif %}
+</div>
+
+<!-- ================= PRODUCTOS ================= -->
+<div class="card mb-20">
+    <h3>📦 Productos</h3>
+    {% if orden.detalles_producto.all %}
+    <div class="table-responsive">
+        <table style="width:100%;">
+            <thead>
+                <tr>
+                    <th>Producto</th>
+                    <th>Cantidad</th>
+                    <th>Subtotal</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for d in orden.detalles_producto.all %}
+                <tr>
+                    <td><strong>{{ d.id_producto.nombre }}</strong></td>
+                    <td>x{{ d.cantidad }}</td>
+                    <td>Bs. {{ d.subtotal_precio|floatformat:2 }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p class="text-muted">No hay productos registrados.</p>
+    {% endif %}
+</div>
+
+<!-- ================= HALLAZGOS ================= -->
+<div class="card mb-20">
+    <h3>⚠️ Hallazgos</h3>
+    {% for h in orden.hallazgos.all %}
+    <div class="flex-between" style="padding:12px; border-left:4px solid 
+        {% if h.estado_autorizacion == 'AUTORIZADO_CLIENTE' %}#22c55e
+        {% elif h.estado_autorizacion == 'RECHAZADO_CLIENTE' %}#ef4444
+        {% else %}#f59e0b{% endif %}; 
+        margin-bottom:10px; background:#f8fafc; border-radius:6px;">
+        <div>
+            <span style="font-weight: 500;">{{ h.descripcion|truncatechars:60 }}</span>
+            <strong style="margin-left:10px; color: var(--primary-dark);">Bs. {{ h.costo_estimado|floatformat:2|default:"0.00" }}</strong>
+        </div>
+        <div class="flex">
+            <span class="badge {% if h.estado_autorizacion == 'AUTORIZADO_CLIENTE' %}badge-success{% elif h.estado_autorizacion == 'RECHAZADO_CLIENTE' %}badge-danger{% else %}badge-warning{% endif %}">
+                {{ h.estado_autorizacion }}
+            </span>
+            {% if h.estado_autorizacion == 'PENDIENTE' %}
+            <a href="{% url 'autorizar_hallazgo' h.id %}?accion=autorizar" class="btn btn-primary btn-sm" onclick="return confirm('¿Aceptar este hallazgo?')">Aceptar</a>
+            <a href="{% url 'autorizar_hallazgo' h.id %}?accion=rechazar" class="btn btn-danger btn-sm" onclick="return confirm('¿Rechazar este hallazgo?')">Rechazar</a>
+            {% endif %}
+        </div>
+    </div>
+    {% empty %}
+    <p class="text-muted">No hay hallazgos registrados.</p>
+    {% endfor %}
+</div>
+
+<!-- ================= TOTALES ================= -->
+<div class="card" style="background: var(--primary-dark); color: white; border: none;">
+    <div class="flex-between" style="font-size: 1.1rem;">
+        <span>Servicios: <strong>Bs. {{ total_servicios|floatformat:2 }}</strong></span>
+        <span>Productos: <strong>Bs. {{ total_productos|floatformat:2 }}</strong></span>
+        <span style="font-size: 1.3rem; color: #fb923c;">Total: <strong>Bs. {{ total_general|floatformat:2 }}</strong></span>
+    </div>
+</div>
+
+<!-- ================= BOTONES ================= -->
+<div class="flex mt-20">
+    <a href="{% url 'modo_taller' %}" class="btn btn-gray">Volver al Taller</a>
     {% if orden.estado_orden == 'POR_COBRAR' %}
-    <a href="{% url 'registrar_pago' orden.id %}" class="btn btn-primary">Cobrar</a>
+    <a href="{% url 'registrar_pago' orden.id %}" class="btn btn-primary">Cobrar Orden</a>
     {% endif %}
 </div>
 

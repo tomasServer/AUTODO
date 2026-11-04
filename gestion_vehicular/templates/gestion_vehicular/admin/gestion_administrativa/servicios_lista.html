@@ -2,36 +2,79 @@
 {% block title %}Servicios{% endblock %}
 
 {% block content %}
-<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-    <h1 style="color:#1a252f;">Servicios del Taller</h1>
+
+<div class="flex-between mb-20">
+    <h1>Servicios del Taller</h1>
     <a href="{% url 'crear_servicio' %}" class="btn btn-success">Agregar Servicio</a>
 </div>
 
 <div class="card">
-    <h2>Todos los Servicios ({{ servicios.count }})</h2>
+    <div class="flex-between mb-20">
+        <h3>Todos los Servicios ({{ servicios.count }})</h3>
+    </div>
+
+    <!-- 🆕 BUSCADOR DE SERVICIOS -->
+    <div style="margin-bottom: 15px; max-width: 400px;">
+        <input type="text" id="buscador_servicios" placeholder="🔍 Buscar por nombre o tipo de servicio..." oninput="filtrarServicios()">
+    </div>
+
     {% if servicios %}
-    <table>
-        <thead>
-            <tr><th>Nombre</th><th>Tipo</th><th>Costo</th><th>Precio</th><th>Tiempo</th><th>Acciones</th></tr>
-        </thead>
-        <tbody>
-            {% for s in servicios %}
-            <tr>
-                <td><strong>{{ s.nombre }}</strong></td>
-                <td><span class="badge badge-info">{{ s.id_tipo_servicio.nombre }}</span></td>
-                <td>Bs. {{ s.costo_mano_obra }}</td>
-                <td>Bs. {{ s.precio_mano_obra }}</td>
-                <td>{{ s.tiempo_estimado_minutos|default:"-" }} min</td>
-                <td>
-                    <a href="{% url 'editar_servicio' s.id %}" class="btn btn-info" style="padding:4px 10px; font-size:0.8rem;">Editar</a>
-                    <a href="{% url 'desactivar_servicio' s.id %}" class="btn btn-warning" style="padding:4px 10px; font-size:0.8rem;" onclick="return confirm('¿Desactivar este servicio?')">Desactivar</a>
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+    <div class="table-responsive">
+        <table id="tabla-servicios">
+            <thead>
+                <tr>
+                    <th>Nombre</th>
+                    <th>Tipo</th>
+                    <th>Costo</th>
+                    <th>Precio</th>
+                    <th>Tiempo</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for s in servicios %}
+                <tr>
+                    <td><strong>{{ s.nombre }}</strong></td>
+                    <td><span class="badge badge-info">{{ s.id_tipo_servicio.nombre }}</span></td>
+                    <td>Bs. {{ s.costo_mano_obra }}</td>
+                    <td>Bs. {{ s.precio_mano_obra }}</td>
+                    <td>{{ s.tiempo_estimado_minutos|default:"-" }} min</td>
+                    <td>
+                        <a href="{% url 'editar_servicio' s.id %}" class="btn btn-info btn-sm">Editar</a>
+                        <a href="{% url 'desactivar_servicio' s.id %}" class="btn btn-warning btn-sm" onclick="return confirm('¿Desactivar este servicio?')">Desactivar</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
     {% else %}
-    <p style="color:#7f8c8d;">No hay servicios registrados.</p>
+    <p class="text-muted">No hay servicios registrados.</p>
     {% endif %}
 </div>
+
+<script>
+    function filtrarServicios() {
+        var input = document.getElementById('buscador_servicios');
+        var filtro = input.value.toLowerCase();
+        var tabla = document.getElementById('tabla-servicios');
+        if (!tabla) return;
+        
+        var filas = tabla.getElementsByTagName('tbody')[0].getElementsByTagName('tr');
+        
+        for (var i = 0; i < filas.length; i++) {
+            var celdas = filas[i].getElementsByTagName('td');
+            var nombre = celdas[0].textContent.toLowerCase();
+            var tipo = celdas[1].textContent.toLowerCase();
+            
+            // Si coincide con el nombre o el tipo, se muestra, sino se oculta
+            if (nombre.includes(filtro) || tipo.includes(filtro)) {
+                filas[i].style.display = '';
+            } else {
+                filas[i].style.display = 'none';
+            }
+        }
+    }
+</script>
+
 {% endblock %}

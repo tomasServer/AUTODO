@@ -22,6 +22,16 @@
             </span>
         </div>
     </div>
+
+    <!-- 🆕 OBSERVACIONES GENERALES (Solo cuando termina o está por cobrar) -->
+    {% if orden.estado_orden == 'POR_COBRAR' or todos_finalizados %}
+        {% if orden.observacion_general %}
+        <div style="margin-top: 15px; padding: 12px; background: #fff3cd; border-left: 4px solid #ffc107; border-radius: 4px;">
+            <strong style="color: #856404; font-size: 0.9rem;">⚠️ Observaciones / Recomendaciones para la próxima visita:</strong>
+            <p style="margin: 5px 0 0 0; color: #856404; font-size: 0.85rem;">{{ orden.observacion_general }}</p>
+        </div>
+        {% endif %}
+    {% endif %}
 </div>
 
 <!-- Botones de revisión -->
@@ -40,7 +50,7 @@
             <div class="flex-between flex-wrap">
                 <div>
                     <strong>{{ detalle.id_servicio.nombre }}</strong>
-                    <span class="text-muted" style="font-size:13px; margin-left:10px;">Bs. {{ detalle.precio_cobrado }}</span>
+                    <span class="text-muted" style="font-size:13px; margin-left:10px;">Bs. {{ detalle.precio_cobrado|floatformat:2 }}</span>
                     {% if detalle.id_mecanico %}
                     <span style="font-size:12px; color:#2c3e50; margin-left:10px;">{{ detalle.id_mecanico.nombre_completo }}</span>
                     {% endif %}
@@ -72,7 +82,7 @@
                 </form>
             </div>
 
-            <!-- 🆕 BOTONES DE ESTADO CON ATENUACIÓN -->
+            <!-- BOTONES DE ESTADO CON ATENUACIÓN -->
             <div class="flex flex-wrap botones-estado" style="margin-top:8px;">
                 <form method="POST" action="{% url 'cambiar_estado_servicio' detalle.id %}" class="inline-form">
                     {% csrf_token %}
@@ -100,7 +110,7 @@
                 </form>
             </div>
 
-            <!-- 🆕 FECHAS CORREGIDAS -->
+            <!-- FECHAS -->
             {% if detalle.fecha_inicio %}
             <div class="text-muted" style="font-size:12px; margin-top:5px;">
                 <strong>Inicio:</strong> {{ detalle.fecha_inicio|date:"d/m/Y H:i" }}
@@ -155,8 +165,8 @@
                 <tr>
                     <td>{{ detalle.id_producto.nombre }}</td>
                     <td>{{ detalle.cantidad }}</td>
-                    <td>Bs. {{ detalle.precio_unitario|default:"0.00" }}</td>
-                    <td><strong>Bs. {{ detalle.subtotal_precio|default:"0.00" }}</strong></td>
+                    <td>Bs. {{ detalle.precio_unitario|floatformat:2|default:"0.00" }}</td>
+                    <td><strong>Bs. {{ detalle.subtotal_precio|floatformat:2|default:"0.00" }}</strong></td>
                     <td style="text-align:right;">
                         <form method="POST" action="{% url 'eliminar_producto_orden' detalle.id %}" style="display:inline;" onsubmit="return confirm('¿Eliminar este producto?')">
                             {% csrf_token %}
@@ -172,7 +182,7 @@
     <p class="text-muted">Sin productos.</p>
     {% endif %}
 
-    <!-- AGREGAR PRODUCTO (con precio y cantidad editables) -->
+    <!-- AGREGAR PRODUCTO -->
     <div style="margin-top:15px;">
         <h4 style="font-size:14px; margin-bottom:8px;">Agregar producto</h4>
         <form method="POST" action="{% url 'agregar_producto_orden' orden.id %}" class="flex flex-wrap" style="gap:10px; align-items:center;">
@@ -200,7 +210,7 @@
         {% for h in orden.hallazgos.all %}
         <div style="padding:6px 0; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:5px;">
             <span>{{ h.descripcion|truncatechars:50 }}</span>
-            <span style="color:#e67e22; font-weight:600;">Bs. {{ h.costo_estimado|default:"0.00" }}</span>
+            <span style="color:#e67e22; font-weight:600;">Bs. {{ h.costo_estimado|floatformat:2|default:"0.00" }}</span>
             <span class="badge badge-warning">{{ h.estado_autorizacion }}</span>
         </div>
         {% endfor %}
@@ -220,6 +230,16 @@
     </div>
 </div>
 
+<!-- 🆕 FORMULARIO DE OBSERVACIONES GENERALES -->
+<div class="card">
+    <h3>📝 Observaciones Generales (Para próxima visita)</h3>
+    <form method="POST" action="{% url 'actualizar_observacion_orden' orden.id %}">
+        {% csrf_token %}
+        <textarea name="observacion_general" rows="3" class="form-control" placeholder="Escriba aquí recomendaciones o notas importantes sobre el estado del vehículo...">{{ orden.observacion_general|default:"" }}</textarea>
+        <button type="submit" class="btn btn-primary mt-10">Guardar Observaciones</button>
+    </form>
+</div>
+
 <!-- BOTONES DE ACCIÓN -->
 <div class="flex flex-wrap" style="margin-top:15px;">
     <a href="{% url 'modo_taller' %}" class="btn btn-gray">Volver</a>
@@ -232,14 +252,14 @@
 
 <script>
     $(document).ready(function() {
-        // ✅ Select2 en servicios
+        // Select2 en servicios
         $('#servicioSelect').select2({
             placeholder: 'Buscar servicio...',
             allowClear: true,
             width: '100%'
         });
         
-        // ✅ Select2 en productos
+        // Select2 en productos
         $('#productoSelect').select2({
             placeholder: 'Buscar producto...',
             allowClear: true,
@@ -252,7 +272,7 @@
             $('#precioInput').val(precio);
         });
         
-        // ✅ Autocompletar precio al seleccionar producto
+        // Autocompletar precio al seleccionar producto
         $('#productoSelect').on('change', function() {
             var precio = $(this).find('option:selected').data('precio') || '';
             $('#precioProductoInput').val(precio);
@@ -268,21 +288,13 @@
         document.getElementById('editarPrecio-' + detalleId).style.display = 'none';
     }
 
-    // 🆕 Función para atenuar los otros botones al hacer clic
     function atenuarBotones(botonClickeado) {
-        // Buscar el contenedor padre para no afectar a otros servicios
         var contenedor = botonClickeado.closest('.botones-estado');
         if (!contenedor) return;
-
-        // Obtener todos los botones de ESTE servicio
         var botones = contenedor.querySelectorAll('button');
-
-        // Poner todos al 40% de opacidad
         botones.forEach(function(btn) {
             btn.style.opacity = '0.4';
         });
-
-        // El botón clickeado se queda al 100%
         botonClickeado.style.opacity = '1';
     }
 </script>

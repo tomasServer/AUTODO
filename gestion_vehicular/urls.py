@@ -99,4 +99,6 @@ urlpatterns = [
     path('api/vehiculo/', seguimiento_vehicular.api_vehiculo_por_placa, name='api_vehiculo_por_placa'),
     path('ventas/<int:venta_id>/pdf/', gestion_ventas.venta_pdf, name='venta_pdf'),
     path('auditoria/', gestion_administrativa.ver_auditoria, name='ver_auditoria'),
+    #observacion
+    path('taller/orden/<int:orden_id>/observacion/', gestion_taller.actualizar_observacion_orden, name='actualizar_observacion_orden'),
 ]   

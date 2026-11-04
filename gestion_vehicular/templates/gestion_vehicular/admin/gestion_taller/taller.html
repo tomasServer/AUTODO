@@ -1,121 +1,242 @@
 {% extends 'gestion_vehicular/admin/base_admin.html' %}
-
 {% block title %}Modo Taller{% endblock %}
 
 {% block content %}
 
+<style>
+    /* Estilos para las pestañas */
+    .tabs-container {
+        display: flex;
+        gap: 5px;
+        margin-bottom: 20px;
+        border-bottom: 2px solid #e2e8f0;
+    }
+    .tab-btn {
+        padding: 10px 20px;
+        background: #f1f5f9;
+        border: none;
+        border-radius: 8px 8px 0 0;
+        cursor: pointer;
+        font-weight: 600;
+        color: #64748b;
+        font-size: 0.9rem;
+        transition: all 0.2s;
+    }
+    .tab-btn:hover {
+        background: #e2e8f0;
+        color: #1e293b;
+    }
+    .tab-btn.active {
+        background: #1e293b;
+        color: white;
+    }
+    .tab-content {
+        display: none;
+        animation: fadeIn 0.3s;
+    }
+    .tab-content.active {
+        display: block;
+    }
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(5px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* 🆕 SCROLL PARA LAS TABLAS DEL TALLER */
+    .tabla-scroll { 
+        max-height: 400px; 
+        overflow-y: auto; 
+        border: 1px solid #e2e8f0; 
+        border-radius: 8px; 
+        position: relative; 
+        background: white;
+        margin-top: 10px;
+    }
+    .tabla-scroll thead th { 
+        position: sticky; 
+        top: 0; 
+        background: #1e293b; 
+        color: white; 
+        z-index: 10; 
+        text-align: left;
+    }
+</style>
+
 <h2>Modo Taller</h2>
 
-<!-- ÓRDENES PARA TRABAJAR -->
-<div class="card">
-    <h3>Órdenes para Trabajar</h3>
-    {% if ordenes_trabajo %}
-    <div class="table-responsive" style="max-height:300px; overflow-y:auto;">
-        <table>
-            <thead>
-                <tr>
-                    <th>Orden</th>
-                    <th>Placa</th>
-                    <th>Cliente</th>
-                    <th>Encargado</th>
-                    <th>Estado</th>
-                    <th>Acciones</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for orden in ordenes_trabajo %}
-                <tr style="border-left: 4px solid 
-                    {% if orden.estado_orden == 'EN_PROCESO' %}#f39c12
-                    {% elif orden.estado_orden == 'VISITA' %}#2980b9
-                    {% else %}#e74c3c{% endif %};">
-                    <td><strong>{{ orden.id }}</strong></td>
-                    <td>{{ orden.id_vehiculo.placa }}</td>
-                    <td>{{ orden.id_vehiculo.id_cliente.nombre|default:"Sin cliente" }}</td>
-                    <td>
-                        {% if orden.id_jefe_tecnico %}
-                            {{ orden.id_jefe_tecnico.nombre_completo }}
-                        {% else %}
-                            <span style="color:#7f8c8d;">Sin asignar</span>
-                        {% endif %}
-                    </td>
-                    <td>
-                        <span class="badge 
-                            {% if orden.estado_orden == 'EN_PROCESO' %}badge-warning
-                            {% elif orden.estado_orden == 'VISITA' %}badge-info
-                            {% else %}badge-danger{% endif %}">
-                            {{ orden.estado_orden }}
-                        </span>
-                    </td>
-                    <td>
-                        {% if orden.estado_orden == 'VISITA' %}
-                            {% if user.id_rol_id == 1 or user.id_rol_id == 2 %}
-                            <a href="{% url 'convertir_visita_en_orden' orden.id %}" class="btn btn-primary btn-sm" 
-                               onclick="return confirm('¿Convertir esta visita en una orden formal?')">
-                                Convertir en Orden
-                            </a>
-                            {% endif %}
-                            <a href="{% url 'detalle_orden' orden.id %}" class="btn btn-gray btn-sm">Ver</a>
-                        {% else %}
-                            <a href="{% url 'detalle_orden' orden.id %}" class="btn btn-gray btn-sm">Detalle</a>
-                            <a href="{% url 'taller_detalle' orden.id %}" class="btn btn-warning btn-sm">Trabajar</a>
-                        {% endif %}
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
-    {% else %}
-    <p style="color:#27ae60;">No hay órdenes para trabajar.</p>
-    {% endif %}
+<!-- PESTAÑAS -->
+<div class="tabs-container">
+    <button class="tab-btn active" onclick="abrirTab('visitas', this)">🔍 Órdenes de Visita</button>
+    <button class="tab-btn" onclick="abrirTab('trabajar', this)">🔧 Órdenes para Trabajar</button>
+    <button class="tab-btn" onclick="abrirTab('cobrar', this)">💰 Órdenes por Cobrar</button>
 </div>
 
-<!-- ÓRDENES PARA COBRAR -->
-<div class="card">
-    <h3>Órdenes para Cobrar</h3>
-    {% if ordenes_cobrar %}
-    <div class="table-responsive" style="max-height:300px; overflow-y:auto;">
-        <table>
-            <thead>
-                <tr>
-                    <th>Orden</th>
-                    <th>Placa</th>
-                    <th>Cliente</th>
-                    <th>Encargado</th>
-                    <th>Estado</th>
-                    <th>Acciones</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for orden in ordenes_cobrar %}
-                <tr style="border-left: 4px solid #27ae60;">
-                    <td><strong>{{ orden.id }}</strong></td>
-                    <td>{{ orden.id_vehiculo.placa }}</td>
-                    <td>{{ orden.id_vehiculo.id_cliente.nombre|default:"Sin cliente" }}</td>
-                    <td>
-                        {% if orden.id_jefe_tecnico %}
-                            {{ orden.id_jefe_tecnico.nombre_completo }}
-                        {% else %}
-                            <span style="color:#7f8c8d;">Sin asignar</span>
-                        {% endif %}
-                    </td>
-                    <td><span class="badge badge-success">POR COBRAR</span></td>
-                    <td>
-                        <a href="{% url 'detalle_orden' orden.id %}" class="btn btn-gray btn-sm">Detalle</a>
-                        <a href="{% url 'taller_detalle' orden.id %}" class="btn btn-success btn-sm">Cobrar</a>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+<!-- ============ PESTAÑA 1: ÓRDENES DE VISITA ============ -->
+<div id="tab-visitas" class="tab-content active">
+    <div class="card">
+        <h3>Órdenes en estado de Visita</h3>
+        <p style="color:#64748b; font-size:0.85rem; margin-bottom:15px;">Vehículos que ingresaron para revisión y aún no tienen una orden formal de trabajo.</p>
+        
+        {% if ordenes_visita %}
+        <div class="tabla-scroll">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Orden</th>
+                        <th>Placa / VIN</th>
+                        <th>Cliente</th>
+                        <th>Encargado</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for orden in ordenes_visita %}
+                    <tr>
+                        <td><strong>Nº {{ orden.id }}</strong></td>
+                        <td>{{ orden.id_vehiculo.placa|default:orden.id_vehiculo.vin|default:"Sin placa" }}</td>
+                        <td>{{ orden.id_vehiculo.id_cliente.nombre|default:"Sin cliente" }}</td>
+                        <td>
+                            {% if orden.id_jefe_tecnico %}
+                                {{ orden.id_jefe_tecnico.nombre_completo }}
+                            {% else %}
+                                <span style="color:#94a3b8;">Sin asignar</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if user.id_rol_id == 1 or user.id_rol_id == 2 %}
+                            <a href="{% url 'convertir_visita_en_orden' orden.id %}" class="btn btn-primary btn-sm" onclick="return confirm('¿Convertir esta visita en una orden formal?')">Convertir a Orden</a>
+                            {% endif %}
+                            <a href="{% url 'detalle_orden' orden.id %}" class="btn btn-gray btn-sm">Ver</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p style="color:#64748b;">No hay órdenes en estado de visita en este momento.</p>
+        {% endif %}
     </div>
-    {% else %}
-    <p style="color:#7f8c8d;">No hay órdenes para cobrar.</p>
-    {% endif %}
+</div>
+
+<!-- ============ PESTAÑA 2: ÓRDENES PARA TRABAJAR ============ -->
+<div id="tab-trabajar" class="tab-content">
+    <div class="card">
+        <h3>Órdenes en Proceso o Pendientes</h3>
+        <p style="color:#64748b; font-size:0.85rem; margin-bottom:15px;">Órdenes activas donde los mecánicos y ayudantes están realizando el trabajo.</p>
+        
+        {% if ordenes_trabajo %}
+        <div class="tabla-scroll">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Orden</th>
+                        <th>Placa / VIN</th>
+                        <th>Cliente</th>
+                        <th>Encargado</th>
+                        <th>Estado</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for orden in ordenes_trabajo %}
+                    <tr>
+                        <td><strong>Nº {{ orden.id }}</strong></td>
+                        <td>{{ orden.id_vehiculo.placa|default:orden.id_vehiculo.vin|default:"Sin placa" }}</td>
+                        <td>{{ orden.id_vehiculo.id_cliente.nombre|default:"Sin cliente" }}</td>
+                        <td>
+                            {% if orden.id_jefe_tecnico %}
+                                {{ orden.id_jefe_tecnico.nombre_completo }}
+                            {% else %}
+                                <span style="color:#94a3b8;">Sin asignar</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="badge 
+                                {% if orden.estado_orden == 'EN_PROCESO' %}badge-warning
+                                {% elif orden.estado_orden == 'PENDIENTE' %}badge-info
+                                {% else %}badge-danger{% endif %}">
+                                {{ orden.estado_orden }}
+                            </span>
+                        </td>
+                        <td>
+                            <a href="{% url 'detalle_orden' orden.id %}" class="btn btn-gray btn-sm">Detalle</a>
+                            <a href="{% url 'taller_detalle' orden.id %}" class="btn btn-warning btn-sm">Trabajar</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p style="color:#22c55e;">No hay órdenes para trabajar en este momento.</p>
+        {% endif %}
+    </div>
+</div>
+
+<!-- ============ PESTAÑA 3: ÓRDENES POR COBRAR ============ -->
+<div id="tab-cobrar" class="tab-content">
+    <div class="card">
+        <h3>Órdenes Listas para Cobrar</h3>
+        <p style="color:#64748b; font-size:0.85rem; margin-bottom:15px;">Órdenes cuyos servicios han finalizado y esperan el pago del cliente.</p>
+        
+        {% if ordenes_cobrar %}
+        <div class="tabla-scroll">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Orden</th>
+                        <th>Placa / VIN</th>
+                        <th>Cliente</th>
+                        <th>Encargado</th>
+                        <th>Total Estimado</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for orden in ordenes_cobrar %}
+                    <tr>
+                        <td><strong>Nº {{ orden.id }}</strong></td>
+                        <td>{{ orden.id_vehiculo.placa|default:orden.id_vehiculo.vin|default:"Sin placa" }}</td>
+                        <td>{{ orden.id_vehiculo.id_cliente.nombre|default:"Sin cliente" }}</td>
+                        <td>
+                            {% if orden.id_jefe_tecnico %}
+                                {{ orden.id_jefe_tecnico.nombre_completo }}
+                            {% else %}
+                                <span style="color:#94a3b8;">Sin asignar</span>
+                            {% endif %}
+                        </td>
+                        <td><strong>Bs. {{ orden.total_orden|floatformat:2|default:"0.00" }}</strong></td>
+                        <td>
+                            <a href="{% url 'detalle_orden' orden.id %}" class="btn btn-gray btn-sm">Detalle</a>
+                            <a href="{% url 'taller_detalle' orden.id %}" class="btn btn-success btn-sm">Cobrar</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p style="color:#64748b;">No hay órdenes pendientes de cobro.</p>
+        {% endif %}
+    </div>
 </div>
 
 <div style="margin-top:20px;">
-    <a href="{% url 'dashboard_admin' %}" class="btn btn-gray">Volver</a>
+    <a href="{% url 'dashboard_admin' %}" class="btn btn-gray">Volver al Panel</a>
 </div>
+
+<script>
+function abrirTab(idTab, boton) {
+    document.querySelectorAll('.tab-content').forEach(function(tab) {
+        tab.classList.remove('active');
+    });
+    document.querySelectorAll('.tab-btn').forEach(function(btn) {
+        btn.classList.remove('active');
+    });
+    document.getElementById('tab-' + idTab).classList.add('active');
+    boton.classList.add('active');
+}
+</script>
 
 {% endblock %}

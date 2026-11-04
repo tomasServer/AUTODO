@@ -11,7 +11,7 @@
     <a href="{% url 'reportes' %}">Reportes</a>
     <a href="{% static 'manual/manual_usuario.pdf' %}" target="_blank">Manual de usuario</a>
     <a href="{% url 'ver_auditoria' %}">Auditoria</a>
-    <a href="{% url 'logout' %}" style="background:#c0392b; color:#fff; padding:8px 16px; border-radius:4px;">Cerrar Sesion</a>
+    <a href="{% url 'logout' %}" class="btn-logout">Cerrar Sesion</a>
 {% endblock %}
 
 {% block sidebar %}
