@@ -3,25 +3,33 @@
 
 {% block content %}
 
-<h1 style="color:#1a252f; font-size:1.2rem;">Panel de Administracion</h1>
-<p style="color:#95a5a6; font-size:0.75rem; margin-bottom:15px;">{{ hoy|date:"l d \d\e F \d\e Y" }}</p>
+<h1 style="color: var(--primary-dark); font-size: 1.5rem; margin-bottom: 5px;">Panel de Administración</h1>
+<p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 20px;">{{ hoy|date:"l d \d\e F \d\e Y" }}</p>
 
-<div class="grid grid-2">
-    <!-- COLUMNA IZQUIERDA -->
-    <div>
+<!-- CONTENEDOR PRINCIPAL DE DOS COLUMNAS -->
+<div class="flex" style="align-items: flex-start; gap: 20px; flex-wrap: wrap; margin-bottom: 20px;">
+    
+    <!-- COLUMNA IZQUIERDA (55%) -->
+    <div style="flex: 1 1 55%; min-width: 350px;">
+        
         <!-- HALLAZGOS PENDIENTES -->
         <div class="card">
-            <h3>Hallazgos Pendientes</h3>
+            <div class="flex-between mb-10">
+                <h3 style="margin: 0;">⚠️ Hallazgos Pendientes</h3>
+                <span class="badge badge-warning">{{ hallazgos_pendientes|length }}</span>
+            </div>
             {% if hallazgos_pendientes %}
-            <div class="scroll-y" style="max-height:180px;">
+            <div class="tabla-scroll" style="max-height: 250px;">
                 {% for h in hallazgos_pendientes %}
-                <div class="flex-between" style="padding:8px 0; border-bottom:1px solid #ecf0f1;">
-                    <div>
-                        <strong>#{{ h.id_orden.id }}</strong> - {{ h.id_orden.id_vehiculo.placa }}
-                        <span style="color:#95a5a6;">| {{ h.descripcion|truncatechars:30 }}</span>
+                <div class="flex-between" style="padding:12px 15px; border-bottom:1px solid #f1f5f9; gap: 10px;">
+                    <div style="flex: 1; min-width: 0;">
+                        <strong style="color: var(--primary-dark);">#{{ h.id_orden.id }}</strong> - {{ h.id_orden.id_vehiculo.placa|default:h.id_orden.id_vehiculo.vin }}
+                        <span class="text-muted" style="font-size: 0.8rem; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                            {{ h.descripcion|truncatechars:40 }}
+                        </span>
                     </div>
-                    <div class="flex">
-                        <strong>Bs. {{ h.costo_estimado|default:"0" }}</strong>
+                    <div class="flex" style="gap: 5px; flex-shrink: 0;">
+                        <strong style="color: var(--warning); margin-right: 10px; white-space: nowrap;">Bs. {{ h.costo_estimado|floatformat:2|default:"0.00" }}</strong>
                         <a href="{% url 'autorizar_hallazgo' h.id %}" class="btn btn-primary btn-sm">Aceptar</a>
                         <a href="{% url 'rechazar_hallazgo' h.id %}" class="btn btn-danger btn-sm">Rechazar</a>
                     </div>
@@ -29,68 +37,79 @@
                 {% endfor %}
             </div>
             {% else %}
-            <p style="color:#95a5a6; font-size:0.8rem;">No hay hallazgos pendientes.</p>
+            <p class="text-muted" style="font-size:0.85rem;">No hay hallazgos pendientes.</p>
             {% endif %}
         </div>
 
         <!-- STOCK BAJO -->
         <div class="card">
-            <h3>Stock Bajo</h3>
+            <div class="flex-between mb-10">
+                <h3 style="margin: 0;">📦 Stock Bajo</h3>
+                <span class="badge badge-danger">{{ stock_bajo|length }}</span>
+            </div>
             {% if stock_bajo %}
-            <div class="scroll-y" style="max-height:180px;">
+            <div class="tabla-scroll" style="max-height: 250px;">
                 {% for p in stock_bajo %}
-                <div class="flex-between" style="padding:6px 0; border-bottom:1px solid #ecf0f1;">
-                    <span>{{ p.nombre }}</span>
-                    <strong style="{% if p.stock_actual <= 2 %}color:#c0392b;{% endif %}">{{ p.stock_actual }} und.</strong>
+                <div class="flex-between" style="padding:10px 15px; border-bottom:1px solid #f1f5f9; {% if p.stock_actual <= 2 %}background: #fee2e2;{% endif %}">
+                    <span style="font-size: 0.9rem;">{{ p.nombre }}</span>
+                    <strong style="{% if p.stock_actual <= 2 %}color: var(--danger);{% else %}color: var(--warning);{% endif %}">
+                        {{ p.stock_actual }} und.
+                    </strong>
                 </div>
                 {% endfor %}
             </div>
             {% else %}
-            <p style="color:#95a5a6; font-size:0.8rem;">Stock suficiente.</p>
+            <p class="text-muted" style="font-size:0.85rem;">Stock suficiente.</p>
             {% endif %}
         </div>
     </div>
 
-    <!-- COLUMNA DERECHA: 4 TARJETAS -->
-    <div class="grid grid-2">
-        <div class="stat-card bg-dark">
-            <span class="number">{{ pendientes_count }}</span>
-            <span class="label">Ordenes Pendientes</span>
-        </div>
-        <div class="stat-card bg-dark">
-            <span class="number">{{ por_cobrar_count }}</span>
-            <span class="label">Ordenes Por Cobrar</span>
-        </div>
-        <div class="stat-card bg-dark">
-            <span class="number">Bs. {{ total_facturado|floatformat:2 }}</span>
-            <span class="label">Ordenes Cobradas Hoy</span>
-        </div>
-        <div class="stat-card bg-dark">
-            <span class="number">Bs. {{ ventas_rapidas_hoy|floatformat:2 }}</span>
-            <span class="label">Ventas Rapidas</span>
+    <!-- COLUMNA DERECHA (40%) -->
+    <div style="flex: 1 1 40%; min-width: 300px;">
+        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px;">
+            <div class="stat-card bg-dark" style="padding: 25px 15px;">
+                <span class="number" style="font-size: 2rem;">{{ pendientes_count }}</span>
+                <span class="label">Órdenes Pendientes</span>
+            </div>
+            <div class="stat-card bg-dark" style="padding: 25px 15px;">
+                <span class="number" style="font-size: 2rem;">{{ por_cobrar_count }}</span>
+                <span class="label">Órdenes Por Cobrar</span>
+            </div>
+            <div class="stat-card bg-dark" style="padding: 25px 15px;">
+                <span class="number" style="font-size: 1.6rem;">Bs. {{ total_facturado|floatformat:2 }}</span>
+                <span class="label">Cobradas Hoy</span>
+            </div>
+            <div class="stat-card bg-dark" style="padding: 25px 15px;">
+                <span class="number" style="font-size: 1.6rem;">Bs. {{ ventas_rapidas_hoy|floatformat:2 }}</span>
+                <span class="label">Ventas Rápidas</span>
+            </div>
         </div>
     </div>
 </div>
 
 <!-- ÓRDENES RECIENTES -->
-<div class="card mt-10">
-    <h3>Ordenes Recientes</h3>
+<div class="card mt-20">
+    <h3>📋 Órdenes Recientes</h3>
     {% if ultimas_ordenes %}
-    <div class="scroll-y" style="max-height:300px;">
+    <div class="tabla-scroll">
         <table>
             <thead>
                 <tr>
                     <th>N° Orden</th>
-                    <th>Placa</th>
+                    <th>Placa / VIN</th>
                     <th>Estado</th>
                     <th>Total</th>
                 </tr>
             </thead>
             <tbody>
-                {% for o in ultimas_ordenes %}
+                {% for o in ultimas_ordenes|slice:":3" %}
                 <tr>
-                    <td><strong>Nº {{ o.id }}</strong></td>
-                    <td>{{ o.id_vehiculo.placa }}</td>
+                    <td><strong style="color: var(--primary-dark);">Nº {{ o.id }}</strong></td>
+                    <td>
+                        {% if o.id_vehiculo.placa %}{{ o.id_vehiculo.placa }}
+                        {% elif o.id_vehiculo.vin %}<span style="font-family:monospace; font-size:0.8rem;">{{ o.id_vehiculo.vin }}</span>
+                        {% else %}-{% endif %}
+                    </td>
                     <td>
                         <span class="badge 
                             {% if o.estado_orden == 'COBRADA' %}badge-success
@@ -100,30 +119,30 @@
                             {{ o.estado_orden }}
                         </span>
                     </td>
-                    <td><strong>{% if o.pago %}Bs. {{ o.pago.monto_total }}{% else %}-{% endif %}</strong></td>
+                    <td><strong>{% if o.pago %}Bs. {{ o.pago.monto_total|floatformat:2 }}{% else %}-{% endif %}</strong></td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
     </div>
     {% else %}
-    <p style="color:#95a5a6; font-size:0.8rem;">No hay ordenes registradas.</p>
+    <p class="text-muted" style="font-size:0.85rem;">No hay órdenes registradas.</p>
     {% endif %}
 </div>
 
-<!-- VENTAS RAPIDAS DE HOY -->
-<div class="card mt-10">
-    <h3>Ventas Rapidas de Hoy</h3>
+<!-- VENTAS RÁPIDAS DE HOY -->
+<div class="card mt-20">
+    <h3>🛒 Ventas Rápidas de Hoy</h3>
     {% if ventas_rapidas_lista %}
-    <div class="scroll-y" style="max-height:200px;">
+    <div class="tabla-scroll">
         <table>
             <thead>
                 <tr><th>Venta</th><th>Hora</th><th>Registrado</th><th>Total</th></tr>
             </thead>
             <tbody>
-                {% for v in ventas_rapidas_lista %}
+                {% for v in ventas_rapidas_lista|slice:":5" %}
                 <tr>
-                    <td>Nº{{ v.id }}</td>
+                    <td><strong style="color: var(--primary-dark);">Nº {{ v.id }}</strong></td>
                     <td>{{ v.fecha_venta|date:"H:i" }}</td>
                     <td>{{ v.registrado_por.nombre|default:"-" }}</td>
                     <td><strong>Bs. {{ v.total|floatformat:2 }}</strong></td>
@@ -133,11 +152,8 @@
         </table>
     </div>
     {% else %}
-    <p style="color:#95a5a6; font-size:0.8rem;">No hay ventas rapidas hoy.</p>
+    <p class="text-muted" style="font-size:0.85rem;">No hay ventas rápidas hoy.</p>
     {% endif %}
 </div>
 
 {% endblock %}
-
-
-

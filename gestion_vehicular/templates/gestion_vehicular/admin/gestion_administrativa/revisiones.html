@@ -2,42 +2,51 @@
 {% block title %}Gestionar Revisiones{% endblock %}
 
 {% block content %}
-<h2 style="color:#1a252f; margin-bottom:15px;">Gestionar Componentes de Revision</h2>
 
-<div class="card" style="padding:20px;">
+<h1 style="color: var(--primary-dark); font-size: 1.5rem; margin-bottom: 20px;">Gestionar Componentes de Revisión</h1>
+
+<div class="card">
     <form method="POST">
         {% csrf_token %}
         
-        <table style="font-size:0.85rem;">
-            <thead>
-                <tr>
-                    <th>Componente</th>
-                    <th style="text-align:center;">Visita</th>
-                    <th style="text-align:center;">Rapida</th>
-                    <th style="text-align:center;">Completa</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for c in componentes %}
-                <tr>
-                    <td>{{ c.nombre }}</td>
-                    <td style="text-align:center;">
-                        <input type="checkbox" name="en_visita_{{ c.id }}" {% if c.en_visita %}checked{% endif %}>
-                    </td>
-                    <td style="text-align:center;">
-                        <input type="checkbox" name="en_rapida_{{ c.id }}" {% if c.en_rapida %}checked{% endif %}>
-                    </td>
-                    <td style="text-align:center;">
-                        <input type="checkbox" name="en_completa_{{ c.id }}" {% if c.en_completa %}checked{% endif %}>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+        <div class="tabla-scroll">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Componente</th>
+                        <th style="text-align: center;">Visita</th>
+                        <th style="text-align: center;">Rápida</th>
+                        <th style="text-align: center;">Completa</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for c in componentes %}
+                    <tr>
+                        <td><strong style="color: var(--primary-dark);">{{ c.nombre }}</strong></td>
+                        <td style="text-align: center;">
+                            <input type="checkbox" name="en_visita_{{ c.id }}" {% if c.en_visita %}checked{% endif %} style="width: 18px; height: 18px; cursor: pointer;">
+                        </td>
+                        <td style="text-align: center;">
+                            <input type="checkbox" name="en_rapida_{{ c.id }}" {% if c.en_rapida %}checked{% endif %} style="width: 18px; height: 18px; cursor: pointer;">
+                        </td>
+                        <td style="text-align: center;">
+                            <input type="checkbox" name="en_completa_{{ c.id }}" {% if c.en_completa %}checked{% endif %} style="width: 18px; height: 18px; cursor: pointer;">
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="4" class="text-muted" style="text-align: center; padding: 20px;">No hay componentes registrados.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
         
-        <div style="margin-top:15px; display:flex; justify-content:flex-end;">
-            <button type="submit" class="btn btn-success">Guardar Configuracion</button>
+        <div style="margin-top: 20px; text-align: right; padding-top: 15px; border-top: 1px solid #f1f5f9;">
+            <a href="{% url 'dashboard_admin' %}" class="btn btn-gray">Cancelar</a>
+            <button type="submit" class="btn btn-success">Guardar Configuración</button>
         </div>
     </form>
 </div>
+
 {% endblock %}

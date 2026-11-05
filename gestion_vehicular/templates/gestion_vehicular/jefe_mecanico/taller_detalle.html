@@ -15,20 +15,21 @@
     .grupo-servicio {
         margin: 12px 0 6px 0;
         padding: 6px 10px;
-        background: #f0f0f0;
+        background: #f1f5f9;
         border-radius: 4px;
         font-size: 0.9rem;
-        color: #2c3e50;
+        color: var(--primary-dark);
         position: sticky;
         top: 0;
         z-index: 2;
     }
+    .input-error { border: 2px solid var(--danger) !important; background-color: #fee2e2 !important; }
 </style>
 {% endblock %}
 
 {% block content %}
 
-<h2>Taller - Orden Nº {{ orden.id }}</h2>
+<h1 style="color: var(--primary-dark); font-size: 1.5rem; margin-bottom: 15px;">Taller - Orden Nº {{ orden.id }}</h1>
 
 <!-- INFO DE LA ORDEN -->
 <div class="card">
@@ -40,7 +41,7 @@
             {% elif orden.id_vehiculo.vin %}
                 <span style="font-family: monospace; font-size: 0.85rem;">{{ orden.id_vehiculo.vin }}</span>
             {% else %}
-                <span style="color:#e67e22; font-style:italic;">Sin placa</span>
+                <span style="color: var(--warning); font-style: italic;">Sin placa</span>
             {% endif %}
         </div>
         <div><strong>Complejidad:</strong> {{ orden.id_complejidad.nombre|default:"No asignado" }}</div>
@@ -58,14 +59,14 @@
     </div>
     
     {% if es_encargado %}
-    <div style="margin-top:10px; padding:8px 12px; background:#d5f5e3; border-left:3px solid #1e8449; border-radius:4px; font-size:0.85rem;">
+    <div style="margin-top:10px; padding:8px 12px; background:#d1fae5; border-left:3px solid var(--success); border-radius:4px; font-size:0.85rem;">
         <strong>✓ Eres el encargado de esta orden</strong>
     </div>
     {% endif %}
 </div>
 
 <!-- Botones de revisión -->
-<div class="flex flex-wrap mb-10">
+<div class="flex flex-wrap mb-10" style="gap: 10px;">
     <a href="{% url 'revision_tecnica' orden.id %}?tipo=RAPIDA" class="btn btn-warning">Revisión Rápida</a>
     <a href="{% url 'revision_tecnica' orden.id %}?tipo=COMPLETA" class="btn btn-primary">Revisión Completa</a>
 </div>
@@ -74,7 +75,7 @@
 <div class="card">
     <h3>Servicios</h3>
     {% if servicios_detalle %}
-    <div class="table-responsive scroll-y" style="max-height:400px;">
+    <div class="tabla-scroll" style="max-height: 400px;">
 
         {% regroup servicios_detalle by estado as servicios_por_estado %}
 
@@ -84,19 +85,19 @@
                 {% elif grupo.grouper == 'EN_PROCESO' %}🔧 En Proceso
                 {% elif grupo.grouper == 'FINALIZADO' %}✅ Finalizados
                 {% else %}{{ grupo.grouper }}{% endif %}
-                <span style="color:#7f8c8d; font-weight:normal; font-size:0.8rem;">({{ grupo.list|length }})</span>
+                <span style="color: var(--text-muted); font-weight: normal; font-size: 0.8rem;">({{ grupo.list|length }})</span>
             </h4>
 
             {% for detalle in grupo.list %}
-            <div style="padding:10px 0; border-bottom:1px solid #ecf0f1;">
+            <div style="padding:10px 0; border-bottom:1px solid #f1f5f9;">
                 <div class="flex-between flex-wrap">
                     <div>
-                        <strong>{{ detalle.id_servicio.nombre }}</strong>
-                        <span class="text-muted" style="font-size:13px; margin-left:10px;">Bs. {{ detalle.precio_cobrado }}</span>
+                        <strong style="color: var(--primary-dark);">{{ detalle.id_servicio.nombre }}</strong>
+                        <span class="text-muted" style="font-size:13px; margin-left:10px;">Bs. {{ detalle.precio_cobrado|floatformat:2 }}</span>
                         {% if detalle.id_mecanico %}
-                        <span style="font-size:12px; color:#2c3e50; margin-left:10px;">{{ detalle.id_mecanico.nombre_completo }}</span>
+                        <span style="font-size:12px; color:var(--text-muted); margin-left:10px;">{{ detalle.id_mecanico.nombre_completo }}</span>
                         {% else %}
-                        <span class="text-muted" style="font-size:12px; margin-left:10px;">Sin asignar</span>
+                        <span style="font-size:12px; color:var(--warning); margin-left:10px;">⚠️ Sin asignar</span>
                         {% endif %}
                     </div>
                     <div class="flex">
@@ -123,7 +124,7 @@
                 </div>
 
                 {% if user.id_rol_id == 1 or detalle.id_mecanico_id == user.id or es_encargado %}
-                <div class="flex flex-wrap botones-estado" style="margin-top:8px;">
+                <div class="flex flex-wrap botones-estado" style="margin-top:8px; gap: 5px;">
                     <form method="POST" action="{% url 'cambiar_estado_servicio' detalle.id %}" class="inline-form">
                         {% csrf_token %}
                         <input type="hidden" name="nuevo_estado" value="PENDIENTE">
@@ -150,7 +151,7 @@
                     </form>
                 </div>
                 {% else %}
-                <div style="margin-top:8px; font-size:12px; color:#c0392b;">
+                <div style="margin-top:8px; font-size:12px; color:var(--danger);">
                     <em>No puedes modificar este servicio (asignado a otro mecánico)</em>
                 </div>
                 {% endif %}
@@ -173,12 +174,12 @@
 
     <!-- AGREGAR SERVICIO -->
     {% if puede_agregar %}
-    <div style="margin-top:15px; padding:15px; background:#f8f9fa; border:1px dashed #bdc3c7; border-radius:4px;">
-        <h4 style="font-size:14px; margin-bottom:10px;">Agregar servicio</h4>
-        <form method="POST" action="{% url 'agregar_servicio_orden' orden.id %}">
+    <div style="margin-top:20px; padding-top:15px; border-top:1px solid #f1f5f9;">
+        <h4 style="font-size:0.95rem; margin-bottom:10px; color: var(--primary-dark);">Agregar servicio</h4>
+        <form method="POST" action="{% url 'agregar_servicio_orden' orden.id %}" id="formAgregarServicio">
             {% csrf_token %}
             <div style="margin-bottom:10px;">
-                <select name="servicio_id" id="servicioSelect">
+                <select name="servicio_id" id="servicioSelect" required>
                     <option value="">-- Buscar servicio --</option>
                     {% for s in servicios %}
                     <option value="{{ s.id }}" data-precio="{{ s.precio_mano_obra }}">{{ s.nombre }} - Bs. {{ s.precio_mano_obra }}</option>
@@ -187,12 +188,13 @@
             </div>
             <div class="flex flex-wrap" style="gap:8px;">
                 <div style="flex:1; min-width:100px;">
-                    <label style="font-size:0.8rem;">Precio</label>
-                    <input type="number" name="precio_cobrado" id="precioInput" step="0.01" placeholder="0.00">
+                    <label style="font-size:0.8rem;">Precio *</label>
+                    <input type="number" name="precio_cobrado" id="precioInput" step="0.01" min="0" placeholder="0.00" required>
                 </div>
                 <div style="flex:1; min-width:150px;">
-                    <label style="font-size:0.8rem;">Mecánico</label>
-                    <select name="mecanico_id" id="mecanicoSelect">
+                    <label style="font-size:0.8rem;">Mecánico *</label>
+                    <!-- 🆕 MECÁNICO OBLIGATORIO -->
+                    <select name="mecanico_id" id="mecanicoSelect" required>
                         <option value="">-- Seleccionar --</option>
                         {% for mec in mecanicos %}
                         <option value="{{ mec.id }}">{{ mec.nombre_completo }}</option>
@@ -206,7 +208,7 @@
         </form>
     </div>
     {% else %}
-    <div class="text-muted" style="margin-top:15px; padding:10px; background:#f8f9fa; border-radius:4px; font-size:0.85rem;">
+    <div class="text-muted" style="margin-top:15px; padding:10px; background:var(--bg-main); border-radius:4px; font-size:0.85rem;">
         <em>Solo el encargado de la orden puede agregar servicios.</em>
     </div>
     {% endif %}
@@ -217,17 +219,22 @@
 <div class="card">
     <h3>Productos</h3>
     {% if orden.detalles_producto.all %}
-    <div class="table-responsive scroll-y" style="max-height:200px;">
+    <div class="tabla-scroll" style="max-height: 250px;">
         <table>
             <thead>
-                <tr><th>Producto</th><th>Cantidad</th><th>Precio</th><th>Subtotal</th></tr>
+                <tr>
+                    <th>Producto</th>
+                    <th>Cantidad</th>
+                    <th>Precio</th>
+                    <th>Subtotal</th>
+                </tr>
             </thead>
             <tbody>
                 {% for detalle in orden.detalles_producto.all %}
                 <tr>
-                    <td>{{ detalle.id_producto.nombre }}</td>
+                    <td><strong style="color: var(--primary-dark);">{{ detalle.id_producto.nombre }}</strong></td>
                     <td>{{ detalle.cantidad }}</td>
-                    <td>Bs. {{ detalle.precio_unitario|default:"0.00" }}</td>
+                    <td>Bs. {{ detalle.precio_unitario|floatformat:2|default:"0.00" }}</td>
                     <td><strong>Bs. {% widthratio detalle.precio_unitario 1 detalle.cantidad %}</strong></td>
                 </tr>
                 {% endfor %}
@@ -238,12 +245,12 @@
     <p class="text-muted">Sin productos.</p>
     {% endif %}
 
-    <div style="margin-top:15px; padding:15px; background:#f8f9fa; border:1px dashed #bdc3c7; border-radius:4px;">
-        <h4 style="font-size:14px; margin-bottom:10px;">Agregar producto</h4>
-        <form method="POST" action="{% url 'agregar_producto_orden' orden.id %}">
+    <div style="margin-top:20px; padding-top:15px; border-top:1px solid #f1f5f9;">
+        <h4 style="font-size:0.95rem; margin-bottom:10px; color: var(--primary-dark);">Agregar producto</h4>
+        <form method="POST" action="{% url 'agregar_producto_orden' orden.id %}" id="formAgregarProducto">
             {% csrf_token %}
             <div style="margin-bottom:10px;">
-                <select name="producto_id" id="productoSelect">
+                <select name="producto_id" id="productoSelect" required>
                     <option value="">-- Buscar producto --</option>
                     {% for p in productos %}
                     <option value="{{ p.id }}" data-precio="{{ p.precio_venta }}">{{ p.nombre }} - Bs. {{ p.precio_venta }} (Stock: {{ p.stock_actual }})</option>
@@ -252,12 +259,12 @@
             </div>
             <div class="flex flex-wrap" style="gap:8px;">
                 <div style="flex:1; min-width:80px;">
-                    <label style="font-size:0.8rem;">Cantidad</label>
-                    <input type="number" name="cantidad" id="cantidadInput" value="1" min="1">
+                    <label style="font-size:0.8rem;">Cantidad *</label>
+                    <input type="number" name="cantidad" id="cantidadInput" value="1" min="1" required>
                 </div>
                 <div style="flex:1; min-width:100px;">
-                    <label style="font-size:0.8rem;">Precio</label>
-                    <input type="number" name="precio_unitario" id="precioProductoInput" step="0.01" placeholder="0.00">
+                    <label style="font-size:0.8rem;">Precio *</label>
+                    <input type="number" name="precio_unitario" id="precioProductoInput" step="0.01" min="0" placeholder="0.00" required>
                 </div>
                 <div style="display:flex; align-items:flex-end;">
                     <button type="submit" class="btn btn-warning" style="white-space:nowrap;">+ Agregar</button>
@@ -272,12 +279,12 @@
 <div class="card">
     <h3>Hallazgos</h3>
     {% if orden.hallazgos.all %}
-    <div class="scroll-y" style="max-height:200px;">
+    <div class="tabla-scroll" style="max-height: 250px;">
         {% for h in orden.hallazgos.all %}
-        <div class="flex-between flex-wrap" style="padding:6px 0; border-bottom:1px solid #ecf0f1; gap:5px;">
-            <span>{{ h.descripcion|truncatechars:50 }}</span>
+        <div class="flex-between flex-wrap" style="padding:10px 0; border-bottom:1px solid #f1f5f9; gap:5px;">
+            <span>{{ h.descripcion|truncatechars:60 }}</span>
             <div class="flex">
-                <span style="color:#e67e22; font-weight:600;">Bs. {{ h.costo_estimado|default:"0.00" }}</span>
+                <span style="color:var(--warning); font-weight:600;">Bs. {{ h.costo_estimado|floatformat:2|default:"0.00" }}</span>
                 <span class="badge 
                     {% if h.estado_autorizacion == 'AUTORIZADO_CLIENTE' %}badge-success
                     {% elif h.estado_autorizacion == 'RECHAZADO_CLIENTE' %}badge-danger
@@ -296,19 +303,19 @@
     <p class="text-muted">Sin hallazgos.</p>
     {% endif %}
 
-    <div style="margin-top:15px;">
-        <h4 style="font-size:14px; margin-bottom:8px;">Agregar hallazgo</h4>
-        <form method="POST" action="{% url 'agregar_hallazgo_orden' orden.id %}" class="grid grid-3" style="align-items:center;">
+    <div style="margin-top:20px; padding-top:15px; border-top:1px solid #f1f5f9;">
+        <h4 style="font-size:0.95rem; margin-bottom:10px; color: var(--primary-dark);">Agregar hallazgo</h4>
+        <form method="POST" action="{% url 'agregar_hallazgo_orden' orden.id %}" class="grid grid-3" style="align-items:center; gap:10px;">
             {% csrf_token %}
-            <input type="text" name="descripcion" placeholder="Descripción del hallazgo...">
-            <input type="number" name="costo_estimado" placeholder="Costo estimado" step="0.01">
+            <input type="text" name="descripcion" placeholder="Descripción del hallazgo..." required>
+            <input type="number" name="costo_estimado" placeholder="Costo estimado" step="0.01" min="0">
             <button type="submit" class="btn btn-warning">+ Agregar</button>
         </form>
     </div>
 </div>
 
 <!-- ============ BOTONES DE ACCIÓN ============ -->
-<div class="flex flex-wrap" style="margin-top:15px;">
+<div class="flex flex-wrap" style="margin-top:20px; gap:10px;">
     <a href="{% url 'modo_taller' %}" class="btn btn-gray">Volver</a>
     <a href="{% url 'orden_pdf' orden.id %}" class="btn btn-primary" target="_blank">📄 Recibo</a>
     {% if orden.estado_orden == 'POR_COBRAR' %}
@@ -327,8 +334,10 @@
         if ($('#servicioSelect').length) {
             $('#servicioSelect').select2({ placeholder: '-- Buscar servicio --', allowClear: true, width: '100%' });
             $('#servicioSelect').on('change', function() {
-                var precio = $(this).find('option:selected').data('precio') || '';
-                $('#precioInput').val(precio);
+                var precio = $(this).find('option:selected').data('precio');
+                if (precio !== undefined) {
+                    $('#precioInput').val(parseFloat(precio).toFixed(2));
+                }
             });
         }
         if ($('#mecanicoSelect').length) {
@@ -337,8 +346,10 @@
         if ($('#productoSelect').length) {
             $('#productoSelect').select2({ placeholder: '-- Buscar producto --', allowClear: true, width: '100%' });
             $('#productoSelect').on('change', function() {
-                var precio = $(this).find('option:selected').data('precio') || '';
-                $('#precioProductoInput').val(precio);
+                var precio = $(this).find('option:selected').data('precio');
+                if (precio !== undefined) {
+                    $('#precioProductoInput').val(parseFloat(precio).toFixed(2));
+                }
             });
         }
     });

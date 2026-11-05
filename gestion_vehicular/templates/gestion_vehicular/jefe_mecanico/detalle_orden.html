@@ -1,9 +1,9 @@
-{% extends 'gestion_vehicular/jefe_mecanico/base_Jefe.html' %}
+{% extends 'gestion_vehicular/jefe_mecanico/base_jefe.html' %}
 {% block title %}Orden Nº {{ orden.id }}{% endblock %}
 
 {% block content %}
 
-<h2>Orden Nº {{ orden.id }}</h2>
+<h1 style="color: var(--primary-dark); font-size: 1.5rem; margin-bottom: 20px;">Orden Nº {{ orden.id }}</h1>
 
 <!-- ============ INFORMACIÓN GENERAL ============ -->
 <div class="card">
@@ -13,7 +13,7 @@
             {% if orden.id_vehiculo.placa %}
                 {{ orden.id_vehiculo.placa }}
             {% else %}
-                <span style="color:#e67e22; font-style:italic;">Sin placa</span>
+                <span style="color: var(--warning); font-style: italic;">Sin placa</span>
             {% endif %}
         </div>
         <div>
@@ -21,7 +21,7 @@
             {% if orden.id_vehiculo.vin %}
                 <code style="font-family: monospace;">{{ orden.id_vehiculo.vin }}</code>
             {% else %}
-                <span style="color:#95a5a6;">—</span>
+                <span style="color: var(--text-muted);">—</span>
             {% endif %}
         </div>
         <div><strong>Vehículo:</strong> {{ orden.id_vehiculo.marca|default:"" }} {{ orden.id_vehiculo.modelo|default:"" }}</div>
@@ -46,17 +46,19 @@
 <div class="card">
     <h3>Servicios</h3>
     {% for d in orden.detalles_servicio.all %}
-    <div class="flex-between" style="padding:8px 0; border-bottom:1px solid #ecf0f1;">
+    <div class="flex-between" style="padding:10px 0; border-bottom:1px solid #f1f5f9;">
         <span>
-            {{ d.id_servicio.nombre }}
+            <strong style="color: var(--primary-dark);">{{ d.id_servicio.nombre }}</strong>
             {% if d.id_mecanico %}
-                <small style="color:#7f8c8d; margin-left:8px;">({{ d.id_mecanico.nombre }})</small>
+                <small class="text-muted" style="margin-left:8px;">({{ d.id_mecanico.nombre }})</small>
+            {% else %}
+                <small style="color: var(--warning); margin-left:8px;">⚠️ Sin asignar</small>
             {% endif %}
         </span>
-        <strong>Bs. {{ d.precio_cobrado }}</strong>
+        <strong>Bs. {{ d.precio_cobrado|floatformat:2 }}</strong>
     </div>
     {% empty %}
-    <p class="text-muted">Sin servicios</p>
+    <p class="text-muted" style="font-size:0.85rem;">Sin servicios</p>
     {% endfor %}
 </div>
 
@@ -64,33 +66,33 @@
 <div class="card">
     <h3>Productos</h3>
     {% for d in orden.detalles_producto.all %}
-    <div class="flex-between" style="padding:8px 0; border-bottom:1px solid #ecf0f1;">
+    <div class="flex-between" style="padding:10px 0; border-bottom:1px solid #f1f5f9;">
         <span>{{ d.id_producto.nombre }} x{{ d.cantidad }}</span>
-        <strong>Bs. {{ d.subtotal_precio }}</strong>
+        <strong>Bs. {{ d.subtotal_precio|floatformat:2 }}</strong>
     </div>
     {% empty %}
-    <p class="text-muted">Sin productos</p>
+    <p class="text-muted" style="font-size:0.85rem;">Sin productos</p>
     {% endfor %}
 </div>
 
 <!-- ============ TOTALES ============ -->
-<div class="card" style="background:#1a252f; color:white;">
-    <div class="flex-between" style="font-size:1.1rem;">
+<div class="card" style="background: var(--primary-dark); color: white;">
+    <div class="flex-between" style="font-size:1.1rem; margin-bottom: 10px;">
         <span>Total Servicios:</span>
         <span>Bs. {{ total_servicios|floatformat:2 }}</span>
     </div>
-    <div class="flex-between" style="font-size:1.1rem;">
+    <div class="flex-between" style="font-size:1.1rem; margin-bottom: 10px;">
         <span>Total Productos:</span>
         <span>Bs. {{ total_productos|floatformat:2 }}</span>
     </div>
-    <div class="flex-between" style="font-size:1.5rem; margin-top:10px;">
+    <div class="flex-between" style="font-size:1.5rem; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.2);">
         <strong>TOTAL:</strong>
         <strong>Bs. {{ total_general|floatformat:2 }}</strong>
     </div>
 </div>
 
 <!-- ============ BOTONES ============ -->
-<div class="flex flex-wrap" style="margin-top:15px;">
+<div class="flex flex-wrap" style="margin-top:20px; gap: 10px;">
     <a href="{% url 'modo_taller' %}" class="btn btn-gray">Volver</a>
     {% if orden.estado_orden == 'POR_COBRAR' %}
     <a href="{% url 'registrar_pago' orden.id %}" class="btn btn-success">Cobrar</a>

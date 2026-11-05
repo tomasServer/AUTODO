@@ -3,7 +3,7 @@
 
 {% block content %}
 
-<h2>Venta Rápida de Productos</h2>
+<h1 style="color: var(--primary-dark); font-size: 1.5rem; margin-bottom: 20px;">Venta Rápida de Productos</h1>
 
 <div class="card">
     <form method="POST" action="{% url 'guardar_venta_rapida' %}" id="ventaForm">
@@ -20,17 +20,17 @@
                     {% endfor %}
                 </select>
                 <input type="number" name="cantidad_1" value="1" min="1" oninput="actualizarTotalVenta()">
-                <input type="number" name="precio_producto_1" step="0.01" value="0.00" oninput="actualizarTotalVenta()">
+                <input type="number" name="precio_producto_1" step="0.01" min="0" value="0.00" oninput="actualizarTotalVenta()">
                 <button type="button" onclick="eliminarVenta(this)" class="btn btn-danger btn-sm">X</button>
             </div>
         </div>
 
         <button type="button" onclick="agregarProductoVenta()" class="btn btn-primary btn-sm mt-10">+ Agregar Producto</button>
 
-        <div style="margin-top:15px; padding:15px; background:#fef9e7; border-radius:4px; border-left:4px solid #e67e22;">
+        <div style="margin-top:15px; padding:15px; background: var(--bg-main); border-radius:6px; border-left:4px solid var(--warning);">
             <div class="flex-between" style="font-size:1.2rem;">
-                <span>Total:</span>
-                <strong id="totalVenta">Bs. 0.00</strong>
+                <span style="color: var(--primary-dark); font-weight: 600;">Total:</span>
+                <strong id="totalVenta" style="color: var(--primary-dark);">Bs. 0.00</strong>
             </div>
         </div>
 
@@ -41,20 +41,20 @@
 </div>
 
 <!-- MODAL -->
-<div id="modalCliente">
-    <div id="modalContent">
-        <h3 style="margin:0 0 15px 0; color:#1a252f;">Datos del Cliente</h3>
+<div id="modalCliente" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:9999; justify-content:center; align-items:center;">
+    <div style="background:#fff; padding:25px; border-radius:8px; max-width:500px; width:90%; box-shadow:0 4px 20px rgba(0,0,0,0.3); max-height: 90vh; overflow-y: auto;">
+        <h3 style="margin:0 0 15px 0; color: var(--primary-dark);">Datos del Cliente</h3>
         <div style="margin-bottom:12px; position:relative;">
             <label>🔍 Buscar cliente</label>
             <input type="text" id="buscador_cliente" placeholder="Nombre, teléfono o CI..." autocomplete="off" oninput="buscarClienteLocal(this.value)">
-            <div id="resultados_busqueda"></div>
+            <div id="resultados_busqueda" style="display:none; position:absolute; top:100%; left:0; right:0; background:#fff; border:1px solid #cbd5e1; border-radius:0 0 8px 8px; max-height:200px; overflow-y:auto; z-index:10002; box-shadow:0 4px 6px rgba(0,0,0,0.1);"></div>
         </div>
-        <hr style="border:none; border-top:1px solid #ecf0f1; margin:15px 0;">
+        <hr style="border:none; border-top:1px solid #f1f5f9; margin:15px 0;">
         <div style="margin-bottom:12px;"><label>Nombre *</label><input type="text" id="cliente_nombre" maxlength="30" required></div>
         <div style="margin-bottom:12px;"><label>Apellido *</label><input type="text" id="cliente_apellido" maxlength="30" required></div>
         <div style="margin-bottom:12px;"><label>Teléfono *</label><input type="tel" id="cliente_telefono" maxlength="8" required></div>
         <div style="margin-bottom:20px;">
-            <label>CI * <small id="ci-helper" style="color:#7f8c8d; font-weight:normal; font-size:0.75rem;"></small></label>
+            <label>CI * <small id="ci-helper" style="color:var(--text-muted); font-weight:normal; font-size:0.75rem;"></small></label>
             <input type="text" id="cliente_ci" maxlength="14" placeholder="Ej: 1234567-1A" oninput="validarCI(this)" required>
         </div>
         <div style="margin-bottom:20px;">
@@ -65,7 +65,7 @@
                 <option value="TRANSFERENCIA">🏦 Transferencia</option>
             </select>
         </div>
-        <div class="flex flex-wrap" style="justify-content:flex-end;">
+        <div class="flex flex-wrap" style="justify-content:flex-end; gap: 10px;">
             <button type="button" onclick="cerrarModalCliente()" class="btn btn-gray">Cancelar</button>
             <button type="button" onclick="ventaSinRegistrar()" class="btn btn-warning">Sin Registrar</button>
             <button type="button" onclick="confirmarVenta()" class="btn btn-success">Confirmar</button>
@@ -73,57 +73,99 @@
     </div>
 </div>
 
-<style>
-    #modalCliente { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 9999; justify-content: center; align-items: center; }
-    #modalContent { background: #fff; padding: 25px; border-radius: 8px; max-width: 500px; width: 90%; box-shadow: 0 4px 20px rgba(0,0,0,0.3); }
-    #resultados_busqueda { display: none; position: absolute; top: 100%; left: 0; right: 0; background: #fff; border: 1px solid #bdc3c7; border-top: none; border-radius: 0 0 4px 4px; max-height: 200px; overflow-y: auto; z-index: 10002; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-</style>
-
 <script>
+    // ============ CLIENTES ============
     var CLIENTES = [
         {% for c in clientes %}
         { id: {{ c.id }}, nombre: "{{ c.nombre|escapejs }}", apellido: "{{ c.apellido|default:''|escapejs }}", telefono: "{{ c.telefono|default:''|escapejs }}", ci: "{{ c.ci|default:''|escapejs }}" }{% if not forloop.last %},{% endif %}
         {% endfor %}
     ];
 
+    // ============ VALIDACIÓN DE CI ============
     function validarCI(input) {
-        let val = input.value.toUpperCase(); const partes = val.split('-');
-        if (partes.length > 2) { val = partes[0] + '-' + partes.slice(1).join(''); partes.length = 0; partes.push(...val.split('-')); }
-        let numeros = partes[0].replace(/[^0-9]/g, ''); let complemento = partes[1] !== undefined ? partes[1].replace(/[^A-Z0-9]/g, '') : null;
-        if (numeros.length > 11) numeros = numeros.slice(0, 11); if (complemento && complemento.length > 2) complemento = complemento.slice(0, 2);
+        let val = input.value.toUpperCase();
+        const partes = val.split('-');
+        if (partes.length > 2) {
+            val = partes[0] + '-' + partes.slice(1).join('');
+            partes.length = 0; partes.push(...val.split('-'));
+        }
+        let numeros = partes[0].replace(/[^0-9]/g, '');
+        let complemento = partes[1] !== undefined ? partes[1].replace(/[^A-Z0-9]/g, '') : null;
+        if (numeros.length > 11) numeros = numeros.slice(0, 11);
+        if (complemento && complemento.length > 2) complemento = complemento.slice(0, 2);
         input.value = complemento !== null ? numeros + '-' + complemento : numeros;
-        const helper = document.getElementById('ci-helper'); if (!helper) return;
-        if (input.value.length === 0) { helper.textContent = ''; }
-        else if (/^[0-9]{7,11}(-[A-Z0-9]{1,2})?$/.test(input.value)) { helper.textContent = '✓'; helper.style.color = '#27ae60'; helper.style.fontWeight = 'bold'; }
-        else { helper.textContent = '⚠️'; helper.style.color = '#e67e22'; helper.style.fontWeight = 'bold'; }
+
+        const helper = document.getElementById('ci-helper');
+        if (!helper) return;
+        if (input.value.length === 0) helper.textContent = '';
+        else if (/^[0-9]{7,11}(-[A-Z0-9]{1,2})?$/.test(input.value)) {
+            helper.textContent = '✓'; helper.style.color = 'var(--success)'; helper.style.fontWeight = 'bold';
+        } else {
+            helper.textContent = '⚠️'; helper.style.color = 'var(--warning)'; helper.style.fontWeight = 'bold';
+        }
     }
 
     function buscarClienteLocal(termino) {
-        var div = document.getElementById('resultados_busqueda'); var t = termino.toLowerCase().trim();
+        var div = document.getElementById('resultados_busqueda');
+        var t = termino.toLowerCase().trim();
         if (t.length < 2) { div.style.display = 'none'; return; }
-        var encontrados = CLIENTES.filter(function(c) { return c.nombre.toLowerCase().includes(t) || (c.apellido && c.apellido.toLowerCase().includes(t)) || c.telefono.toLowerCase().includes(t) || c.ci.toLowerCase().includes(t); }).slice(0, 10);
-        if (encontrados.length === 0) { div.innerHTML = '<div style="padding:10px; color:#7f8c8d; font-size:0.85rem;">Sin resultados</div>'; div.style.display = 'block'; return; }
+
+        var encontrados = CLIENTES.filter(function(c) {
+            return c.nombre.toLowerCase().includes(t) ||
+                   (c.apellido && c.apellido.toLowerCase().includes(t)) ||
+                   c.telefono.toLowerCase().includes(t) ||
+                   c.ci.toLowerCase().includes(t);
+        }).slice(0, 10);
+
+        if (encontrados.length === 0) {
+            div.innerHTML = '<div style="padding:10px; color:var(--text-muted); font-size:0.85rem;">Sin resultados</div>';
+            div.style.display = 'block';
+            return;
+        }
+
         var html = '';
-        encontrados.forEach(function(c) { var nombreCompleto = c.nombre + (c.apellido ? ' ' + c.apellido : ''); html += `<div onclick="seleccionarCliente(${c.id})" style="padding:10px 12px; cursor:pointer; border-bottom:1px solid #ecf0f1; font-size:0.85rem;" onmouseover="this.style.background='#f8f9fa'" onmouseout="this.style.background='#fff'"><strong>${nombreCompleto}</strong>${c.telefono ? ' · ' + c.telefono : ''}${c.ci ? ' · ' + c.ci : ''}</div>`; });
-        div.innerHTML = html; div.style.display = 'block';
+        encontrados.forEach(function(c) {
+            var nombreCompleto = c.nombre + (c.apellido ? ' ' + c.apellido : '');
+            html += `<div onclick="seleccionarCliente(${c.id})" style="padding:10px 12px; cursor:pointer; border-bottom:1px solid #f1f5f9; font-size:0.85rem;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='#fff'"><strong>${nombreCompleto}</strong>${c.telefono ? ' · ' + c.telefono : ''}${c.ci ? ' · ' + c.ci : ''}</div>`;
+        });
+        div.innerHTML = html;
+        div.style.display = 'block';
     }
 
     function seleccionarCliente(id) {
-        var c = CLIENTES.find(function(x) { return x.id === id; }); if (!c) return;
-        document.getElementById('cliente_nombre').value = c.nombre; document.getElementById('cliente_apellido').value = c.apellido || ''; document.getElementById('cliente_telefono').value = c.telefono; document.getElementById('cliente_ci').value = c.ci;
-        validarCI(document.getElementById('cliente_ci')); document.getElementById('resultados_busqueda').style.display = 'none'; document.getElementById('buscador_cliente').value = '';
+        var c = CLIENTES.find(function(x) { return x.id === id; });
+        if (!c) return;
+        document.getElementById('cliente_nombre').value = c.nombre;
+        document.getElementById('cliente_apellido').value = c.apellido || '';
+        document.getElementById('cliente_telefono').value = c.telefono;
+        document.getElementById('cliente_ci').value = c.ci;
+        validarCI(document.getElementById('cliente_ci'));
+        document.getElementById('resultados_busqueda').style.display = 'none';
+        document.getElementById('buscador_cliente').value = '';
     }
 
-    document.addEventListener('click', function(e) { var b = document.getElementById('buscador_cliente'); var r = document.getElementById('resultados_busqueda'); if (b && r && !b.contains(e.target) && !r.contains(e.target)) r.style.display = 'none'; });
+    document.addEventListener('click', function(e) {
+        var b = document.getElementById('buscador_cliente');
+        var r = document.getElementById('resultados_busqueda');
+        if (b && r && !b.contains(e.target) && !r.contains(e.target)) r.style.display = 'none';
+    });
 
+    // ============ PRODUCTOS ============
     var contadorVentas = 1;
+
     function agregarProductoVenta() {
         contadorVentas++;
-        var div = document.createElement('div'); div.style.cssText = 'display:grid; grid-template-columns:1fr 0.3fr 0.5fr auto; gap:8px; margin-bottom:5px;';
+        var div = document.createElement('div');
+        div.style.cssText = 'display:grid; grid-template-columns:1fr 0.3fr 0.5fr auto; gap:8px; margin-bottom:5px;';
         div.innerHTML = `
-            <select name="producto_${contadorVentas}"><option value="">--</option>{% for p in productos %}<option value="{{ p.id }}" data-precio="{{ p.precio_venta }}">{{ p.nombre }} - Bs. {{ p.precio_venta }}</option>{% endfor %}</select>
+            <select name="producto_${contadorVentas}">
+                <option value="">--</option>
+                {% for p in productos %}
+                <option value="{{ p.id }}" data-precio="{{ p.precio_venta }}">{{ p.nombre }} - Bs. {{ p.precio_venta }}</option>
+                {% endfor %}
+            </select>
             <input type="number" name="cantidad_${contadorVentas}" value="1" min="1">
-            <input type="number" name="precio_producto_${contadorVentas}" step="0.01" value="0.00">
+            <input type="number" name="precio_producto_${contadorVentas}" step="0.01" min="0" value="0.00">
             <button type="button" onclick="eliminarVenta(this)" class="btn btn-danger btn-sm">X</button>
         `;
         document.getElementById('productosVenta').appendChild(div);
@@ -131,48 +173,110 @@
         div.querySelectorAll('input[type="number"]').forEach(function(input) { input.addEventListener('input', actualizarTotalVenta); });
     }
 
-    function actualizarPrecioVenta(select, num) { var precio = select.options[select.selectedIndex].getAttribute('data-precio') || '0'; var input = document.querySelector(`input[name="precio_producto_${num}"]`); if (input) input.value = precio; actualizarTotalVenta(); }
+    function actualizarPrecioVenta(select, num) {
+        var precio = select.options[select.selectedIndex].getAttribute('data-precio') || '0';
+        var input = document.querySelector(`input[name="precio_producto_${num}"]`);
+        if (input) input.value = parseFloat(precio).toFixed(2);
+        actualizarTotalVenta();
+    }
+
     function eliminarVenta(btn) { btn.closest('div').remove(); actualizarTotalVenta(); }
+
     function actualizarTotalVenta() {
         var total = 0;
-        document.querySelectorAll('input[name^="precio_producto_"]').forEach(function(input) { var num = input.name.split('_').pop(); var cantidad = document.querySelector(`input[name="cantidad_${num}"]`); var cant = cantidad ? (parseFloat(cantidad.value) || 0) : 0; total += (parseFloat(input.value) || 0) * cant; });
+        document.querySelectorAll('input[name^="precio_producto_"]').forEach(function(input) {
+            var num = input.name.split('_').pop();
+            var cantidad = document.querySelector(`input[name="cantidad_${num}"]`);
+            var cant = cantidad ? (parseFloat(cantidad.value) || 0) : 0;
+            total += (parseFloat(input.value) || 0) * cant;
+        });
         document.getElementById('totalVenta').textContent = 'Bs. ' + total.toFixed(2);
     }
 
+    // ============ MODAL ============
     function abrirModalCliente() {
-        var hayProducto = false; document.querySelectorAll('select[name^="producto_"]').forEach(function(select) { if (select.value) hayProducto = true; }); if (!hayProducto) { alert('Selecciona al menos un producto.'); return; }
-        document.getElementById('cliente_nombre').value = ''; document.getElementById('cliente_apellido').value = ''; document.getElementById('cliente_telefono').value = ''; document.getElementById('cliente_ci').value = ''; document.getElementById('buscador_cliente').value = ''; document.getElementById('resultados_busqueda').style.display = 'none'; document.getElementById('metodo_pago').value = 'EFECTIVO';
-        var helperCI = document.getElementById('ci-helper'); if (helperCI) helperCI.textContent = ''; document.getElementById('modalCliente').style.display = 'flex';
+        var hayProducto = false;
+        document.querySelectorAll('select[name^="producto_"]').forEach(function(select) { if (select.value) hayProducto = true; });
+        if (!hayProducto) { alert('Selecciona al menos un producto.'); return; }
+
+        document.getElementById('cliente_nombre').value = '';
+        document.getElementById('cliente_apellido').value = '';
+        document.getElementById('cliente_telefono').value = '';
+        document.getElementById('cliente_ci').value = '';
+        document.getElementById('buscador_cliente').value = '';
+        document.getElementById('resultados_busqueda').style.display = 'none';
+        document.getElementById('metodo_pago').value = 'EFECTIVO';
+
+        var helperCI = document.getElementById('ci-helper');
+        if (helperCI) helperCI.textContent = '';
+
+        document.getElementById('modalCliente').style.display = 'flex';
     }
 
     function cerrarModalCliente() { document.getElementById('modalCliente').style.display = 'none'; }
-    function copiarMetodoPago() { var metodo = document.getElementById('metodo_pago').value || 'EFECTIVO'; document.getElementById('metodo_pago_hidden').value = metodo; }
+
+    function copiarMetodoPago() {
+        var metodo = document.getElementById('metodo_pago').value || 'EFECTIVO';
+        document.getElementById('metodo_pago_hidden').value = metodo;
+    }
 
     function ventaSinRegistrar() {
         if (confirm('¿Continuar sin registrar cliente?')) {
             var form = document.getElementById('ventaForm');
             form.querySelectorAll('input[name="cliente_nombre"], input[name="cliente_apellido"], input[name="cliente_telefono"], input[name="cliente_ci"], input[name="sin_registrar"]').forEach(function(i) { i.remove(); });
             var i = document.createElement('input'); i.type = 'hidden'; i.name = 'sin_registrar'; i.value = 'true'; form.appendChild(i);
-            copiarMetodoPago(); cerrarModalCliente(); form.submit();
+            copiarMetodoPago();
+            cerrarModalCliente();
+            form.submit();
         }
     }
 
     function confirmarVenta() {
-        var nombre = document.getElementById('cliente_nombre').value.trim(); var apellido = document.getElementById('cliente_apellido').value.trim(); var telefono = document.getElementById('cliente_telefono').value.trim(); var ci = document.getElementById('cliente_ci').value.trim();
-        var faltantes = []; if (!nombre) faltantes.push('Nombre'); if (!apellido) faltantes.push('Apellido'); if (!telefono) faltantes.push('Teléfono'); if (!ci) faltantes.push('CI');
-        if (faltantes.length > 0) { alert('⚠️ Para registrar al cliente debes llenar todos los campos.\n\nFaltan:\n• ' + faltantes.join('\n• ') + '\n\nSi no quieres registrar los datos, usa el botón "Sin Registrar".'); return; }
-        if (!/^[0-9]{8}$/.test(telefono)) { alert('⚠️ El teléfono debe tener exactamente 8 dígitos.'); document.getElementById('cliente_telefono').focus(); return; }
-        if (!/^[0-9]{7,11}(-[A-Z0-9]{1,2})?$/.test(ci.toUpperCase())) { alert('⚠️ El CI no tiene un formato válido.'); document.getElementById('cliente_ci').focus(); return; }
-        
-        var form = document.getElementById('ventaForm'); form.querySelectorAll('input[name="cliente_nombre"], input[name="cliente_apellido"], input[name="cliente_telefono"], input[name="cliente_ci"], input[name="sin_registrar"]').forEach(function(i) { i.remove(); });
+        var nombre = document.getElementById('cliente_nombre').value.trim();
+        var apellido = document.getElementById('cliente_apellido').value.trim();
+        var telefono = document.getElementById('cliente_telefono').value.trim();
+        var ci = document.getElementById('cliente_ci').value.trim();
+
+        var faltantes = [];
+        if (!nombre) faltantes.push('Nombre');
+        if (!apellido) faltantes.push('Apellido');
+        if (!telefono) faltantes.push('Teléfono');
+        if (!ci) faltantes.push('CI');
+
+        if (faltantes.length > 0) {
+            alert('⚠️ Para registrar al cliente debes llenar todos los campos.\n\nFaltan:\n• ' + faltantes.join('\n• ') + '\n\nSi no quieres registrar los datos, usa el botón "Sin Registrar".');
+            return;
+        }
+
+        if (!/^[0-9]{8}$/.test(telefono)) {
+            alert('⚠️ El teléfono debe tener exactamente 8 dígitos.');
+            document.getElementById('cliente_telefono').focus();
+            return;
+        }
+
+        if (!/^[0-9]{7,11}(-[A-Z0-9]{1,2})?$/.test(ci.toUpperCase())) {
+            alert('⚠️ El CI no tiene un formato válido.');
+            document.getElementById('cliente_ci').focus();
+            return;
+        }
+
+        var form = document.getElementById('ventaForm');
+        form.querySelectorAll('input[name="cliente_nombre"], input[name="cliente_apellido"], input[name="cliente_telefono"], input[name="cliente_ci"], input[name="sin_registrar"]').forEach(function(i) { i.remove(); });
+
         var inpNombre = document.createElement('input'); inpNombre.type = 'hidden'; inpNombre.name = 'cliente_nombre'; inpNombre.value = nombre; form.appendChild(inpNombre);
         var inpApellido = document.createElement('input'); inpApellido.type = 'hidden'; inpApellido.name = 'cliente_apellido'; inpApellido.value = apellido; form.appendChild(inpApellido);
         var inpTel = document.createElement('input'); inpTel.type = 'hidden'; inpTel.name = 'cliente_telefono'; inpTel.value = telefono; form.appendChild(inpTel);
         var inpCi = document.createElement('input'); inpCi.type = 'hidden'; inpCi.name = 'cliente_ci'; inpCi.value = ci.toUpperCase(); form.appendChild(inpCi);
-        copiarMetodoPago(); cerrarModalCliente(); form.submit();
+
+        copiarMetodoPago();
+        cerrarModalCliente();
+        form.submit();
     }
 
-    window.onclick = function(event) { var modal = document.getElementById('modalCliente'); if (event.target == modal) modal.style.display = 'none'; }
+    window.onclick = function(event) {
+        var modal = document.getElementById('modalCliente');
+        if (event.target == modal) modal.style.display = 'none';
+    }
 </script>
 
 {% endblock %}

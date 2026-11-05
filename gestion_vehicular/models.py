@@ -3,7 +3,7 @@
 #@date:    2026-10-13
 #@version: 0.0.1
 from django.utils import timezone
-
+from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin, BaseUserManager
 from django.db import models
 
 #impo
@@ -286,24 +286,46 @@ class TipoServicio(models.Model):
     def __str__(self):
         return self.nombre
 
+class UsuarioManager(BaseUserManager):
+    def get_by_natural_key(self, username):
+        return self.get(**{self.model.USERNAME_FIELD: username})
+    
+    def get_email_field_name(self):
+        return 'usuario_login'
+    
+    def filter(self, *args, **kwargs):
+        # 🆕 EL TRUCO: Si Django pide 'is_active', lo cambiamos por 'activo'
+        if 'is_active' in kwargs:
+            kwargs['activo'] = kwargs.pop('is_active')
+        return super().filter(*args, **kwargs)
 
-class Usuario(models.Model):
+
+class Usuario(AbstractBaseUser, PermissionsMixin):
     id_rol = models.ForeignKey(Rol, models.DO_NOTHING, db_column='id_rol')
     nombre = models.CharField(max_length=100)
     apellido = models.CharField(max_length=100, blank=True, null=True)
     ci = models.CharField(unique=True, max_length=20, blank=True, null=True)
     telefono = models.CharField(max_length=15, blank=True, null=True)
     usuario_login = models.CharField(unique=True, max_length=50)
-    contrasena_hash = models.CharField(max_length=255)
+    password = models.CharField(max_length=255, db_column='contrasena_hash')  # Cambiado a 'password' para compatibilidad con Django
     activo = models.BooleanField(blank=True, null=True)
     fecha_creacion = models.DateTimeField(blank=True, null=True)
     last_login = models.DateTimeField(blank=True, null=True)
 
+    objects = BaseUserManager()
+    
     # --- agregar ---
     USERNAME_FIELD = 'usuario_login'
     REQUIRED_FIELDS = ['nombre']
     # ------------------------------------
+    EMAIL_FIELD = 'usuario_login'  # Cambia esto si tu campo de correo electrónico tiene otro nombre
 
+    
+    @classmethod
+    def get_email_field_name(cls):
+        return cls.EMAIL_FIELD
+
+    
     class Meta:
         managed = False
         db_table = 'usuario'
@@ -312,17 +334,21 @@ class Usuario(models.Model):
         return f"{self.usuario_login} ({self.nombre} {self.apellido or ''})"
 
     @property
+    def email(self):
+        return self.usuario_login
+
+    @property
+    def is_active(self):
+        return self.activo
+
+    @property
     def is_authenticated(self):
         return True
 
     @property
     def is_anonymous(self):
         return False
-
-    @property
-    def is_active(self):
-        return self.activo
-
+    
     @property
     def is_staff(self):
         return self.id_rol_id == 1  # 1 = ADMINISTRADOR
@@ -337,11 +363,11 @@ class Usuario(models.Model):
 
     def set_password(self, raw_password):
         from django.contrib.auth.hashers import make_password
-        self.contrasena_hash = make_password(raw_password)
+        self.password = make_password(raw_password)
 
     def check_password(self, raw_password):
         from django.contrib.auth.hashers import check_password
-        return check_password(raw_password, self.contrasena_hash)
+        return check_password(raw_password, self.password)
 
     @property
     def nombre_completo(self):
@@ -355,6 +381,7 @@ class Usuario(models.Model):
 
     def has_module_perms(self, app_label):
         return True
+
 
 class Vehiculo(models.Model):
     id_cliente = models.ForeignKey(Cliente, models.DO_NOTHING, db_column='id_cliente', blank=True, null=True)

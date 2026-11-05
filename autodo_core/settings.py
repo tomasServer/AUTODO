@@ -123,13 +123,13 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/6.0/topics/i18n/
 
-LANGUAGE_CODE = 'en-us'
+LANGUAGE_CODE = 'es'
 
 TIME_ZONE = 'America/La_Paz'
 
 USE_I18N = True
 
-USE_TZ = True
+USE_TZ = False
 
 
 # Static files (CSS, JavaScript, Images)
@@ -161,3 +161,21 @@ SESSION_EXPIRE_AT_BROWSER_CLOSE = True
 
 # settings.py
 AUTH_USER_MODEL = 'gestion_vehicular.Usuario'  # Reemplaza 'gestion_vehicular' con el nombre de tu app
+
+
+# ==========================================
+# CONFIGURACIÓN DE CORREO PARA RECUPERACIÓN
+# ==========================================
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+
+# 👇 Tu correo de Gmail
+EMAIL_HOST_USER = 'tldiaxo@gmail.com' 
+
+# 👇 La contraseña de 16 letras (sin los espacios)
+EMAIL_HOST_PASSWORD = 'ycupqysugeirpeev' 
+
+# Nombre que verá el usuario en su bandeja de entrada
+DEFAULT_FROM_EMAIL = 'AUTODO Taller <tldiaxo@gmail.com>'

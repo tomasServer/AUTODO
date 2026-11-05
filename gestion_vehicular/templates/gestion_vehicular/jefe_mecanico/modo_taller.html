@@ -3,122 +3,184 @@
 
 {% block content %}
 
-<h2>Órdenes Pendientes</h2>
+<h1 style="color: var(--primary-dark); font-size: 1.5rem; margin-bottom: 20px;">Órdenes Pendientes</h1>
 
-<!-- ============ ÓRDENES PARA TRABAJAR ============ -->
-<div class="card">
-    <h3>Órdenes para Trabajar</h3>
-    {% if ordenes_trabajo %}
-    <div class="table-responsive scroll-y" style="max-height:300px;">
-        <table>
-            <thead>
-                <tr>
-                    <th>Nº</th>
-                    <th>Placa / VIN</th>
-                    <th>Cliente</th>
-                    <th>Encargado</th>
-                    <th>Estado</th>
-                    <th>Acciones</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for orden in ordenes_trabajo %}
-                <tr>
-                    <td><strong>Nº {{ orden.id }}</strong></td>
-                    <td>
-                        {% if orden.id_vehiculo.placa %}{{ orden.id_vehiculo.placa }}
-                        {% elif orden.id_vehiculo.vin %}<span style="font-family:monospace; font-size:0.8rem;">{{ orden.id_vehiculo.vin }}</span>
-                        {% else %}<span style="color:#e67e22; font-style:italic;">Sin placa</span>{% endif %}
-                    </td>
-                    <td>{{ orden.id_vehiculo.id_cliente.nombre|default:"Sin cliente" }} {{ orden.id_vehiculo.id_cliente.apellido|default:"" }}</td>
-                    <td>
-                        {% if orden.id_jefe_tecnico %}
-                            {{ orden.id_jefe_tecnico.nombre_completo }}
-                            {% if orden.id_jefe_tecnico_id == user.id %}<span class="badge badge-success" style="margin-left:5px;">Tú</span>{% endif %}
-                        {% else %}
-                            <span class="text-muted">Sin asignar</span>
-                        {% endif %}
-                    </td>
-                    <td>
-                        <span class="badge 
-                            {% if orden.estado_orden == 'EN_PROCESO' %}badge-info
-                            {% elif orden.estado_orden == 'VISITA' %}badge-primary
-                            {% else %}badge-warning{% endif %}">
-                            {{ orden.estado_orden }}
-                        </span>
-                    </td>
-                    <td>
-                        {% if orden.estado_orden == 'VISITA' %}
+<!-- ============ PESTAÑAS (TABS) ============ -->
+<div class="tabs-container">
+    <button class="tab-btn active" onclick="cambiarTab(event, 'tab-visitas')">🔍 Visitas</button>
+    <button class="tab-btn" onclick="cambiarTab(event, 'tab-trabajar')">🔧 Para Trabajar</button>
+    <button class="tab-btn" onclick="cambiarTab(event, 'tab-cobrar')">💰 Para Cobrar</button>
+</div>
+
+<!-- ============ CONTENIDO: VISITAS ============ -->
+<div id="tab-visitas" class="tab-content active">
+    <div class="card">
+        {% if ordenes_visita %}
+        <div class="tabla-scroll" style="max-height: 500px;">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Nº</th>
+                        <th>Placa / VIN</th>
+                        <th>Cliente</th>
+                        <th>Fecha Ingreso</th>
+                        <th style="text-align: right;">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for orden in ordenes_visita %}
+                    <tr>
+                        <td><strong style="color: var(--primary-dark);">Nº {{ orden.id }}</strong></td>
+                        <td>
+                            {% if orden.id_vehiculo.placa %}{{ orden.id_vehiculo.placa }}
+                            {% elif orden.id_vehiculo.vin %}<span style="font-family:monospace; font-size:0.8rem;">{{ orden.id_vehiculo.vin }}</span>
+                            {% else %}<span style="color: var(--warning); font-style: italic;">Sin placa</span>{% endif %}
+                        </td>
+                        <td>{{ orden.id_vehiculo.id_cliente.nombre|default:"Sin cliente" }} {{ orden.id_vehiculo.id_cliente.apellido|default:"" }}</td>
+                        <td>{{ orden.fecha_ingreso|date:"d/m/Y H:i" }}</td>
+                        <td style="text-align: right;">
                             <a href="{% url 'convertir_visita_en_orden' orden.id %}" class="btn btn-primary btn-sm"
                                onclick="return confirm('¿Convertir esta visita en una orden formal?')">Convertir</a>
                             <a href="{% url 'detalle_orden' orden.id %}" class="btn btn-gray btn-sm">Ver</a>
-                        {% else %}
-                            <a href="{% url 'detalle_orden' orden.id %}" class="btn btn-gray btn-sm">Detalle</a>
-                            <a href="{% url 'taller_detalle' orden.id %}" class="btn btn-warning btn-sm">Trabajar</a>
-                        {% endif %}
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p class="text-muted" style="font-size:0.85rem;">No hay visitas pendientes.</p>
+        {% endif %}
     </div>
-    {% else %}
-    <p class="text-muted">No hay órdenes para trabajar.</p>
-    {% endif %}
 </div>
 
-<!-- ============ ÓRDENES PARA COBRAR ============ -->
-<div class="card">
-    <h3>Órdenes para Cobrar</h3>
-    {% if ordenes_cobrar %}
-    <div class="table-responsive scroll-y" style="max-height:300px;">
-        <table>
-            <thead>
-                <tr>
-                    <th>Nº</th>
-                    <th>Placa / VIN</th>
-                    <th>Cliente</th>
-                    <th>Encargado</th>
-                    <th>Estado</th>
-                    <th>Acciones</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for orden in ordenes_cobrar %}
-                <tr>
-                    <td><strong>Nº {{ orden.id }}</strong></td>
-                    <td>
-                        {% if orden.id_vehiculo.placa %}{{ orden.id_vehiculo.placa }}
-                        {% elif orden.id_vehiculo.vin %}<span style="font-family:monospace; font-size:0.8rem;">{{ orden.id_vehiculo.vin }}</span>
-                        {% else %}<span style="color:#e67e22; font-style:italic;">Sin placa</span>{% endif %}
-                    </td>
-                    <td>{{ orden.id_vehiculo.id_cliente.nombre|default:"Sin cliente" }} {{ orden.id_vehiculo.id_cliente.apellido|default:"" }}</td>
-                    <td>
-                        {% if orden.id_jefe_tecnico %}
-                            {{ orden.id_jefe_tecnico.nombre_completo }}
-                            {% if orden.id_jefe_tecnico_id == user.id %}<span class="badge badge-success" style="margin-left:5px;">Tú</span>{% endif %}
-                        {% else %}
-                            <span class="text-muted">Sin asignar</span>
-                        {% endif %}
-                    </td>
-                    <td><span class="badge badge-success">POR COBRAR</span></td>
-                    <td>
-                        <a href="{% url 'detalle_orden' orden.id %}" class="btn btn-gray btn-sm">Detalle</a>
-                        <a href="{% url 'registrar_pago' orden.id %}" class="btn btn-success btn-sm">Cobrar</a>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+<!-- ============ CONTENIDO: ÓRDENES PARA TRABAJAR ============ -->
+<div id="tab-trabajar" class="tab-content">
+    <div class="card">
+        {% if ordenes_trabajo %}
+        <div class="tabla-scroll" style="max-height: 500px;">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Nº</th>
+                        <th>Placa / VIN</th>
+                        <th>Cliente</th>
+                        <th>Encargado</th>
+                        <th>Estado</th>
+                        <th style="text-align: right;">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for orden in ordenes_trabajo %}
+                    <tr>
+                        <td><strong style="color: var(--primary-dark);">Nº {{ orden.id }}</strong></td>
+                        <td>
+                            {% if orden.id_vehiculo.placa %}{{ orden.id_vehiculo.placa }}
+                            {% elif orden.id_vehiculo.vin %}<span style="font-family:monospace; font-size:0.8rem;">{{ orden.id_vehiculo.vin }}</span>
+                            {% else %}<span style="color: var(--warning); font-style: italic;">Sin placa</span>{% endif %}
+                        </td>
+                        <td>{{ orden.id_vehiculo.id_cliente.nombre|default:"Sin cliente" }} {{ orden.id_vehiculo.id_cliente.apellido|default:"" }}</td>
+                        <td>
+                            {% if orden.id_jefe_tecnico %}
+                                {{ orden.id_jefe_tecnico.nombre_completo }}
+                                {% if orden.id_jefe_tecnico_id == user.id %}<span class="badge badge-success" style="margin-left:5px;">Tú</span>{% endif %}
+                            {% else %}
+                                <span class="text-muted">Sin asignar</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="badge 
+                                {% if orden.estado_orden == 'EN_PROCESO' %}badge-info
+                                {% else %}badge-warning{% endif %}">
+                                {{ orden.estado_orden }}
+                            </span>
+                        </td>
+                        <td style="text-align: right;">
+                            <a href="{% url 'detalle_orden' orden.id %}" class="btn btn-gray btn-sm">Detalle</a>
+                            <a href="{% url 'taller_detalle' orden.id %}" class="btn btn-warning btn-sm">Trabajar</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p class="text-muted" style="font-size:0.85rem;">No hay órdenes para trabajar.</p>
+        {% endif %}
     </div>
-    {% else %}
-    <p class="text-muted">No hay órdenes para cobrar.</p>
-    {% endif %}
+</div>
+
+<!-- ============ CONTENIDO: ÓRDENES PARA COBRAR ============ -->
+<div id="tab-cobrar" class="tab-content">
+    <div class="card">
+        {% if ordenes_cobrar %}
+        <div class="tabla-scroll" style="max-height: 500px;">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Nº</th>
+                        <th>Placa / VIN</th>
+                        <th>Cliente</th>
+                        <th>Encargado</th>
+                        <th>Estado</th>
+                        <th style="text-align: right;">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for orden in ordenes_cobrar %}
+                    <tr>
+                        <td><strong style="color: var(--primary-dark);">Nº {{ orden.id }}</strong></td>
+                        <td>
+                            {% if orden.id_vehiculo.placa %}{{ orden.id_vehiculo.placa }}
+                            {% elif orden.id_vehiculo.vin %}<span style="font-family:monospace; font-size:0.8rem;">{{ orden.id_vehiculo.vin }}</span>
+                            {% else %}<span style="color: var(--warning); font-style: italic;">Sin placa</span>{% endif %}
+                        </td>
+                        <td>{{ orden.id_vehiculo.id_cliente.nombre|default:"Sin cliente" }} {{ orden.id_vehiculo.id_cliente.apellido|default:"" }}</td>
+                        <td>
+                            {% if orden.id_jefe_tecnico %}
+                                {{ orden.id_jefe_tecnico.nombre_completo }}
+                                {% if orden.id_jefe_tecnico_id == user.id %}<span class="badge badge-success" style="margin-left:5px;">Tú</span>{% endif %}
+                            {% else %}
+                                <span class="text-muted">Sin asignar</span>
+                            {% endif %}
+                        </td>
+                        <td><span class="badge badge-success">POR COBRAR</span></td>
+                        <td style="text-align: right;">
+                            <a href="{% url 'detalle_orden' orden.id %}" class="btn btn-gray btn-sm">Detalle</a>
+                            <a href="{% url 'registrar_pago' orden.id %}" class="btn btn-success btn-sm">Cobrar</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p class="text-muted" style="font-size:0.85rem;">No hay órdenes para cobrar.</p>
+        {% endif %}
+    </div>
 </div>
 
 <!-- ============ BOTÓN VOLVER ============ -->
 <div class="mt-20">
     <a href="{% url 'dashboard_jefe' %}" class="btn btn-gray">Volver</a>
 </div>
+
+<!-- ============ SCRIPT PARA LAS PESTAÑAS ============ -->
+<script>
+    function cambiarTab(evt, tabId) {
+        var tabContents = document.getElementsByClassName("tab-content");
+        for (var i = 0; i < tabContents.length; i++) {
+            tabContents[i].classList.remove("active");
+        }
+
+        var tabBtns = document.getElementsByClassName("tab-btn");
+        for (var i = 0; i < tabBtns.length; i++) {
+            tabBtns[i].classList.remove("active");
+        }
+
+        document.getElementById(tabId).classList.add("active");
+        evt.currentTarget.classList.add("active");
+    }
+</script>
 
 {% endblock %}

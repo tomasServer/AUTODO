@@ -3,13 +3,13 @@
 
 {% block content %}
 
-<h2>Mis Tareas (Órdenes Pendientes)</h2>
+<h1 style="color: var(--primary-dark); font-size: 1.5rem; margin-bottom: 20px;">Mis Tareas (Órdenes Pendientes)</h1>
 
 <!-- ============ ÓRDENES PARA TRABAJAR ============ -->
 <div class="card">
     <h3>Órdenes para Trabajar</h3>
     {% if ordenes_trabajo %}
-    <div class="table-responsive scroll-y" style="max-height:300px;">
+    <div class="tabla-scroll" style="max-height: 400px;">
         <table>
             <thead>
                 <tr>
@@ -17,17 +17,17 @@
                     <th>Placa / VIN</th>
                     <th>Cliente</th>
                     <th>Estado</th>
-                    <th>Acciones</th>
+                    <th style="text-align: right;">Acciones</th>
                 </tr>
             </thead>
             <tbody>
                 {% for orden in ordenes_trabajo %}
                 <tr>
-                    <td><strong>Nº {{ orden.id }}</strong></td>
+                    <td><strong style="color: var(--primary-dark);">Nº {{ orden.id }}</strong></td>
                     <td>
                         {% if orden.id_vehiculo.placa %}{{ orden.id_vehiculo.placa }}
                         {% elif orden.id_vehiculo.vin %}<span style="font-family:monospace; font-size:0.8rem;">{{ orden.id_vehiculo.vin }}</span>
-                        {% else %}<span style="color:#e67e22; font-style:italic;">Sin placa</span>{% endif %}
+                        {% else %}<span style="color: var(--warning); font-style: italic;">Sin placa</span>{% endif %}
                     </td>
                     <td>{{ orden.id_vehiculo.id_cliente.nombre|default:"Sin cliente" }}</td>
                     <td>
@@ -38,7 +38,7 @@
                             {{ orden.estado_orden }}
                         </span>
                     </td>
-                    <td>
+                    <td style="text-align: right;">
                         <a href="{% url 'trabajar_orden_ayudante' orden.id %}" class="btn btn-warning btn-sm">Trabajar</a>
                     </td>
                 </tr>
@@ -47,7 +47,7 @@
         </table>
     </div>
     {% else %}
-    <p class="text-muted">No hay órdenes para trabajar.</p>
+    <p class="text-muted" style="font-size:0.85rem;">No hay órdenes para trabajar.</p>
     {% endif %}
 </div>
 

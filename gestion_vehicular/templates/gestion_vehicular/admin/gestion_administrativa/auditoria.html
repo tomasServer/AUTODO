@@ -5,8 +5,8 @@
 
 <div class="flex-between mb-20">
     <div>
-        <h2>Auditoría del Sistema</h2>
-        <p class="text-muted" style="font-size:0.9rem; margin-top:4px;">
+        <h1 style="color: var(--primary-dark); font-size: 1.5rem; margin-bottom: 5px;">Auditoría del Sistema</h1>
+        <p class="text-muted" style="font-size: 0.85rem;">
             Registro histórico de acciones críticas, eliminaciones y movimientos de seguridad.
         </p>
     </div>
@@ -14,7 +14,7 @@
 
 <!-- Buscador -->
 <div class="card">
-    <form method="GET" action="{% url 'ver_auditoria' %}" class="flex flex-wrap" style="gap: 10px;">
+    <form method="GET" action="{% url 'ver_auditoria' %}" class="flex flex-wrap" style="gap: 10px; align-items: center;">
         <input type="text" name="q" placeholder="Buscar por usuario, módulo o detalle..." 
                value="{{ busqueda }}" style="flex:1; min-width:200px; margin-bottom: 0;">
         <button type="submit" class="btn btn-primary">Buscar</button>
@@ -25,13 +25,13 @@
 </div>
 
 <!-- Tabla de Auditoría -->
-<div class="card" style="padding: 0; overflow: hidden;"> <!-- El padding 0 es para que la tabla llegue al borde -->
+<div class="card" style="padding: 0; overflow: hidden;"> 
     {% if page_obj %}
     
     <!-- El contenedor con scroll y bordes redondeados -->
-    <div class="table-responsive scroll-y" style="max-height: 600px; margin: 0;">
+    <div class="tabla-scroll" style="max-height: 600px; margin: 0; border: none; box-shadow: none;">
         <table>
-            <thead style="position: sticky; top: 0; z-index: 10;">
+            <thead>
                 <tr>
                     <th>Fecha / Hora</th>
                     <th>Usuario</th>
@@ -49,7 +49,7 @@
                     </td>
                     <td>
                         {% if a.id_usuario %}
-                            <strong>{{ a.id_usuario.nombre_completo }}</strong><br>
+                            <strong style="color: var(--primary-dark);">{{ a.id_usuario.nombre_completo }}</strong><br>
                             <small class="text-muted">{{ a.id_usuario.id_rol.nombre }}</small>
                         {% else %}
                             <span class="text-muted">Sistema</span>
@@ -70,9 +70,9 @@
                         {% elif a.accion == 'LOGIN' %}
                             <span class="badge badge-info">LOGIN</span>
                         {% elif a.accion == 'LOGOUT' %}
-                            <span class="badge badge-gray">LOGOUT</span>
+                            <span class="badge badge-gray" style="background:#e2e8f0; color:#475569;">LOGOUT</span>
                         {% else %}
-                            <span class="badge">{{ a.accion }}</span>
+                            <span class="badge" style="background:#e2e8f0; color:#475569;">{{ a.accion }}</span>
                         {% endif %}
                     </td>
                     <td>{{ a.descripcion }}</td>
@@ -82,18 +82,18 @@
         </table>
     </div>
 
-    <!-- Paginación (con un poco de padding para que no quede pegado al borde) -->
-    <div class="flex flex-wrap" style="justify-content: space-between; align-items: center; padding: 15px;">
+    <!-- Paginación -->
+    <div class="flex flex-wrap" style="justify-content: space-between; align-items: center; padding: 15px; border-top: 1px solid #e2e8f0; background: #f8fafc;">
         <div class="text-muted" style="font-size:0.85rem;">
             Mostrando {{ page_obj.start_index }} - {{ page_obj.end_index }} de {{ page_obj.paginator.count }} registros
         </div>
-        <div class="flex">
+        <div class="flex" style="gap: 5px;">
             {% if page_obj.has_previous %}
                 <a href="?page=1{% if busqueda %}&q={{ busqueda }}{% endif %}" class="btn btn-gray btn-sm">&laquo; Primera</a>
                 <a href="?page={{ page_obj.previous_page_number }}{% if busqueda %}&q={{ busqueda }}{% endif %}" class="btn btn-gray btn-sm">Anterior</a>
             {% endif %}
             
-            <span style="padding: 5px 10px; font-weight: bold; font-size:0.85rem;">
+            <span style="padding: 5px 10px; font-weight: 600; font-size:0.85rem; color: var(--primary-dark);">
                 Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}
             </span>
             

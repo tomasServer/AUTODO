@@ -2,11 +2,15 @@
 {% block title %}Registrar Pago{% endblock %}
 
 {% block content %}
-<h2>Registrar Pago</h2>
+
+<h1 style="color: var(--primary-dark); font-size: 1.5rem; margin-bottom: 20px;">Registrar Pago</h1>
 
 <div class="card text-center" style="padding: 40px;">
-    <h3 style="color: #c0392b;">⚠️ Acceso Denegado</h3>
-    <p>Lo sentimos, solo el Administrador o el Jefe Mecánico pueden registrar pagos.</p>
+    <h3 style="color: var(--danger);">⚠️ Acceso Denegado</h3>
+    <p class="text-muted" style="margin: 15px 0;">
+        Lo sentimos, solo el Administrador o el Jefe Mecánico pueden registrar pagos.
+    </p>
     <a href="{% url 'dashboard_ayudante' %}" class="btn btn-primary mt-20">Volver al Inicio</a>
 </div>
+
 {% endblock %}

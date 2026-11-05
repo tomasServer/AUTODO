@@ -1,16 +1,14 @@
 {% extends 'gestion_vehicular/admin/base_admin.html' %}
 {% block title %}Editar Usuario{% endblock %}
 
-
-
 {% block content %}
-<h1 style="color:#1a252f; margin-bottom:20px;">Editar: {{ usuario.usuario_login }}</h1>
+<h1 style="color: var(--primary-dark); font-size: 1.5rem; margin-bottom: 20px;">Editar: {{ usuario.usuario_login }}</h1>
 
 <div class="card">
     <form method="POST">
         {% csrf_token %}
         
-        <div class="grid grid-1">
+        <div class="grid grid-2">
             <div>
                 <label>Nombre</label>
                 <input type="text" name="nombre" value="{{ usuario.nombre }}" required>
@@ -25,15 +23,8 @@
             <div>
                 <label>Usuario</label>
                 <input type="text" value="{{ usuario.usuario_login }}" disabled>
-                <small style="color:#7f8c8d;">El usuario no se puede cambiar</small>
+                <small class="text-muted" style="display: block; margin-top: 4px; font-size: 0.75rem;">El nombre de usuario no se puede cambiar.</small>
             </div>
-            <div>
-                <label>Cambiar contraseña</label>
-                <input type="password" name="password" placeholder="••••••">
-            </div>
-        </div>
-        
-        <div class="grid grid-1" style="margin-top:15px;">
             <div>
                 <label>Rol</label>
                 <select name="rol_id" required>
@@ -42,22 +33,24 @@
                     {% endfor %}
                 </select>
             </div>
-            <div>
-                <label>Telefono</label>
-                <input type="text" name="telefono" value="{{ usuario.telefono|default:'' }}">
-            </div>
         </div>
         
-        <div style="margin-top:15px;">
-            <label>
-                <input type="checkbox" name="activo" {% if usuario.activo %}checked{% endif %}>
-                Usuario activo
-            </label>
+        <div class="grid grid-2" style="margin-top:15px;">
+            <div>
+                <label>Teléfono</label>
+                <input type="text" name="telefono" value="{{ usuario.telefono|default:'' }}">
+            </div>
+            <div style="display: flex; align-items: center; padding-top: 20px;">
+                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; margin: 0;">
+                    <input type="checkbox" name="activo" {% if usuario.activo %}checked{% endif %} style="width: auto; margin: 0;">
+                    Usuario activo
+                </label>
+            </div>
         </div>
         
         <div style="text-align:right; margin-top:20px;">
             <a href="{% url 'lista_usuarios' %}" class="btn btn-gray">Cancelar</a>
-            <button type="submit" class="btn btn-success">Actualizar Usuario</button>
+            <button type="submit" class="btn btn-success">Actualizar Datos</button>
         </div>
     </form>
 </div>

@@ -2,23 +2,68 @@
 {% load static %}
 {% block title %}Admin - AUTODO{% endblock %}
 
+{% block extra_css %}
+<style>
+    /* Menú desplegable para Administrar */
+    .dropdown {
+        position: relative;
+        display: inline-block;
+    }
+    .dropdown > a {
+        cursor: pointer;
+    }
+    .dropdown-content {
+        display: none;
+        position: absolute;
+        background-color: var(--primary-dark);
+        min-width: 200px;
+        box-shadow: var(--shadow-md);
+        border-radius: 8px;
+        z-index: 1100;
+        padding: 8px 0;
+    }
+    .dropdown-content a {
+        color: white !important;
+        padding: 10px 16px;
+        text-decoration: none;
+        display: block;
+        font-size: 0.85rem;
+        border-radius: 6px;
+        margin: 2px 8px;
+    }
+    .dropdown-content a:hover {
+        background-color: var(--accent-color) !important;
+    }
+    .dropdown:hover .dropdown-content {
+        display: block;
+    }
+</style>
+{% endblock %}
+
 {% block navbar %}
     <a href="{% url 'dashboard_admin' %}">Inicio</a>
-    <a href="{% url 'lista_insumos' %}">Inventario</a>
-    <a href="{% url 'lista_servicios' %}">Servicios</a>
-    <a href="{% url 'gestionar_revisiones' %}">Revisiones</a>
-    <a href="{% url 'lista_usuarios' %}">Personal</a>
+    
+    <!-- MENÚ DESPLEGABLE ADMINISTRAR -->
+    <div class="dropdown">
+        <a href="#">⚙️ Administrar ▾</a>
+        <div class="dropdown-content">
+            <a href="{% url 'lista_insumos' %}">📦 Productos</a>
+            <a href="{% url 'lista_servicios' %}">🔧 Servicios</a>
+            <a href="{% url 'gestionar_revisiones' %}">🔍 Revisiones</a>
+            <a href="{% url 'lista_usuarios' %}">👥 Personal</a>
+        </div>
+    </div>
+
     <a href="{% url 'reportes' %}">Reportes</a>
-    <a href="{% static 'manual/manual_usuario.pdf' %}" target="_blank">Manual de usuario</a>
-    <a href="{% url 'ver_auditoria' %}">Auditoria</a>
-    <a href="{% url 'logout' %}" class="btn-logout">Cerrar Sesion</a>
+    <a href="{% static 'manual/manual_usuario.pdf' %}" target="_blank">Manual de Usuario</a>
+    <a href="{% url 'ver_auditoria' %}">Auditoría</a>
+    <a href="{% url 'logout' %}" class="btn-logout">Cerrar Sesión</a>
 {% endblock %}
 
 {% block sidebar %}
-    <h3>Tareas comunes</h3>
-    <a href="{% url 'crear_orden' %}">Nueva Orden</a>
-    <a href="{% url 'modo_taller' %}">Ordenes Pendientes</a>
-    <a href="{% url 'buscar_vehiculo' %}">Buscar Vehiculo</a>
-    <a href="{% url 'venta_rapida' %}">Venta Rápida</a>
+    <h3>Tareas Comunes</h3>
+    <a href="{% url 'crear_orden' %}">➕ Nueva Orden</a>
+    <a href="{% url 'modo_taller' %}">🔧 Órdenes Pendientes</a>
+    <a href="{% url 'buscar_vehiculo' %}">🔍 Buscar Vehículo</a>
+    <a href="{% url 'venta_rapida' %}">🛒 Venta Rápida</a>
 {% endblock %}
-

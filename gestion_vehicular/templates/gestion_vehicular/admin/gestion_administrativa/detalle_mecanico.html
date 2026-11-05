@@ -2,17 +2,20 @@
 {% block title %}Mecanico: {{ mecanico.nombre }}{% endblock %}
 
 {% block content %}
-<h1 style="color:#1a252f; margin-bottom:5px;">{{ mecanico.nombre }} {{ mecanico.apellido|default:"" }}</h1>
-<p style="color:#7f8c8d; margin-bottom:20px;">
+
+<h1 style="color: var(--primary-dark); font-size: 1.5rem; margin-bottom: 5px;">
+    {{ mecanico.nombre }} {{ mecanico.apellido|default:"" }}
+</h1>
+<p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 20px;">
     Servicios realizados: <strong>{{ servicios.count }}</strong>
 </p>
 
 <div class="card">
     {% if servicios %}
     
-    <!-- table-responsive hace que tome los bordes y estilos de tu base -->
-    <div class="table-responsive" style="margin-top: 15px;">
-        <table style="width: 100%;">
+    <!-- Usamos tabla-scroll para heredar los bordes y el encabezado oscuro -->
+    <div class="tabla-scroll" style="margin-top: 15px;">
+        <table>
             <thead>
                 <tr>
                     <th>Orden</th>
@@ -41,9 +44,11 @@
     </div>
     
     {% else %}
-    <p style="color:#7f8c8d;">No hay servicios registrados.</p>
+    <p class="text-muted" style="font-size:0.85rem;">No hay servicios registrados.</p>
     {% endif %}
 </div>
 
-<a href="{% url 'reportes' %}" class="btn btn-gray mt-20">Volver a Reportes</a>
+<div class="mt-20">
+    <a href="{% url 'reportes' %}" class="btn btn-gray">Volver a Reportes</a>
+</div>
 {% endblock %}

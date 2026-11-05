@@ -4,13 +4,13 @@
 {% block content %}
 
 <div class="flex-between mb-20">
-    <h1>Servicios del Taller</h1>
-    <a href="{% url 'crear_servicio' %}" class="btn btn-success">Agregar Servicio</a>
+    <h1 style="color: var(--primary-dark); font-size: 1.5rem; margin: 0;">Servicios del Taller</h1>
+    <a href="{% url 'crear_servicio' %}" class="btn btn-success">+ Agregar Servicio</a>
 </div>
 
 <div class="card">
     <div class="flex-between mb-20">
-        <h3>Todos los Servicios ({{ servicios.count }})</h3>
+        <h3> Todos los Servicios ({{ servicios.count }})</h3>
     </div>
 
     <!-- 🆕 BUSCADOR DE SERVICIOS -->
@@ -19,7 +19,8 @@
     </div>
 
     {% if servicios %}
-    <div class="table-responsive">
+    <!-- Usamos tabla-scroll para heredar los estilos de la base -->
+    <div class="tabla-scroll">
         <table id="tabla-servicios">
             <thead>
                 <tr>
@@ -28,18 +29,18 @@
                     <th>Costo</th>
                     <th>Precio</th>
                     <th>Tiempo</th>
-                    <th>Acciones</th>
+                    <th style="text-align: right;">Acciones</th>
                 </tr>
             </thead>
             <tbody>
                 {% for s in servicios %}
                 <tr>
-                    <td><strong>{{ s.nombre }}</strong></td>
+                    <td><strong style="color: var(--primary-dark);">{{ s.nombre }}</strong></td>
                     <td><span class="badge badge-info">{{ s.id_tipo_servicio.nombre }}</span></td>
-                    <td>Bs. {{ s.costo_mano_obra }}</td>
-                    <td>Bs. {{ s.precio_mano_obra }}</td>
+                    <td>Bs. {{ s.costo_mano_obra|floatformat:2 }}</td>
+                    <td>Bs. {{ s.precio_mano_obra|floatformat:2 }}</td>
                     <td>{{ s.tiempo_estimado_minutos|default:"-" }} min</td>
-                    <td>
+                    <td style="text-align: right;">
                         <a href="{% url 'editar_servicio' s.id %}" class="btn btn-info btn-sm">Editar</a>
                         <a href="{% url 'desactivar_servicio' s.id %}" class="btn btn-warning btn-sm" onclick="return confirm('¿Desactivar este servicio?')">Desactivar</a>
                     </td>
@@ -49,7 +50,7 @@
         </table>
     </div>
     {% else %}
-    <p class="text-muted">No hay servicios registrados.</p>
+    <p class="text-muted" style="font-size:0.85rem;">No hay servicios registrados.</p>
     {% endif %}
 </div>
 

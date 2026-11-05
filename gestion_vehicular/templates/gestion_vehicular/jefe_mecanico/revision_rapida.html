@@ -1,11 +1,11 @@
-{% extends 'gestion_vehicular/jefe_mecanico/base_Jefe.html' %}
+{% extends 'gestion_vehicular/jefe_mecanico/base_jefe.html' %}
 {% block title %}Revisión Visita{% endblock %}
 
 {% block content %}
 
-<h2 style="color:#1a252f; margin-bottom:15px;">Revisión Visita</h2>
+<h1 style="color: var(--primary-dark); font-size: 1.5rem; margin-bottom: 15px;">Revisión Visita</h1>
 
-<div class="card" style="padding:20px;">
+<div class="card">
     <p style="margin-bottom:15px;">Placa / VIN: <strong style="text-transform:uppercase;">{{ placa }}</strong></p>
 
     <form method="POST" action="{% url 'guardar_revision_rapida' %}">
@@ -13,8 +13,8 @@
         <input type="hidden" name="placa" value="{{ placa }}">
 
         {% for componente in componentes %}
-        <div class="card" style="padding:15px; margin-bottom:10px; border-left:4px solid #e67e22;">
-            <h3 style="margin:0 0 10px 0; font-size:1rem;">{{ componente.orden }}. {{ componente.nombre }}</h3>
+        <div class="card" style="padding:15px; margin-bottom:10px; border-left:4px solid var(--warning);">
+            <h3 style="margin:0 0 10px 0; font-size:1rem; color: var(--primary-dark);">{{ componente.orden }}. {{ componente.nombre }}</h3>
 
             <!-- BOTONES DE ESTADO -->
             <div class="flex flex-wrap" style="gap:8px; margin-bottom:10px;">

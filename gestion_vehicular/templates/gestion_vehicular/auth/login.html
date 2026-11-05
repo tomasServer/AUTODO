@@ -33,10 +33,26 @@
         .login-box button {
             width: 100%; padding: 12px; background: #0a1628; color: #ffffff;
             border: none; border-radius: 4px; font-size: 1rem; font-weight: 600; cursor: pointer;
+            transition: background 0.2s;
         }
         .login-box button:hover { background: #1a3a5c; }
         .error { background: #f8d7da; color: #721c24; padding: 10px; border-radius: 4px; margin-bottom: 15px; border-left: 0px solid #a83232; }
         .success { background: #d4edda; color: #155724; padding: 10px; border-radius: 4px; margin-bottom: 15px; border-left: 0px solid #2d6a4f; }
+        
+        /* 🆕 Estilo para el enlace de recuperación */
+        .forgot-password {
+            display: block;
+            text-align: center;
+            margin-top: 15px;
+            color: #2c5f8a;
+            font-size: 0.85rem;
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+        .forgot-password:hover {
+            color: #0a1628;
+            text-decoration: underline;
+        }
     </style>
 </head>
 <body>
@@ -53,13 +69,18 @@
         <form method="POST">
             {% csrf_token %}
             <label>Usuario</label>
-            <input type="text" name="username" required>
+            <input type="text" name="username" required placeholder="Tu correo o usuario">
             
             <label>Contraseña</label>
-            <input type="password" name="password" required>
+            <input type="password" name="password" required placeholder="••••••••">
             
             <button type="submit">Ingresar</button>
         </form>
+
+        <!-- 🆕 BOTÓN DE RECUPERACIÓN -->
+        <a href="{% url 'password_reset' %}" class="forgot-password">
+            ¿Olvidaste tu contraseña?
+        </a>
     </div>
 </body>
 </html>

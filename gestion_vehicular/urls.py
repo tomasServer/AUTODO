@@ -1,6 +1,6 @@
 from django.urls import path
 from .views import gestion_basica, gestion_taller, seguimiento_vehicular, gestion_administrativa, gestion_ventas
-
+from django.contrib.auth import views as auth_views
 urlpatterns = [
 
     # ============ INCREMENTO 1: SEGURIDAD Y CATÁLOGOS ============
@@ -101,4 +101,13 @@ urlpatterns = [
     path('auditoria/', gestion_administrativa.ver_auditoria, name='ver_auditoria'),
     #observacion
     path('taller/orden/<int:orden_id>/observacion/', gestion_taller.actualizar_observacion_orden, name='actualizar_observacion_orden'),
+
+    #reseteo
+        # ============ RESETEO DE CONTRASEÑA ============
+     # 🆕 RESETEO DE CONTRASEÑA
+    path('password-reset/', gestion_basica.CustomPasswordResetView.as_view(), name='password_reset'),
+    path('password-reset/done/', auth_views.PasswordResetDoneView.as_view(template_name='auth/password_reset_done.html'), name='password_reset_done'),
+    path('password-reset-confirm/<uidb64>/<token>/', gestion_basica.CustomPasswordResetConfirmView.as_view(), name='password_reset_confirm'),
+    path('password-reset-complete/', auth_views.PasswordResetCompleteView.as_view(template_name='auth/password_reset_complete.html'), name='password_reset_complete'),
+
 ]   

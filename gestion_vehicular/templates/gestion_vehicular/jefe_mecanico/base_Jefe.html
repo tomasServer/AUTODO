@@ -1,15 +1,15 @@
 {% extends 'gestion_vehicular/base.html' %}
-{% block title %}Jefe Mecanico - AUTODO{% endblock %}
+{% block title %}Jefe Mecánico - AUTODO{% endblock %}
 
 {% block navbar %}
     <a href="{% url 'dashboard_jefe' %}">Inicio</a>
-    <a href="{% url 'logout' %}" class="btn-logout">Cerrar Sesion</a>
+    <a href="{% url 'logout' %}" class="btn-logout">Cerrar Sesión</a>
 {% endblock %}
 
 {% block sidebar %}
     <h3>Acciones</h3>
-    <a href="{% url 'modo_taller' %}">Órdenes Pendientes</a> 
-    <a href="{% url 'crear_orden' %}">Nueva Orden</a>
-    <a href="{% url 'buscar_vehiculo' %}">Buscar Vehiculo</a>
-    <a href="{% url 'venta_rapida' %}">Venta Rapida</a>
+    <a href="{% url 'modo_taller' %}">🔧 Órdenes Pendientes</a> 
+    <a href="{% url 'crear_orden' %}">➕ Nueva Orden</a>
+    <a href="{% url 'buscar_vehiculo' %}">🔍 Buscar Vehículo</a>
+    <a href="{% url 'venta_rapida' %}">🛒 Venta Rápida</a>
 {% endblock %}

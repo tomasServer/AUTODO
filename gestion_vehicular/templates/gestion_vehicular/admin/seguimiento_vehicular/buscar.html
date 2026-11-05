@@ -3,7 +3,9 @@
 
 {% block content %}
 
-<h2>Buscar Vehículo</h2>
+<div class="flex-between mb-20">
+    <h1 style="color: var(--primary-dark); font-size: 1.5rem; margin: 0;">Buscar Vehículo</h1>
+</div>
 
 <div class="card">
     <form method="GET" action="{% url 'buscar_vehiculo' %}" class="flex flex-wrap" id="formBuscar" onsubmit="return validarBusqueda(event)">
@@ -24,10 +26,10 @@
 {% if vehiculo %}
 <div class="card">
     <h3>Datos del Vehículo</h3>
-    <div class="grid grid-3">
+    <div class="grid grid-3" style="margin-bottom: 15px;">
         <div>
             <strong>Placa:</strong>
-            {% if vehiculo.placa %}{{ vehiculo.placa }}{% else %}<span style="color:#e67e22; font-style:italic;">Sin placa</span>{% endif %}
+            {% if vehiculo.placa %}{{ vehiculo.placa }}{% else %}<span style="color:var(--warning); font-style:italic;">Sin placa</span>{% endif %}
         </div>
         <div>
             <strong>VIN:</strong>
@@ -45,7 +47,7 @@
         <div><strong>Kilometraje:</strong> {{ vehiculo.kilometraje_actual|default:"—" }} km</div>
     </div>
 
-    <div class="flex flex-wrap mt-10">
+    <div class="flex flex-wrap mt-10" style="gap: 10px;">
         <a href="{% url 'crear_orden' %}?vehiculo_id={{ vehiculo.id }}" class="btn btn-primary">+ Nueva Orden</a>
 
         {% if vehiculo.placa %}
@@ -65,19 +67,32 @@
 {% if ordenes %}
 <div class="card">
     <h3>Últimas Órdenes</h3>
-    <div class="table-responsive">
+    <div class="tabla-scroll">
         <table>
             <thead>
-                <tr><th>Orden</th><th>Fecha Ingreso</th><th>Estado</th><th>Total</th><th>Acciones</th></tr>
+                <tr>
+                    <th>Orden</th>
+                    <th>Fecha Ingreso</th>
+                    <th>Estado</th>
+                    <th>Total</th>
+                    <th style="text-align: right;">Acciones</th>
+                </tr>
             </thead>
             <tbody>
                 {% for orden in ordenes %}
                 <tr>
-                    <td><strong>Nº {{ orden.id }}</strong></td>
+                    <td><strong style="color: var(--primary-dark);">Nº {{ orden.id }}</strong></td>
                     <td>{{ orden.fecha_ingreso|date:"d/m/Y H:i" }}</td>
-                    <td><span class="badge {% if orden.estado_orden == 'COBRADA' %}badge-success{% elif orden.estado_orden == 'EN_PROCESO' %}badge-info{% else %}badge-warning{% endif %}">{{ orden.estado_orden }}</span></td>
+                    <td>
+                        <span class="badge 
+                            {% if orden.estado_orden == 'COBRADA' %}badge-success
+                            {% elif orden.estado_orden == 'EN_PROCESO' %}badge-info
+                            {% else %}badge-warning{% endif %}">
+                            {{ orden.estado_orden }}
+                        </span>
+                    </td>
                     <td>Bs. {{ orden.total_orden|floatformat:2|default:"0.00" }}</td>
-                    <td class="flex">
+                    <td style="text-align: right;">
                         <a href="{% url 'detalle_orden' orden.id %}" class="btn btn-primary btn-sm">Ver</a>
                         {% if orden.estado_orden == 'CANCELADA' %}
                         <a href="{% url 'crear_orden' %}?orden_anterior_id={{ orden.id }}" class="btn btn-warning btn-sm">Usar Cotización</a>
@@ -98,7 +113,7 @@
     <p class="text-muted" style="font-size:0.9rem; margin-bottom:15px;">
         Selecciona un vehículo para ver su historial.
     </p>
-    <div class="table-responsive">
+    <div class="tabla-scroll">
         <table>
             <thead>
                 <tr>
@@ -106,17 +121,17 @@
                     <th>VIN</th>
                     <th>Cliente</th>
                     <th>CI</th>
-                    <th>Acciones</th>
+                    <th style="text-align: right;">Acciones</th>
                 </tr>
             </thead>
             <tbody>
                 {% for v in resultados %}
                 <tr>
-                    <td>{% if v.placa %}{{ v.placa }}{% else %}<span style="color:#e67e22; font-style:italic;">Sin placa</span>{% endif %}</td>
+                    <td>{% if v.placa %}<strong>{{ v.placa }}</strong>{% else %}<span style="color:var(--warning); font-style:italic;">Sin placa</span>{% endif %}</td>
                     <td>{% if v.vin %}<code style="font-size:0.8rem;">{{ v.vin }}</code>{% else %}—{% endif %}</td>
                     <td>{{ v.id_cliente.nombre|default:"-" }} {{ v.id_cliente.apellido|default:"" }}</td>
                     <td>{{ v.id_cliente.ci|default:"—" }}</td>
-                    <td>
+                    <td style="text-align: right;">
                         {% if v.placa %}
                         <a href="{% url 'historial_vehiculo' v.placa %}" class="btn btn-info btn-sm">Ver Historial</a>
                         {% elif v.vin %}
@@ -201,13 +216,13 @@
             const len = input.value.trim().length;
             if (len === 0) {
                 helper.textContent = '💡 Busca por Placa (3-8), VIN (17), Nombre o CI.';
-                helper.style.color = '#64748b';
+                helper.style.color = 'var(--text-muted)';
             } else if (len > 17) {
                 helper.textContent = '⚠️ El máximo permitido es 17 caracteres (VIN).';
-                helper.style.color = '#ef4444';
+                helper.style.color = 'var(--danger)';
             } else {
                 helper.textContent = `🔍 Buscando "${input.value.toUpperCase()}"...`;
-                helper.style.color = '#3b82f6';
+                helper.style.color = 'var(--accent-color)';
             }
         };
 

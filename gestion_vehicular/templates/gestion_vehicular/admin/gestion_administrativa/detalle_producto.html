@@ -2,17 +2,18 @@
 {% block title %}Producto: {{ producto.nombre }}{% endblock %}
 
 {% block content %}
-<h1 style="color:#1a252f; margin-bottom:5px;">{{ producto.nombre }}</h1>
-<p style="color:#7f8c8d; margin-bottom:20px;">
-  Ventas realizadas de este producto — {{ ventas|length }} registro(s)
+
+<h1 style="color: var(--primary-dark); font-size: 1.5rem; margin-bottom: 5px;">{{ producto.nombre }}</h1>
+<p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 20px;">
+  Ventas realizadas de este producto — <strong>{{ ventas|length }}</strong> registro(s)
 </p>
 
 <div class="card">
     {% if ventas %}
     
-    <!-- Usamos table-responsive para que el base le dé el borde y la sombra correcta -->
-    <div class="table-responsive" style="margin-top: 15px;">
-        <table style="width: 100%;">
+    <!-- Usamos tabla-scroll para que el base le dé el borde, la sombra y el encabezado oscuro -->
+    <div class="tabla-scroll" style="margin-top: 15px;">
+        <table>
             <thead>
                 <tr>
                     <th>Orden</th>
@@ -39,19 +40,21 @@
                 </tr>
                 {% endfor %}
             </tbody>
-            <tfoot>
-                <tr>
-                    <td colspan="5" class="text-right" style="font-size: 0.95rem; color: var(--primary-dark);"><strong>Total general:</strong></td>
-                    <td style="font-size: 1rem; color: var(--primary-dark);"><strong>Bs. {{ total_ventas|floatformat:2 }}</strong></td>
-                </tr>
-            </tfoot>
         </table>
     </div>
     
+    <!-- Total general fuera de la tabla para usar el estilo de tarjeta de totales -->
+    <div class="tabla-total" style="border-radius: 0 0 var(--radius) var(--radius); margin-top: -1rem;">
+        <span style="font-size: 0.95rem;">Total general:</span>
+        <span style="font-size: 1.1rem;">Bs. {{ total_ventas|floatformat:2 }}</span>
+    </div>
+    
     {% else %}
-    <p style="color:#7f8c8d;">No hay ventas registradas para este producto.</p>
+    <p class="text-muted" style="font-size:0.85rem;">No hay ventas registradas para este producto.</p>
     {% endif %}
 </div>
 
-<a href="{% url 'reportes' %}" class="btn btn-gray mt-20">Volver a Reportes</a>
+<div class="mt-20">
+    <a href="{% url 'reportes' %}" class="btn btn-gray">Volver a Reportes</a>
+</div>
 {% endblock %}

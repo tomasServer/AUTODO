@@ -3,38 +3,37 @@
 
 {% block content %}
 
-<h2>Venta Rápida de Productos</h2>
+<h1 style="color: var(--primary-dark); font-size: 1.5rem; margin-bottom: 20px;">Venta Rápida de Productos</h1>
 
 <div class="card">
     <form method="POST" action="{% url 'guardar_venta_rapida' %}" id="ventaForm">
         {% csrf_token %}
         <input type="hidden" name="metodo_pago" id="metodo_pago_hidden" value="EFECTIVO">
 
-        <!-- 🆕 BUSCADOR DE PRODUCTOS PRINCIPAL -->
+        <!-- BUSCADOR DE PRODUCTOS -->
         <div style="margin-bottom: 20px; padding: 15px; background: #f1f5f9; border-radius: 8px; border: 1px solid #e2e8f0;">
-            <label style="font-weight: 600; color: #1e293b; margin-bottom: 8px; display: block;">🔍 Buscar Producto (Escanea o escribe el nombre)</label>
-            <input type="text" id="buscador_principal" placeholder="Ej: aceite, filtro..." autocomplete="off" style="width: 100%; max-width: 400px;">
+            <label style="font-weight: 600; color: var(--primary-dark); margin-bottom: 8px; display: block;">🔍 Buscar Producto</label>
+            <input type="text" id="buscador_principal" placeholder="Ej: aceite, filtro..." autocomplete="off" style="width: 100%;">
         </div>
 
-        <!-- LISTA DE PRODUCTOS DISPONIBLES (Filtrada por el buscador) -->
+        <!-- LISTA DE PRODUCTOS FILTRADOS -->
         <div id="lista_productos" style="margin-bottom: 20px; max-height: 200px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 8px; display: none;">
-            <!-- Aquí JavaScript inyectará los productos que coincidan -->
+            <!-- Aquí JavaScript inyectará los productos -->
         </div>
 
-        <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 20px 0;">
-
-        <!-- CARRITO / PRODUCTOS SELECCIONADOS -->
-        <h3>Productos en el Carrito</h3>
-        <div id="carritoVenta">
-            <!-- Las filas se agregarán dinámicamente aquí -->
-            <p id="mensaje_vacio" class="text-muted">No has seleccionado ningún producto aún. Usa el buscador de arriba.</p>
+        <!-- PRODUCTOS AGREGADOS -->
+        <div style="margin-bottom: 10px;">
+            <h4 style="color: var(--text-muted); font-size: 0.9rem; font-weight: 600; margin-bottom: 10px;">Productos agregados:</h4>
+            <div id="carritoVenta" style="margin-bottom: 20px;">
+                <!-- Las filas se agregan dinámicamente aquí -->
+            </div>
         </div>
 
         <!-- TOTAL -->
-        <div style="margin-top:20px; padding:15px; background:#f1f5f9; border-radius:8px; border-left:4px solid #3b82f6;">
+        <div style="padding:15px; background:#f1f5f9; border-radius:8px; border-left:4px solid var(--primary-dark);">
             <div class="flex-between" style="font-size:1.2rem;">
-                <span style="font-weight: 600; color: #1e293b;">Total:</span>
-                <strong id="totalVenta" style="color: #1e293b;">Bs. 0.00</strong>
+                <span style="font-weight: 600; color: var(--primary-dark);">Total:</span>
+                <strong id="totalVenta" style="color: var(--primary-dark);">Bs. 0.00</strong>
             </div>
         </div>
 
@@ -47,8 +46,8 @@
 
 <!-- ====== MODAL PARA DATOS DEL CLIENTE ====== -->
 <div id="modalCliente" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:9999; justify-content:center; align-items:center;">
-    <div style="background:#fff; padding:25px; border-radius:12px; max-width:500px; width:90%; box-shadow:0 10px 25px rgba(0,0,0,0.2);">
-        <h3 style="margin:0 0 15px 0; color:#1e293b;">Datos del Cliente</h3>
+    <div style="background:#fff; padding:25px; border-radius:12px; max-width:500px; width:90%; box-shadow:0 10px 25px rgba(0,0,0,0.2); max-height: 90vh; overflow-y: auto;">
+        <h3 style="margin:0 0 15px 0; color:var(--primary-dark);">Datos del Cliente</h3>
 
         <div style="margin-bottom:15px; position:relative;">
             <label>🔍 Buscar cliente</label>
@@ -67,7 +66,7 @@
         </div>
         <div style="margin-bottom:20px;">
             <label>Método de Pago *</label>
-            <select id="metodo_pago" required style="max-width:250px;">
+            <select id="metodo_pago" required>
                 <option value="EFECTIVO">💵 Efectivo</option>
                 <option value="QR">📱 QR</option>
                 <option value="TRANSFERENCIA">🏦 Transferencia</option>
@@ -87,7 +86,7 @@
     var contadorVentas = 0;
     var PRODUCTOS_DATA = [
         {% for p in productos %}
-        { id: {{ p.id }}, nombre: "{{ p.nombre|escapejs }}", codigo: "{{ p.codigo|default:''|escapejs }}", precio: "{{ p.precio_venta }}", stock: "{{ p.stock_actual }}" }{% if not forloop.last %},{% endif %}
+        { id: {{ p.id }}, nombre: "{{ p.nombre|escapejs }}", codigo: "{{ p.codigo|default:''|escapejs }}", precio: "{{ p.precio_venta|default:0 }}", stock: "{{ p.stock_actual|default:0 }}" }{% if not forloop.last %},{% endif %}
         {% endfor %}
     ];
 
@@ -112,7 +111,7 @@
         });
 
         if (encontrados.length === 0) {
-            contenedor.innerHTML = '<div style="padding:15px; color:#64748b;">No se encontraron productos con ese nombre o código.</div>';
+            contenedor.innerHTML = '<div style="padding:15px; color:#64748b;">No se encontraron productos.</div>';
             contenedor.style.display = 'block';
             return;
         }
@@ -122,7 +121,7 @@
             html += `
                 <div onclick="seleccionarProducto(${p.id})" style="padding:10px 15px; border-bottom:1px solid #e2e8f0; cursor:pointer; transition:background 0.2s;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='#fff'">
                     <strong>${p.nombre}</strong> ${p.codigo ? '('+p.codigo+')' : ''} 
-                    <span style="float:right; color:#3b82f6; font-weight:bold;">Bs. ${p.precio} | Stock: ${p.stock}</span>
+                    <span style="float:right; color:var(--accent-color); font-weight:bold;">Bs. ${p.precio} | Stock: ${p.stock}</span>
                 </div>
             `;
         });
@@ -130,7 +129,7 @@
         contenedor.style.display = 'block';
     });
 
-    // Ocultar la lista si hace clic fuera de ella
+    // Ocultar la lista si hace clic fuera
     document.addEventListener('click', function(e) {
         var contenedor = document.getElementById('lista_productos');
         var input = document.getElementById('buscador_principal');
@@ -144,27 +143,26 @@
         var p = PRODUCTOS_DATA.find(function(x) { return x.id === id; });
         if (!p) return;
 
-        // Ocultar la lista y limpiar el buscador
         document.getElementById('lista_productos').style.display = 'none';
         document.getElementById('buscador_principal').value = '';
         
-        // Ocultar mensaje de vacío
-        var msjVacio = document.getElementById('mensaje_vacio');
-        if (msjVacio) msjVacio.style.display = 'none';
-
         contadorVentas++;
         var div = document.createElement('div');
         div.id = 'fila-producto-' + contadorVentas;
-        div.style.cssText = 'display:grid; grid-template-columns:1fr 0.3fr 0.5fr auto; gap:8px; margin-bottom:8px; align-items:center;';
+        
+        // 🆕 Asegurarnos de que el precio sea un número válido
+        var precioNum = parseFloat(p.precio) || 0;
+        
+        div.style.cssText = 'display:grid; grid-template-columns: 2fr 1fr 1fr auto; gap:10px; margin-bottom:10px; align-items:center; background: #f8fafc; padding: 10px; border: 1px solid #e2e8f0; border-radius: 8px;';
         
         div.innerHTML = `
-            <div style="padding: 10px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px;">
-                <strong>${p.nombre}</strong> <small style="color:#64748b;">(${p.codigo || 'Sin código'})</small>
+            <div style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                <strong>${p.nombre}</strong>
                 <input type="hidden" name="producto_${contadorVentas}" value="${p.id}">
             </div>
-            <input type="number" name="cantidad_${contadorVentas}" value="1" min="1" oninput="actualizarTotalVenta()">
-            <input type="number" name="precio_producto_${contadorVentas}" step="0.01" value="${p.precio}" oninput="actualizarTotalVenta()">
-            <button type="button" onclick="eliminarVenta(this)" class="btn btn-danger btn-sm">X</button>
+            <input type="number" name="cantidad_${contadorVentas}" value="1" min="1" oninput="actualizarTotalVenta()" style="margin:0;">
+            <input type="number" name="precio_producto_${contadorVentas}" step="0.01" value="${precioNum.toFixed(2)}" oninput="actualizarTotalVenta()" style="margin:0;">
+            <button type="button" onclick="eliminarVenta(this)" class="btn btn-danger btn-sm" style="margin:0;">X</button>
         `;
         
         document.getElementById('carritoVenta').appendChild(div);
@@ -172,13 +170,8 @@
     }
 
     function eliminarVenta(btn) { 
-        btn.closest('div').remove(); 
+        btn.closest('div[id^="fila-producto"]').remove(); 
         actualizarTotalVenta(); 
-        
-        // Si el carrito queda vacío, mostrar mensaje
-        if (document.getElementById('carritoVenta').children.length === 0) {
-            document.getElementById('mensaje_vacio').style.display = 'block';
-        }
     }
 
     function actualizarTotalVenta() {
@@ -211,9 +204,9 @@
         if (!helper) return;
         if (input.value.length === 0) helper.textContent = '';
         else if (/^[0-9]{7,11}(-[A-Z0-9]{1,2})?$/.test(input.value)) {
-            helper.textContent = '✓'; helper.style.color = '#22c55e'; helper.style.fontWeight = 'bold';
+            helper.textContent = '✓'; helper.style.color = 'var(--success)'; helper.style.fontWeight = 'bold';
         } else {
-            helper.textContent = '⚠️'; helper.style.color = '#f59e0b'; helper.style.fontWeight = 'bold';
+            helper.textContent = '⚠️'; helper.style.color = 'var(--warning)'; helper.style.fontWeight = 'bold';
         }
     }
 
@@ -262,7 +255,7 @@
     // ============ MODAL ============
     function abrirModalCliente() {
         var hayProducto = document.querySelectorAll('input[name^="producto_"]').length > 0;
-        if (!hayProducto) { alert('Agrega al menos un producto al carrito.'); return; }
+        if (!hayProducto) { alert('Agrega al menos un producto.'); return; }
 
         document.getElementById('cliente_nombre').value = '';
         document.getElementById('cliente_apellido').value = '';

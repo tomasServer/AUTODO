@@ -2,17 +2,26 @@
 {% block title %}Trabajar - Orden Nº {{ orden.id }}{% endblock %}
 
 {% block extra_css %}
-<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 <style>
     .inline-form { display: inline; }
     .inline-form .btn { margin-right: 4px; }
-    .grupo-servicio { margin: 12px 0 6px 0; padding: 6px 10px; background: #f0f0f0; border-radius: 4px; font-size: 0.9rem; color: #2c3e50; position: sticky; top: 0; z-index: 2; }
+    .grupo-servicio {
+        margin: 12px 0 6px 0;
+        padding: 6px 10px;
+        background: #f1f5f9;
+        border-radius: 4px;
+        font-size: 0.9rem;
+        color: var(--primary-dark);
+        position: sticky;
+        top: 0;
+        z-index: 2;
+    }
 </style>
 {% endblock %}
 
 {% block content %}
 
-<h2>Trabajar en Orden Nº {{ orden.id }}</h2>
+<h1 style="color: var(--primary-dark); font-size: 1.5rem; margin-bottom: 15px;">Trabajar en Orden Nº {{ orden.id }}</h1>
 
 <!-- INFO DE LA ORDEN -->
 <div class="card">
@@ -21,7 +30,7 @@
             <strong>Placa / VIN:</strong> 
             {% if orden.id_vehiculo.placa %}{{ orden.id_vehiculo.placa }}
             {% elif orden.id_vehiculo.vin %}<span style="font-family: monospace; font-size: 0.85rem;">{{ orden.id_vehiculo.vin }}</span>
-            {% else %}<span style="color:#e67e22; font-style:italic;">Sin placa</span>{% endif %}
+            {% else %}<span style="color: var(--warning); font-style: italic;">Sin placa</span>{% endif %}
         </div>
         <div><strong>Complejidad:</strong> {{ orden.id_complejidad.nombre|default:"No asignado" }}</div>
         <div><strong>Cliente:</strong> {{ orden.id_vehiculo.id_cliente.nombre|default:"Sin cliente" }} {{ orden.id_vehiculo.id_cliente.apellido|default:"" }}</div>
@@ -42,7 +51,7 @@
 <div class="card">
     <h3>Mis Servicios Asignados</h3>
     {% if servicios_detalle %}
-    <div class="table-responsive scroll-y" style="max-height:400px;">
+    <div class="tabla-scroll" style="max-height: 400px;">
 
         {% regroup servicios_detalle by estado as servicios_por_estado %}
 
@@ -52,15 +61,15 @@
                 {% elif grupo.grouper == 'EN_PROCESO' %}🔧 En Proceso
                 {% elif grupo.grouper == 'FINALIZADO' %}✅ Finalizados
                 {% else %}{{ grupo.grouper }}{% endif %}
-                <span style="color:#7f8c8d; font-weight:normal; font-size:0.8rem;">({{ grupo.list|length }})</span>
+                <span style="color: var(--text-muted); font-weight: normal; font-size: 0.8rem;">({{ grupo.list|length }})</span>
             </h4>
 
             {% for detalle in grupo.list %}
-            <div style="padding:10px 0; border-bottom:1px solid #ecf0f1;">
+            <div style="padding:10px 0; border-bottom:1px solid #f1f5f9;">
                 <div class="flex-between flex-wrap">
                     <div>
-                        <strong>{{ detalle.id_servicio.nombre }}</strong>
-                        <span class="text-muted" style="font-size:13px; margin-left:10px;">Bs. {{ detalle.precio_cobrado }}</span>
+                        <strong style="color: var(--primary-dark);">{{ detalle.id_servicio.nombre }}</strong>
+                        <span class="text-muted" style="font-size:13px; margin-left:10px;">Bs. {{ detalle.precio_cobrado|floatformat:2 }}</span>
                     </div>
                     <div class="flex">
                         <span class="badge 
@@ -73,7 +82,7 @@
                 </div>
 
                 {% if detalle.id_mecanico_id == user.id %}
-                <div class="flex flex-wrap botones-estado" style="margin-top:8px;">
+                <div class="flex flex-wrap botones-estado" style="margin-top:8px; gap: 5px;">
                     <form method="POST" action="{% url 'cambiar_estado_servicio_ayudante' detalle.id %}" class="inline-form">
                         {% csrf_token %}
                         <input type="hidden" name="nuevo_estado" value="PENDIENTE">
@@ -103,16 +112,15 @@
         {% endfor %}
     </div>
     {% else %}
-    <p class="text-muted">No tienes servicios asignados en esta orden.</p>
+    <p class="text-muted" style="font-size:0.85rem;">No tienes servicios asignados en esta orden.</p>
     {% endif %}
 </div>
 
 <!-- BOTONES DE ACCIÓN -->
-<div class="flex flex-wrap" style="margin-top:15px;">
+<div class="flex flex-wrap" style="margin-top:20px;">
     <a href="{% url 'modo_taller_ayudante' %}" class="btn btn-gray">Volver a Mis Tareas</a>
 </div>
 
-<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 <script>
     function atenuarBotones(botonClickeado) {
         var contenedor = botonClickeado.closest('.botones-estado');
