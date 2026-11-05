@@ -150,15 +150,16 @@
         var div = document.createElement('div');
         div.id = 'fila-producto-' + contadorVentas;
         
-        // 🆕 Asegurarnos de que el precio sea un número válido
+        // Asegurarnos de que el precio sea un número válido
         var precioNum = parseFloat(p.precio) || 0;
         
         div.style.cssText = 'display:grid; grid-template-columns: 2fr 1fr 1fr auto; gap:10px; margin-bottom:10px; align-items:center; background: #f8fafc; padding: 10px; border: 1px solid #e2e8f0; border-radius: 8px;';
         
+        // 🆕 Agregamos data-stock al div para usarlo en la validación
         div.innerHTML = `
             <div style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
                 <strong>${p.nombre}</strong>
-                <input type="hidden" name="producto_${contadorVentas}" value="${p.id}">
+                <input type="hidden" name="producto_${contadorVentas}" value="${p.id}" data-stock="${p.stock}">
             </div>
             <input type="number" name="cantidad_${contadorVentas}" value="1" min="1" oninput="actualizarTotalVenta()" style="margin:0;">
             <input type="number" name="precio_producto_${contadorVentas}" step="0.01" value="${precioNum.toFixed(2)}" oninput="actualizarTotalVenta()" style="margin:0;">
@@ -257,6 +258,26 @@
         var hayProducto = document.querySelectorAll('input[name^="producto_"]').length > 0;
         if (!hayProducto) { alert('Agrega al menos un producto.'); return; }
 
+        // 🆕 VALIDACIÓN DE STOCK AL ABRIR EL MODAL
+        let stockValido = true;
+        document.querySelectorAll('input[name^="producto_"]').forEach(function(input) {
+            const num = input.name.split('_').pop();
+            const cantidadInput = document.querySelector(`input[name="cantidad_${num}"]`);
+            const cantidad = parseInt(cantidadInput.value) || 0;
+            const stockDisponible = parseInt(input.getAttribute('data-stock')) || 0;
+
+            if (cantidad > stockDisponible) {
+                stockValido = false;
+                alert(`⚠️ No hay suficiente stock del producto seleccionado.\nStock disponible: ${stockDisponible}\nIntentas vender: ${cantidad}`);
+                cantidadInput.focus();
+                cantidadInput.style.border = '2px solid var(--danger)';
+            } else {
+                cantidadInput.style.border = '';
+            }
+        });
+
+        if (!stockValido) return;
+
         document.getElementById('cliente_nombre').value = '';
         document.getElementById('cliente_apellido').value = '';
         document.getElementById('cliente_telefono').value = '';
@@ -315,6 +336,26 @@
             alert('⚠️ El CI no tiene un formato válido.\n\n• Debe tener entre 7 y 11 dígitos.\n• Opcionalmente: guion y hasta 2 letras/números.\n\nEjemplos: 1234567, 12345678, 12345678901, 1234567-1A');
             document.getElementById('cliente_ci').focus(); return;
         }
+
+        // 🆕 VALIDACIÓN DE STOCK ANTES DE CONFIRMAR
+        let stockValido = true;
+        document.querySelectorAll('input[name^="producto_"]').forEach(function(input) {
+            const num = input.name.split('_').pop();
+            const cantidadInput = document.querySelector(`input[name="cantidad_${num}"]`);
+            const cantidad = parseInt(cantidadInput.value) || 0;
+            const stockDisponible = parseInt(input.getAttribute('data-stock')) || 0;
+
+            if (cantidad > stockDisponible) {
+                stockValido = false;
+                alert(`⚠️ No hay suficiente stock del producto seleccionado.\nStock disponible: ${stockDisponible}\nIntentas vender: ${cantidad}`);
+                cantidadInput.focus();
+                cantidadInput.style.border = '2px solid var(--danger)';
+            } else {
+                cantidadInput.style.border = '';
+            }
+        });
+
+        if (!stockValido) return;
 
         var form = document.getElementById('ventaForm');
         form.querySelectorAll('input[name="cliente_nombre"], input[name="cliente_apellido"], input[name="cliente_telefono"], input[name="cliente_ci"], input[name="sin_registrar"]').forEach(function(i) { i.remove(); });
