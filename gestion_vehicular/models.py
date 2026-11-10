@@ -169,11 +169,8 @@ class Pago(models.Model):
     monto_total_productos = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
     monto_total = models.DecimalField(max_digits=10, decimal_places=2)
     metodo_pago = models.CharField(max_length=50, blank=True, null=True)
-    estado_pago = models.CharField(max_length=30, blank=True, null=True)
     fecha_pago = models.DateTimeField(blank=True, null=True)
     cobrado_por = models.ForeignKey('Usuario', models.DO_NOTHING, db_column='cobrado_por', blank=True, null=True)
-    comprobante = models.CharField(max_length=100, blank=True, null=True)
-
     class Meta:
         managed = False
         db_table = 'pago'

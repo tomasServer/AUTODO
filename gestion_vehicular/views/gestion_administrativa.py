@@ -30,10 +30,12 @@ def dashboard_admin(request):
         estado_orden='POR_COBRAR'
     ).count()
     
-    pagos_hoy = Pago.objects.filter(fecha_pago__date=hoy, estado_pago='COBRADO')
+    # ✅ CORREGIDO: 'fecha' → 'fecha_pago'
+    pagos_hoy = Pago.objects.filter(fecha_pago__date=hoy)
     total_facturado = pagos_hoy.aggregate(Sum('monto_total'))['monto_total__sum'] or 0
     
-    pagos_mes = Pago.objects.filter(fecha_pago__date__gte=mes_actual, estado_pago='COBRADO')
+    # ✅ CORREGIDO: se eliminó estado_pago='COBRADO'
+    pagos_mes = Pago.objects.filter(fecha_pago__date__gte=mes_actual)
     total_mes = pagos_mes.aggregate(Sum('monto_total'))['monto_total__sum'] or 0
     
     # === VENTAS RAPIDAS HOY ===
@@ -112,9 +114,9 @@ def dashboard_jefe(request):
         estado_orden='POR_COBRAR'
     ).count()
     
+    # ✅ CORREGIDO: se eliminó estado_pago='COBRADO'
     cobrado_hoy = Pago.objects.filter(
-        fecha_pago__date=hoy, 
-        estado_pago='COBRADO'
+        fecha_pago__date=hoy
     ).aggregate(Sum('monto_total'))['monto_total__sum'] or 0
     
     ventas_rapidas_hoy = VentaRapida.objects.filter(
@@ -147,6 +149,7 @@ def dashboard_jefe(request):
     }
     return render(request, 'gestion_vehicular/jefe_mecanico/dashboard.html', contexto)
 
+
 def dashboard_ayudante(request):
     hoy = timezone.now().date()
     
@@ -171,7 +174,6 @@ def dashboard_ayudante(request):
         'ventas_rapidas_lista': ventas_rapidas_lista,
         'hoy': hoy,
     })
-
 
 
 
@@ -202,7 +204,6 @@ def registrar_pago(request, orden_id):
             monto_total_productos=total_productos,
             monto_total=total_general,
             metodo_pago=request.POST.get('metodo_pago'),
-            estado_pago='COBRADO',
             fecha_pago=timezone.now(),
             cobrado_por=request.user  # <--- ESTA ES LA LÍNEA QUE DEBES AGREGAR
         )
