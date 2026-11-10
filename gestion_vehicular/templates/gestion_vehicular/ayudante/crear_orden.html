@@ -126,11 +126,11 @@
             </div>
             <div>
                 <label>Calidad de orden *</label>
-                <select name="complejidad_id" id="complejidad_id" required>
-                    <option value="">Seleccione...</option>
-                    {% for comp in complejidades %}
-                    <option value="{{ comp.id }}">{{ comp.nombre }}</option>
-                    {% endfor %}
+                <!-- 🆕 CAMBIO: Select simple con opciones fijas -->
+                <select name="calidad_orden" id="calidad_orden" required>
+                    <option value="Normal">Normal</option>
+                    <option value="Premium">Premium</option>
+                    <option value="Complejo">Complejo</option>
                 </select>
             </div>
             <div>
@@ -350,6 +350,12 @@
         var telefono = document.getElementById('cliente_telefono');
         if (!/^[0-9]{8}$/.test(telefono.value.trim())) {
             e.preventDefault(); alert('⚠️ El teléfono debe tener EXACTAMENTE 8 dígitos.'); telefono.focus(); return;
+        }
+
+        // 🆕 VALIDACIÓN DE CALIDAD DE ORDEN (ahora es un select simple)
+        var calidad = document.getElementById('calidad_orden');
+        if (!calidad.value) {
+            e.preventDefault(); alert('⚠️ Seleccione una Calidad de Orden.'); calidad.focus(); return;
         }
 
         // 🆕 VALIDAR MECÁNICOS Y PRECIOS

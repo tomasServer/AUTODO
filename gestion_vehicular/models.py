@@ -12,7 +12,7 @@ class Cliente(models.Model):
     apellido = models.CharField(max_length=100, blank=True, null=True)
     telefono = models.CharField(max_length=15, blank=True, null=True)
     ci = models.CharField(unique=True, max_length=20, blank=True, null=True)  # ✅ NUEVO
-    fecha_registro = models.DateTimeField(blank=True, null=True)
+   
 
     class Meta:
         managed = False
@@ -20,20 +20,6 @@ class Cliente(models.Model):
 
     def __str__(self):
         return f"{self.nombre} {self.apellido or ''}".strip()
-
-
-class Complejidad(models.Model):
-    nombre = models.CharField(max_length=50)
-    factor_precio = models.DecimalField(max_digits=5, decimal_places=2, blank=True, null=True)
-    tiempo_extra_minutos = models.IntegerField(blank=True, null=True)
-    descripcion = models.TextField(blank=True, null=True)
-
-    class Meta:
-        managed = False
-        db_table = 'complejidad'
-
-    def __str__(self):
-        return self.nombre
 
 
 class Componente(models.Model):
@@ -63,21 +49,6 @@ class NotaPredefinida(models.Model):
     def __str__(self):
         return f"[{self.estado}] {self.texto[:50]}"
 
-class NotaTecnica(models.Model):
-    id_vehiculo = models.ForeignKey('Vehiculo', models.DO_NOTHING, db_column='id_vehiculo', related_name='notas_tecnicas')
-    id_usuario = models.ForeignKey('Usuario', models.DO_NOTHING, db_column='id_usuario', blank=True, null=True)
-    fecha = models.DateTimeField(blank=True, null=True)
-    tipo = models.CharField(max_length=30)  # EJ: 'OBSERVACION', 'ALERTA', 'RECORDATORIO'
-    titulo = models.CharField(max_length=200, blank=True, null=True)
-    descripcion = models.TextField()
-    visible_en_proxima = models.BooleanField(blank=True, null=True)
-
-    class Meta:
-        managed = False
-        db_table = 'nota_tecnica'
-
-    def __str__(self):
-        return f"Nota: {self.titulo or self.tipo}"
     
 class DetalleProducto(models.Model):
     id_orden = models.ForeignKey('OrdenTrabajo', models.DO_NOTHING, db_column='id_orden', related_name='detalles_producto')
@@ -108,7 +79,7 @@ class DetalleRevision(models.Model):
     id_componente = models.ForeignKey(Componente, models.DO_NOTHING, db_column='id_componente')
     estado = models.CharField(max_length=20)
     nota = models.TextField(blank=True, null=True)
-    foto_ruta = models.TextField(blank=True, null=True)
+
 
     class Meta:
         managed = False
@@ -127,7 +98,7 @@ class DetalleServicio(models.Model):
     estado = models.CharField(max_length=30, blank=True, null=True)
     fecha_inicio = models.DateTimeField(blank=True, null=True)
     fecha_fin = models.DateTimeField(blank=True, null=True)
-    observacion = models.TextField(blank=True, null=True)
+
 
     class Meta:
         managed = False
@@ -145,10 +116,9 @@ class HallazgoAdicional(models.Model):
     estado_autorizacion = models.CharField(max_length=30, blank=True, null=True)
     fecha_deteccion = models.DateTimeField(blank=True, null=True)
     fecha_resolucion = models.DateTimeField(blank=True, null=True)
-    resuelto_por = models.ForeignKey('Usuario', models.DO_NOTHING, db_column='resuelto_por', related_name='hallazgos_resueltos', blank=True, null=True)
-    foto_ruta = models.TextField(blank=True, null=True)
+    autorizado_por = models.ForeignKey('Usuario',models.DO_NOTHING, db_column='autorizado_por_id', blank=True, null=True, related_name='hallazgos_resueltos')
 
-    class Meta:
+    class Meta: 
         managed = False
         db_table = 'hallazgo_adicional'
 
@@ -177,9 +147,7 @@ class OrdenTrabajo(models.Model):
     id_cliente = models.ForeignKey('Cliente',models.DO_NOTHING, db_column='id_cliente', blank=True, null=True,related_name='ordenes',)
     id_vehiculo = models.ForeignKey('Vehiculo', models.DO_NOTHING, db_column='id_vehiculo')
     id_jefe_tecnico = models.ForeignKey('Usuario', models.DO_NOTHING, db_column='id_jefe_tecnico', blank=True, null=True, related_name='ordenes_supervisadas')
-    id_tipo_servicio = models.ForeignKey('TipoServicio', models.DO_NOTHING, db_column='id_tipo_servicio', blank=True, null=True)
-    id_complejidad = models.ForeignKey(Complejidad, models.DO_NOTHING, db_column='id_complejidad', blank=True, null=True)
-    id_servicio = models.ForeignKey('Servicio', models.DO_NOTHING, db_column='id_servicio', blank=True, null=True)
+    calidad_orden = models.CharField(max_length=50, blank=True, null=True)
     fecha_ingreso = models.DateTimeField(blank=True, null=True)
     fecha_finalizacion = models.DateTimeField(blank=True, null=True)
     estado_orden = models.CharField(max_length=30, blank=True, null=True)
@@ -393,7 +361,6 @@ class Vehiculo(models.Model):
     vin = models.CharField(unique=True, max_length=50, blank=True, null=True)
     kilometraje_actual = models.IntegerField(blank=True, null=True)
     observaciones = models.TextField(blank=True, null=True)
-    fecha_registro = models.DateTimeField(blank=True, null=True)
 
     class Meta:
         managed = False

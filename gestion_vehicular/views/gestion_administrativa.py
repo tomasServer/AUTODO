@@ -203,7 +203,8 @@ def registrar_pago(request, orden_id):
             monto_total=total_general,
             metodo_pago=request.POST.get('metodo_pago'),
             estado_pago='COBRADO',
-            fecha_pago=timezone.now()
+            fecha_pago=timezone.now(),
+            cobrado_por=request.user  # <--- ESTA ES LA LÍNEA QUE DEBES AGREGAR
         )
         orden.estado_orden = 'COBRADA'
         orden.save()

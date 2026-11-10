@@ -51,7 +51,7 @@ def crear_orden(request):
     # ============ DETECTAR SI VIENE DE UNA VISITA ============
     visita_id = request.GET.get('visita_id')
     placa = ''
-    vin = '' #new
+    vin = ''
     bloqueado = False
     es_nueva_visita = request.GET.get('nueva_visita') == '1'
     orden_visita = None
@@ -71,7 +71,7 @@ def crear_orden(request):
             return redirect('modo_taller')
 
         placa = orden_visita.id_vehiculo.placa or ''
-        vin = orden_visita.id_vehiculo.vin or ''  # 🆕
+        vin = orden_visita.id_vehiculo.vin or ''
         vehiculo = orden_visita.id_vehiculo or None
         cliente = vehiculo.id_cliente
 
@@ -115,11 +115,10 @@ def crear_orden(request):
     # ============ SI NO ES VISITA, BUSCAR POR PLACA O VEHICULO_ID ============
     if not visita_id:
         placa = request.GET.get('placa', '')
-        vin = request.GET.get('vin', '')  # 🆕
+        vin = request.GET.get('vin', '')
         vehiculo_id = request.GET.get('vehiculo_id')
         vehiculo = None
         cliente = None
-        #si viene de busqueda
         if placa or vin or vehiculo_id:
             bloqueado = True
 
@@ -128,27 +127,29 @@ def crear_orden(request):
                 vehiculo = Vehiculo.objects.get(id=vehiculo_id)
                 cliente = vehiculo.id_cliente
                 placa = vehiculo.placa or ''
-                vin = vehiculo.vin or ''  # 🆕
+                vin = vehiculo.vin or ''
             except Vehiculo.DoesNotExist:
                 pass
 
     # ============ PROCESAR POST ============
     if request.method == 'POST':
         placa = request.POST.get('placa', '').upper().strip()
-        vin = (request.POST.get('vin') or '').upper().strip()[:17]  # 🆕
+        vin = (request.POST.get('vin') or '').upper().strip()[:17]
 
         cliente_nombre = (request.POST.get('cliente_nombre') or '').strip()
         cliente_apellido = (request.POST.get('cliente_apellido') or '').strip()
         cliente_telefono = (request.POST.get('cliente_telefono') or '').strip()
         cliente_ci = (request.POST.get('cliente_ci') or '').strip().upper()
         supervisor_id = request.POST.get('supervisor_id')
-        complejidad_id = request.POST.get('complejidad_id')
+        
+        # 🆕 CAMBIO: Ahora recibimos un texto simple, no un ID
+        calidad_orden = request.POST.get('calidad_orden', 'Normal')
+        
         observacion = request.POST.get('observacion', '')
         kilometraje = request.POST.get('kilometraje')
         anio = request.POST.get('anio')
         color = request.POST.get('color')
 
-        
         # 🆕 Normalizar: placa o VIN
         placa_norm = placa or None
         vin_norm = vin or None
@@ -179,7 +180,6 @@ def crear_orden(request):
         if not cliente_ci:
             messages.error(request, 'Debe ingresar el CI del cliente.')
             return redirect(request.get_full_path())
-            # Formato: 7-11 dígitos + opcional "-" + 1-2 letras/números
 
         if not re.match(r'^[0-9]{7,11}(-[A-Z0-9]{1,2})?$', cliente_ci):
             messages.error(
@@ -247,7 +247,6 @@ def crear_orden(request):
                 cliente_creado = True
 
         # ============ CREAR O ACTUALIZAR VEHÍCULO (POR PLACA O VIN) ============
-        # 🔍 Buscar por placa O por VIN
         q = Q()
         if placa_norm:
             q |= Q(placa__iexact=placa_norm)
@@ -259,7 +258,6 @@ def crear_orden(request):
         vin_actualizado = False
 
         if vehiculo:
-            # ✅ Ya existe → actualizar
             cambios_vehiculo = []
 
             if cliente and vehiculo.id_cliente_id != cliente.id:
@@ -277,13 +275,11 @@ def crear_orden(request):
                 vehiculo.color = color
                 cambios_vehiculo.append('color')
 
-            # 🆕 Actualizar placa si viene y el vehículo no tenía
             if placa_norm and not vehiculo.placa:
                 if not Vehiculo.objects.filter(placa__iexact=placa_norm).exclude(id=vehiculo.id).exists():
                     vehiculo.placa = placa_norm
                     cambios_vehiculo.append('placa')
 
-            # 🆕 Actualizar VIN si viene y es distinto
             if vin_norm and vehiculo.vin != vin_norm:
                 vin_duplicado = (
                     Vehiculo.objects
@@ -305,7 +301,6 @@ def crear_orden(request):
                 vehiculo.save(update_fields=cambios_vehiculo)
 
         else:
-            # 🆕 No existe → crear nuevo
             try:
                 vehiculo = Vehiculo.objects.create(
                     placa=placa_norm,
@@ -332,12 +327,11 @@ def crear_orden(request):
             orden = orden_visita
             orden.id_cliente = vehiculo.id_cliente
             orden.id_jefe_tecnico_id = supervisor_id if supervisor_id else None
-            orden.id_complejidad_id = complejidad_id if complejidad_id else None
+            orden.calidad_orden = calidad_orden  # 🆕 Texto simple
             orden.observacion_general = observacion
             orden.estado_orden = 'PENDIENTE'
             orden.save()
             
-            # 🆕 REGISTRAR AUDITORÍA
             ident_visita = vehiculo.placa or vehiculo.vin or f'#{vehiculo.id}'
             registrar_auditoria(request, 'EDITAR', 'TALLER', f'Convirtió la Visita #{orden.id} en Orden formal para {ident_visita}.')
             
@@ -347,18 +341,16 @@ def crear_orden(request):
                 id_vehiculo=vehiculo,
                 id_cliente=vehiculo.id_cliente,
                 id_jefe_tecnico_id=supervisor_id if supervisor_id else None,
-                id_complejidad_id=complejidad_id if complejidad_id else None,
+                calidad_orden=calidad_orden,  # 🆕 Texto simple
                 estado_orden='PENDIENTE',
                 observacion_general=observacion,
                 fecha_ingreso=timezone.now(),
                 fecha_creacion=timezone.now(),
             )
             
-            # 🆕 REGISTRAR AUDITORÍA
             ident_nueva = vehiculo.placa or vehiculo.vin or f'#{vehiculo.id}'
             registrar_auditoria(request, 'CREAR', 'TALLER', f'Creó la Orden #{orden.id} para el vehículo {ident_nueva}.')
 
-        # 🆕 Avisar cliente nuevo
         if cliente_creado:
             messages.info(
                 request,
@@ -386,8 +378,6 @@ def crear_orden(request):
                     )
 
         # ============ GUARDAR PRODUCTOS ============
-        # ============ GUARDAR PRODUCTOS ============
-                # ============ GUARDAR PRODUCTOS ============
         for key in request.POST:
             if key.startswith('producto_id_'):
                 num = key.split('_')[-1]
@@ -400,7 +390,7 @@ def crear_orden(request):
                     cantidad_int = int(cantidad) if cantidad else 1
                     precio_u = float(precio_producto) if precio_producto else float(producto.precio_venta)
 
-                    # 🆕 USAMOS SQL PURO PARA EVITAR EL ERROR DE COLUMNA GENERADA
+                    # SQL puro para evitar el error de columna generada
                     with connection.cursor() as cursor:
                         cursor.execute(
                             "INSERT INTO detalle_producto "
@@ -415,7 +405,6 @@ def crear_orden(request):
                     producto.stock_actual -= cantidad_int
                     producto.save()
 
-        # 🆕 Mensaje con placa o VIN
         ident = vehiculo.placa or vehiculo.vin or f'#{vehiculo.id}'
         messages.success(
             request,
@@ -448,14 +437,14 @@ def crear_orden(request):
 
     return render(request, template, {
         'supervisores': supervisores,
-        'complejidades': Complejidad.objects.all(),
+        # 🆕 Ya no enviamos 'complejidades'
         'servicios': servicios,
         'productos': Producto.objects.filter(activo=True, stock_actual__gt=0),
         'mecanicos': mecanicos,
         'vehiculo': vehiculo,
         'cliente': cliente,
         'placa': placa,
-        'vin': vin,  # 🆕
+        'vin': vin,
         'bloqueado': bloqueado,
         'cotizacion_anterior': cotizacion_anterior,
         'orden_visita': orden_visita,
@@ -719,17 +708,26 @@ def agregar_hallazgo_orden(request, orden_id):
         if descripcion:
             HallazgoAdicional.objects.create(
                 id_orden=orden,
+                id_mecanico=request.user if request.user.is_authenticated else None,  # <--- AQUÍ SE GUARDA QUIÉN LO DETECTÓ
                 descripcion=descripcion,
                 costo_estimado=costo_estimado if costo_estimado else None,
                 estado_autorizacion='PENDIENTE',
                 fecha_deteccion=timezone.now()
             )
+            
+            # Registrar en auditoría
+            registrar_auditoria(
+                request, 
+                'CREAR', 
+                'TALLER', 
+                f'Registró un hallazgo en la orden #{orden.id} (Descripción: {descripcion[:50]}).'
+            )
+            
             messages.success(request, 'Hallazgo agregado correctamente')
         else:
             messages.error(request, 'La descripción es obligatoria')
     
     return redirect('taller_detalle', orden_id=orden.id)
-
 
 # ============================================================
 # EDITAR PRECIO DE SERVICIO

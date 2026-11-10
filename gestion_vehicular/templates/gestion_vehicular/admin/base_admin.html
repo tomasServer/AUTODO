@@ -15,12 +15,13 @@
     .dropdown-content {
         display: none;
         position: absolute;
-        background-color: var(--primary-dark);
+        background-color: var(--secondary-dark);
         min-width: 200px;
         box-shadow: var(--shadow-md);
         border-radius: 8px;
         z-index: 1100;
         padding: 8px 0;
+        top: 100%; /* Se asegura de que aparezca justo debajo */
     }
     .dropdown-content a {
         color: white !important;
@@ -34,8 +35,21 @@
     .dropdown-content a:hover {
         background-color: var(--accent-color) !important;
     }
-    .dropdown:hover .dropdown-content {
+    
+    /* Abrir solo cuando se hace clic (focus) */
+    .dropdown:focus-within .dropdown-content {
         display: block;
+    }
+    
+    /* Abrir al pasar el mouse SOLO si estamos en el navbar */
+    .navbar .dropdown:hover .dropdown-content {
+        display: block;
+    }
+
+    /* Truco para que el menú se cierre si el mouse se va muy abajo */
+    .navbar-links {
+        position: relative;
+        z-index: 1001;
     }
 </style>
 {% endblock %}
@@ -45,7 +59,7 @@
     
     <!-- MENÚ DESPLEGABLE ADMINISTRAR -->
     <div class="dropdown">
-        <a href="#">⚙️ Administrar ▾</a>
+        <a href="#" tabindex="0">⚙️ Administrar ▾</a> <!-- tabindex permite el clic -->
         <div class="dropdown-content">
             <a href="{% url 'lista_insumos' %}">📦 Productos</a>
             <a href="{% url 'lista_servicios' %}">🔧 Servicios</a>

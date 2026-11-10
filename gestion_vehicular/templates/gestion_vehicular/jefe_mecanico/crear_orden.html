@@ -136,11 +136,11 @@
             </div>
             <div>
                 <label>Calidad de orden *</label>
-                <select name="complejidad_id" id="complejidad_id" required>
-                    <option value="">Seleccione...</option>
-                    {% for comp in complejidades %}
-                    <option value="{{ comp.id }}">{{ comp.nombre }}</option>
-                    {% endfor %}
+                <!-- 🆕 CAMBIO: Select simple con opciones fijas -->
+                <select name="calidad_orden" id="calidad_orden" required>
+                    <option value="Normal">Normal</option>
+                    <option value="Premium">Premium</option>
+                    <option value="Complejo">Complejo</option>
                 </select>
             </div>
             <div>
@@ -405,10 +405,13 @@
         if (!supervisor.value) {
             e.preventDefault(); alert('⚠️ Seleccione un Encargado de Revisión.'); supervisor.focus(); return;
         }
-        var complejidad = document.getElementById('complejidad_id');
-        if (!complejidad.value) {
-            e.preventDefault(); alert('⚠️ Seleccione una Complejidad.'); complejidad.focus(); return;
+        
+        // 🆕 VALIDACIÓN DE CALIDAD DE ORDEN (ahora es un select simple)
+        var calidad = document.getElementById('calidad_orden');
+        if (!calidad.value) {
+            e.preventDefault(); alert('⚠️ Seleccione una Calidad de Orden.'); calidad.focus(); return;
         }
+
         var kilometraje = document.getElementById('kilometraje');
         if (!kilometraje.value) {
             e.preventDefault(); alert('⚠️ El kilometraje es obligatorio.'); kilometraje.focus(); return;

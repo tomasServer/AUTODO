@@ -37,7 +37,6 @@ def venta_rapida(request):
 def guardar_venta_rapida(request):
     """Guarda la venta rápida y descuenta stock, validando que haya suficiente."""
     if request.method == 'POST':
-        # ====== DATOS DEL CLIENTE ======
         cliente_nombre = (request.POST.get('cliente_nombre') or '').strip()
         cliente_apellido = (request.POST.get('cliente_apellido') or '').strip()
         cliente_telefono = (request.POST.get('cliente_telefono') or '').strip()
@@ -45,8 +44,7 @@ def guardar_venta_rapida(request):
         
         sin_registrar = (request.POST.get('sin_registrar') or '') == 'true'
         
-        # ====== 1. VALIDACIÓN DE STOCK Y RECOLECCIÓN DE PRODUCTOS ======
-        productos_a_vender = []  # Lista de tuplas: (producto, cantidad, precio)
+        productos_a_vender = []
         
         for key in request.POST:
             if key.startswith('producto_') and not key.startswith('precio_producto_'):
@@ -68,14 +66,13 @@ def guardar_venta_rapida(request):
                     
                     producto = get_object_or_404(Producto, id=producto_id)
                     
-                    # 🆕 VALIDACIÓN CLAVE: ¿Hay suficiente stock?
                     if producto.stock_actual < cantidad:
                         messages.error(
                             request, 
                             f'⚠️ No hay suficiente stock de "{producto.nombre}". '
                             f'Stock disponible: {producto.stock_actual}. Intentas vender: {cantidad}.'
                         )
-                        return redirect('venta_rapida')  # Cancela la venta
+                        return redirect('venta_rapida')
                     
                     precio_decimal = Decimal(precio_str) if precio_str else producto.precio_venta
                     productos_a_vender.append((producto, cantidad, precio_decimal))
@@ -84,9 +81,7 @@ def guardar_venta_rapida(request):
             messages.warning(request, '⚠️ No se seleccionaron productos válidos.')
             return redirect('venta_rapida')
 
-        # ====== 2. BUSCAR O CREAR CLIENTE ======
         cliente = None
-        
         if not sin_registrar:
             if cliente_ci:
                 cliente = Cliente.objects.filter(ci=cliente_ci).first()
@@ -107,17 +102,15 @@ def guardar_venta_rapida(request):
                     ci=cliente_ci if cliente_ci else None,
                 )
 
-        # ====== 3. CREAR LA VENTA ======
         venta = VentaRapida.objects.create(
             fecha_venta=timezone.now(),
-            registrado_por=request.user if request.user.is_authenticated else None,
+            registrado_por=request.user if request.user.is_authenticated else None, # <--- YA ESTÁ AQUÍ
             id_cliente=cliente,
             metodo_pago=request.POST.get('metodo_pago', 'EFECTIVO'),
         )
         
         total = Decimal('0.00')
         
-        # ====== 4. GUARDAR DETALLES Y DESCONTAR STOCK ======
         for producto, cantidad, precio in productos_a_vender:
             DetalleVentaRapida.objects.create(
                 id_venta=venta,
@@ -126,7 +119,6 @@ def guardar_venta_rapida(request):
                 precio_venta=precio,
             )
             
-            # Descontar stock (ya validamos que hay suficiente)
             producto.stock_actual -= cantidad
             producto.save()
             
@@ -136,7 +128,6 @@ def guardar_venta_rapida(request):
             venta.total = total
             venta.save()
             
-            # 🆕 REGISTRAR AUDITORÍA
             metodo = request.POST.get('metodo_pago', 'EFECTIVO')
             registrar_auditoria(
                 request, 

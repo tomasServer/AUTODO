@@ -23,7 +23,13 @@
                 {% for h in hallazgos_pendientes %}
                 <div class="flex-between" style="padding:12px 15px; border-bottom:1px solid #f1f5f9; gap: 10px;">
                     <div style="flex: 1; min-width: 0;">
-                        <strong style="color: var(--primary-dark);">#{{ h.id_orden.id }}</strong> - {{ h.id_orden.id_vehiculo.placa|default:h.id_orden.id_vehiculo.vin }}
+                        <a href="{% url 'detalle_orden' h.id_orden.id %}"
+                           style="color: var(--accent-color); font-weight: bold; text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 3px; transition: all 0.2s ease;"
+                           onmouseover="this.style.color='#1d4ed8'; this.style.textDecorationThickness='3px';"
+                           onmouseout="this.style.color='var(--accent-color)'; this.style.textDecorationThickness='2px';">
+                            N° {{ h.id_orden.id }} ↗
+                        </a> 
+                        - {{ h.id_orden.id_vehiculo.placa|default:h.id_orden.id_vehiculo.vin }}
                         <span class="text-muted" style="font-size: 0.8rem; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
                             {{ h.descripcion|truncatechars:40 }}
                         </span>
@@ -104,7 +110,11 @@
             <tbody>
                 {% for o in ultimas_ordenes|slice:":3" %}
                 <tr>
-                    <td><strong style="color: var(--primary-dark);">Nº {{ o.id }}</strong></td>
+                    <td>
+                        <a href="{% url 'detalle_orden' o.id %}" style="color: var(--accent-color); font-weight: bold; text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 3px;">
+                            N° {{ o.id }} ↗
+                        </a>
+                    </td>
                     <td>
                         {% if o.id_vehiculo.placa %}{{ o.id_vehiculo.placa }}
                         {% elif o.id_vehiculo.vin %}<span style="font-family:monospace; font-size:0.8rem;">{{ o.id_vehiculo.vin }}</span>
@@ -142,7 +152,7 @@
             <tbody>
                 {% for v in ventas_rapidas_lista|slice:":5" %}
                 <tr>
-                    <td><strong style="color: var(--primary-dark);">Nº {{ v.id }}</strong></td>
+                    <td><strong style="color: var(--primary-dark);">N° {{ v.id }}</strong></td>
                     <td>{{ v.fecha_venta|date:"H:i" }}</td>
                     <td>{{ v.registrado_por.nombre|default:"-" }}</td>
                     <td><strong>Bs. {{ v.total|floatformat:2 }}</strong></td>

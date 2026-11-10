@@ -1,6 +1,22 @@
 {% extends 'gestion_vehicular/jefe_mecanico/base_jefe.html' %}
 {% block title %}Panel Jefe{% endblock %}
 
+{% block extra_css %}
+<style>
+    /* Estilo para los enlaces de número de orden */
+    .link-orden {
+        color: var(--primary-dark);
+        font-weight: bold;
+        text-decoration: none;
+        transition: color 0.2s ease, text-decoration 0.2s ease;
+    }
+    .link-orden:hover {
+        color: var(--accent-color); /* Cambia a azul al pasar el mouse */
+        text-decoration: underline; /* Se subraya al pasar el mouse */
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 
 <h1 style="color: var(--primary-dark); font-size: 1.5rem; margin-bottom: 5px;">Panel de Jefe Mecánico</h1>
@@ -17,7 +33,9 @@
             {% for h in hallazgos_pendientes %}
             <div class="flex-between" style="padding:10px 15px; border-bottom:1px solid #f1f5f9;">
                 <div style="flex: 1;">
-                    <strong style="color: var(--primary-dark);">#{{ h.id_orden.id }}</strong> 
+                    <a href="{% url 'detalle_orden' h.id_orden.id %}" class="link-orden">
+                        N° {{ h.id_orden.id }}
+                    </a> 
                     {{ h.id_orden.id_vehiculo.placa|default:h.id_orden.id_vehiculo.vin|default:"Sin placa" }}
                     <span class="text-muted" style="display:block; font-size:0.8rem;">{{ h.descripcion|truncatechars:40 }}</span>
                 </div>
@@ -69,7 +87,11 @@
             <tbody>
                 {% for o in ultimas_ordenes %}
                 <tr>
-                    <td><strong style="color: var(--primary-dark);">Nº {{ o.id }}</strong></td>
+                    <td>
+                        <a href="{% url 'detalle_orden' o.id %}" class="link-orden">
+                            N° {{ o.id }}
+                        </a>
+                    </td>
                     <td>
                         {% if o.id_vehiculo.placa %}
                             {{ o.id_vehiculo.placa }}
@@ -117,7 +139,7 @@
             <tbody>
                 {% for v in ventas_rapidas_lista %}
                 <tr>
-                    <td><strong style="color: var(--primary-dark);">#{{ v.id }}</strong></td>
+                    <td><strong style="color: var(--primary-dark);">N° {{ v.id }}</strong></td>
                     <td>{{ v.fecha_venta|date:"H:i" }}</td>
                     <td>{{ v.registrado_por.nombre|default:"-" }}</td>
                     <td><strong>Bs. {{ v.total|floatformat:2 }}</strong></td>

@@ -2,6 +2,7 @@
 {% block title %}Nueva Orden{% endblock %}
 
 {% block extra_css %}
+{{ block.super }}
 <!-- Select2 CSS -->
 <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 <style>
@@ -20,8 +21,8 @@
     @media (max-width: 1100px) { .grid-5 { grid-template-columns: repeat(3, 1fr); } }
     @media (max-width: 700px) { .grid-5 { grid-template-columns: 1fr; } }
     /* Caja info vehículo */
-    #info-vehiculo { animation: fadeIn 0.3s ease-in; }
-    @keyframes fadeIn {
+    #info-vehiculo { animation: fadeInOrden 0.3s ease-in; }
+    @keyframes fadeInOrden {
         from { opacity: 0; transform: translateY(-4px); }
         to   { opacity: 1; transform: translateY(0); }
     }
@@ -29,6 +30,7 @@
     .input-error { border: 2px solid var(--danger) !important; background-color: #fee2e2 !important; }
 </style>
 {% endblock %}
+
 
 {% block content %}
 
@@ -129,7 +131,6 @@
             </div>
             <div>
                 <label>Teléfono *</label>
-                <!-- 🆕 CAMBIO: type="tel" con pattern y maxlength -->
                 <input type="tel" name="cliente_telefono" id="cliente_telefono" maxlength="8" required
                        pattern="[0-9]{8}" title="El teléfono debe tener exactamente 8 dígitos"
                        oninput="validarTelefono(this)" placeholder="Ej: 77712345"
@@ -150,11 +151,10 @@
             </div>
             <div>
                 <label>Calidad de orden *</label>
-                <select name="complejidad_id" id="complejidad_id" required>
-                    <option value="">Seleccione...</option>
-                    {% for comp in complejidades %}
-                    <option value="{{ comp.id }}">{{ comp.nombre }}</option>
-                    {% endfor %}
+                <select name="calidad_orden" id="calidad_orden" required>
+                    <option value="Normal">Normal</option>
+                    <option value="Premium">Premium</option>
+                    <option value="Complejo">Complejo</option>
                 </select>
             </div>
             <div>
@@ -455,7 +455,7 @@
             e.preventDefault(); alert('⚠️ El CI no tiene un formato válido (7-11 dígitos).'); ci.focus(); return;
         }
 
-        // 🆕 VALIDACIÓN ESTRICTA DEL TELÉFONO (8 dígitos obligatorios)
+        // VALIDACIÓN ESTRICTA DEL TELÉFONO (8 dígitos obligatorios)
         var telefono = document.getElementById('cliente_telefono');
         var telVal = telefono.value.trim();
         if (!/^[0-9]{8}$/.test(telVal)) {
@@ -470,9 +470,10 @@
             e.preventDefault(); alert('⚠️ Seleccione un Encargado de Revisión.'); supervisor.focus(); return;
         }
 
-        var complejidad = document.getElementById('complejidad_id');
-        if (!complejidad.value) {
-            e.preventDefault(); alert('⚠️ Seleccione una Complejidad.'); complejidad.focus(); return;
+        // VALIDACIÓN DE CALIDAD DE ORDEN (ahora es un select simple)
+        var calidad = document.getElementById('calidad_orden');
+        if (!calidad.value) {
+            e.preventDefault(); alert('⚠️ Seleccione una Calidad de Orden.'); calidad.focus(); return;
         }
 
         var kilometraje = document.getElementById('kilometraje');

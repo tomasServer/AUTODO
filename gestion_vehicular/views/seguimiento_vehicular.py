@@ -198,29 +198,74 @@ def registrar_hallazgo(request, orden_id):
 def autorizar_hallazgo(request, hallazgo_id):
     hallazgo = get_object_or_404(HallazgoAdicional, id=hallazgo_id)
     accion = request.GET.get('accion', request.POST.get('accion'))
-    
+
+    # VALIDACIÓN DE PERMISOS (Solo Admin o Encargado)
+    es_admin = request.user.id_rol_id == 1
+    es_encargado = hallazgo.id_orden.id_jefe_tecnico == request.user
+
+    if not (es_admin or es_encargado):
+        messages.error(request, 'No tienes permiso para autorizar este hallazgo.')
+        return redirect('detalle_orden', orden_id=hallazgo.id_orden.id)
+
+    # PROCESAR ACCIÓN
     if accion == 'autorizar':
         hallazgo.estado_autorizacion = 'AUTORIZADO_CLIENTE'
-        messages.success(request, 'Hallazgo aceptado')
+        messages.success(request, f'Hallazgo aceptado por {request.user.nombre_completo}')
     elif accion == 'rechazar':
         hallazgo.estado_autorizacion = 'RECHAZADO_CLIENTE'
-        messages.warning(request, 'Hallazgo rechazado')
+        messages.warning(request, f'Hallazgo rechazado por {request.user.nombre_completo}')
     else:
-        if request.method == 'POST':
-            hallazgo.estado_autorizacion = 'AUTORIZADO_CLIENTE' if request.POST.get('accion') == 'autorizar' else 'RECHAZADO_CLIENTE'
-            messages.success(request, f'Hallazgo {hallazgo.estado_autorizacion}')
-    
+        messages.error(request, 'Acción no válida.')
+        return redirect('detalle_orden', orden_id=hallazgo.id_orden.id)
+
+    # 🆕 Guardar quién resolvió y cuándo
+    hallazgo.autorizado_por = request.user
     hallazgo.fecha_resolucion = timezone.now()
     hallazgo.save()
+
+    # Registrar auditoría
+    registrar_auditoria(
+        request,
+        'EDITAR',
+        'TALLER',
+        f'{"Autorizó" if accion == "autorizar" else "Rechazó"} el hallazgo #{hallazgo.id} '
+        f'de la orden #{hallazgo.id_orden.id}.'
+    )
+
     return redirect('detalle_orden', orden_id=hallazgo.id_orden.id)
+
 
 def rechazar_hallazgo(request, hallazgo_id):
     hallazgo = get_object_or_404(HallazgoAdicional, id=hallazgo_id)
+
+    # VALIDACIÓN DE PERMISOS (Solo Admin o Encargado)
+    es_admin = request.user.id_rol_id == 1
+    es_encargado = hallazgo.id_orden.id_jefe_tecnico == request.user
+
+    if not (es_admin or es_encargado):
+        messages.error(request, 'No tienes permiso para rechazar este hallazgo.')
+        return redirect('detalle_orden', orden_id=hallazgo.id_orden.id)
+
+    # PROCESAR RECHAZO
     hallazgo.estado_autorizacion = 'RECHAZADO_CLIENTE'
-    hallazgo.fecha_resolucion = timezone.now()
+    hallazgo.autorizado_por = request.user          # 🆕 quién rechazó
+    hallazgo.fecha_resolucion = timezone.now()       # cuándo
     hallazgo.save()
-    messages.warning(request, 'Hallazgo rechazado')
-    return redirect('dashboard_admin')
+
+    messages.warning(
+        request,
+        f'Hallazgo rechazado por {request.user.nombre_completo}.'
+    )
+
+    # Registrar auditoría
+    registrar_auditoria(
+        request,
+        'EDITAR',
+        'TALLER',
+        f'Rechazó el hallazgo #{hallazgo.id} de la orden #{hallazgo.id_orden.id}.'
+    )
+
+    return redirect('detalle_orden', orden_id=hallazgo.id_orden.id)
 
 
 ##codigo 22/08/2026 23:59
