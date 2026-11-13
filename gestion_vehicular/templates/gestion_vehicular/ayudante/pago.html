@@ -3,14 +3,60 @@
 
 {% block content %}
 
-<h1 style="color: var(--primary-dark); font-size: 1.5rem; margin-bottom: 20px;">Registrar Pago</h1>
+<h1 style="color: var(--primary-dark); font-size: 1.5rem; margin-bottom: 20px;">Registrar Pago - Orden Nº {{ orden.id }}</h1>
 
-<div class="card text-center" style="padding: 40px;">
-    <h3 style="color: var(--danger);">⚠️ Acceso Denegado</h3>
-    <p class="text-muted" style="margin: 15px 0;">
-        Lo sentimos, solo el Administrador o el Jefe Mecánico pueden registrar pagos.
-    </p>
-    <a href="{% url 'dashboard_ayudante' %}" class="btn btn-primary mt-20">Volver al Inicio</a>
+<div class="card">
+    <div class="grid grid-2" style="margin-bottom: 20px;">
+        <div>
+            <strong>Cliente:</strong> {{ orden.id_vehiculo.id_cliente.nombre|default:"Sin cliente" }} {{ orden.id_vehiculo.id_cliente.apellido|default:"" }}
+        </div>
+        <div>
+            <strong>Vehículo:</strong> {{ orden.id_vehiculo.placa|default:orden.id_vehiculo.vin }}
+        </div>
+    </div>
+
+    <div class="tabla-scroll">
+        <table>
+            <thead>
+                <tr>
+                    <th>Concepto</th>
+                    <th style="text-align: right;">Monto</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Servicios (Mano de obra)</td>
+                    <td style="text-align: right;">Bs. {{ total_servicios|floatformat:2 }}</td>
+                </tr>
+                <tr>
+                    <td>Insumos / Productos</td>
+                    <td style="text-align: right;">Bs. {{ total_productos|floatformat:2 }}</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="tabla-total" style="margin-top: -1rem; border-radius: 0 0 var(--radius) var(--radius);">
+        <span>TOTAL A COBRAR:</span>
+        <span style="font-size: 1.2rem;">Bs. {{ total_general|floatformat:2 }}</span>
+    </div>
+
+    <form method="POST" style="margin-top: 20px;">
+        {% csrf_token %}
+        <div style="margin-bottom: 15px;">
+            <label>Método de Pago *</label>
+            <select name="metodo_pago" required>
+                <option value="EFECTIVO">💵 Efectivo</option>
+                <option value="QR">📱 QR</option>
+                <option value="TRANSFERENCIA">🏦 Transferencia</option>
+            </select>
+        </div>
+
+        <div class="flex flex-wrap" style="justify-content: flex-end; gap: 10px;">
+            <a href="{% url 'buscar_vehiculo' %}" class="btn btn-gray">Cancelar</a>
+            <button type="submit" class="btn btn-success btn-lg">✅ Confirmar Pago</button>
+        </div>
+    </form>
 </div>
 
 {% endblock %}

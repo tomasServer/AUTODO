@@ -59,6 +59,8 @@ def buscar_vehiculo(request):
     # Elegir template según rol
     if request.user.id_rol_id == 2:  # JEFE
         template = 'gestion_vehicular/jefe_mecanico/buscar.html'
+    elif request.user.id_rol_id == 3: # AYUDANTE
+        template = 'gestion_vehicular/ayudante/buscar.html' # Usa el mismo del jefe
     else:
         template = 'gestion_vehicular/admin/seguimiento_vehicular/buscar.html'
 
@@ -83,12 +85,16 @@ def historial_vehiculo(request, placa):
         total_productos = sum(d.subtotal_precio or 0 for d in orden.detalles_producto.all())
         orden.total_orden = total_servicios + total_productos
 
-    notas = NotaTecnica.objects.filter(id_vehiculo=vehiculo).order_by('-fecha')
-    revisiones = RevisionTecnica.objects.filter(id_orden__id_vehiculo=vehiculo).order_by('-fecha_revision')
+    # ✅ Sin NotaTecnica (modelo inexistente)
+    revisiones = RevisionTecnica.objects.filter(
+        id_orden__id_vehiculo=vehiculo
+    ).select_related('id_mecanico').order_by('-fecha_revision')
     ultima_revision = revisiones.first()
+
+    # ✅ Sin estado_pago (columna inexistente)
     total_gastado = (
         Pago.objects
-        .filter(id_orden__id_vehiculo=vehiculo, estado_pago='COBRADO')
+        .filter(id_orden__id_vehiculo=vehiculo)
         .aggregate(Sum('monto_total'))['monto_total__sum'] or 0
     )
 
@@ -100,10 +106,10 @@ def historial_vehiculo(request, placa):
     return render(request, template, {
         'vehiculo': vehiculo,
         'ordenes': ordenes,
-        'notas': notas,
         'revisiones': revisiones,
         'ultima_revision': ultima_revision,
         'total_gastado': total_gastado,
+        'placa': placa,  # 🆕 para que el botón "Revisión Visita" funcione
     })
 
 
@@ -197,6 +203,8 @@ def registrar_hallazgo(request, orden_id):
 
 def autorizar_hallazgo(request, hallazgo_id):
     hallazgo = get_object_or_404(HallazgoAdicional, id=hallazgo_id)
+    
+    # Aceptamos tanto GET como POST para la acción
     accion = request.GET.get('accion', request.POST.get('accion'))
 
     # VALIDACIÓN DE PERMISOS (Solo Admin o Encargado)
@@ -205,20 +213,22 @@ def autorizar_hallazgo(request, hallazgo_id):
 
     if not (es_admin or es_encargado):
         messages.error(request, 'No tienes permiso para autorizar este hallazgo.')
-        return redirect('detalle_orden', orden_id=hallazgo.id_orden.id)
+        # Redirigimos al taller o al detalle según de donde venga
+        return redirect(request.META.get('HTTP_REFERER', 'modo_taller'))
 
     # PROCESAR ACCIÓN
-    if accion == 'autorizar':
+    # Aceptamos 'autorizar' o 'ACEPTADO' como válidos
+    if accion in ['autorizar', 'ACEPTADO']:
         hallazgo.estado_autorizacion = 'AUTORIZADO_CLIENTE'
         messages.success(request, f'Hallazgo aceptado por {request.user.nombre_completo}')
-    elif accion == 'rechazar':
+    elif accion in ['rechazar', 'RECHAZADO']:
         hallazgo.estado_autorizacion = 'RECHAZADO_CLIENTE'
         messages.warning(request, f'Hallazgo rechazado por {request.user.nombre_completo}')
     else:
         messages.error(request, 'Acción no válida.')
-        return redirect('detalle_orden', orden_id=hallazgo.id_orden.id)
+        return redirect(request.META.get('HTTP_REFERER', 'modo_taller'))
 
-    # 🆕 Guardar quién resolvió y cuándo
+    # Guardar quién resolvió y cuándo
     hallazgo.autorizado_por = request.user
     hallazgo.fecha_resolucion = timezone.now()
     hallazgo.save()
@@ -228,11 +238,13 @@ def autorizar_hallazgo(request, hallazgo_id):
         request,
         'EDITAR',
         'TALLER',
-        f'{"Autorizó" if accion == "autorizar" else "Rechazó"} el hallazgo #{hallazgo.id} '
+        f'{"Autorizó" if accion in ["autorizar", "ACEPTADO"] else "Rechazó"} el hallazgo #{hallazgo.id} '
         f'de la orden #{hallazgo.id_orden.id}.'
     )
 
-    return redirect('detalle_orden', orden_id=hallazgo.id_orden.id)
+    # 🆕 Redirigimos a la página de donde vino (Taller o Detalle)
+    # Si no hay referencia, lo mandamos al modo_taller
+    return redirect(request.META.get('HTTP_REFERER', 'modo_taller'))
 
 
 def rechazar_hallazgo(request, hallazgo_id):
@@ -244,11 +256,11 @@ def rechazar_hallazgo(request, hallazgo_id):
 
     if not (es_admin or es_encargado):
         messages.error(request, 'No tienes permiso para rechazar este hallazgo.')
-        return redirect('detalle_orden', orden_id=hallazgo.id_orden.id)
+        return redirect(request.META.get('HTTP_REFERER', 'modo_taller'))
 
     # PROCESAR RECHAZO
     hallazgo.estado_autorizacion = 'RECHAZADO_CLIENTE'
-    hallazgo.autorizado_por = request.user          # 🆕 quién rechazó
+    hallazgo.autorizado_por = request.user          # quién rechazó
     hallazgo.fecha_resolucion = timezone.now()       # cuándo
     hallazgo.save()
 
@@ -265,7 +277,7 @@ def rechazar_hallazgo(request, hallazgo_id):
         f'Rechazó el hallazgo #{hallazgo.id} de la orden #{hallazgo.id_orden.id}.'
     )
 
-    return redirect('detalle_orden', orden_id=hallazgo.id_orden.id)
+    return redirect(request.META.get('HTTP_REFERER', 'modo_taller'))
 
 
 ##codigo 22/08/2026 23:59

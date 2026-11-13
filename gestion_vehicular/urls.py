@@ -1,3 +1,7 @@
+# Tomas jonatan lopez Cruz
+# gmail:tldiaxo
+# Universidad Boliviano de Informatico
+
 from django.urls import path
 from .views import gestion_basica, gestion_taller, seguimiento_vehicular, gestion_administrativa, gestion_ventas
 from django.contrib.auth import views as auth_views
@@ -22,14 +26,14 @@ urlpatterns = [
     path('taller/', gestion_taller.modo_taller, name='modo_taller'),
     path('taller/<int:orden_id>/', gestion_taller.taller_detalle, name='taller_detalle'),
     
-    # ❌ ELIMINADO: cambiar_estado_orden (función obsoleta)
-    # path('orden/<int:orden_id>/cambiar-estado/', gestion_taller.cambiar_estado_orden, name='cambiar_estado_orden'),
+  
+    #
     
     path('servicio/<int:detalle_id>/cambiar-estado/', gestion_taller.cambiar_estado_servicio, name='cambiar_estado_servicio'),
     
     path('taller/hallazgo/agregar/<int:orden_id>/', gestion_taller.agregar_hallazgo_orden, name='agregar_hallazgo_orden'),
 
-    # ============ INCREMENTO 3: SEGUIMIENTO VEHICULAR ============
+    # INCREMENTO 3: SEGUIMIENTO VEHICULAR 
     # fecha 2 de julio de 2026
     path('buscar/', seguimiento_vehicular.buscar_vehiculo, name='buscar_vehiculo'),
     path('historial/<str:placa>/', seguimiento_vehicular.historial_vehiculo, name='historial_vehiculo'),
@@ -38,7 +42,7 @@ urlpatterns = [
     path('hallazgo/autorizar/<int:hallazgo_id>/', seguimiento_vehicular.autorizar_hallazgo, name='autorizar_hallazgo'),
     path('hallazgo/rechazar/<int:hallazgo_id>/', seguimiento_vehicular.rechazar_hallazgo, name='rechazar_hallazgo'),
 
-    # ============ INCREMENTO 4: GESTIÓN ADMINISTRATIVA ============
+    # INCREMENTO 4: GESTIÓN ADMINISTRATIVA 
     # fecha: 17 de julio de 2026
     path('admin-dashboard/', gestion_administrativa.dashboard_admin, name='dashboard_admin'),
     path('jefe-dashboard/', gestion_administrativa.dashboard_jefe, name='dashboard_jefe'),
@@ -65,7 +69,7 @@ urlpatterns = [
     # Revisiones
     path('reviciones/', gestion_administrativa.gestionar_revisiones, name='gestionar_revisiones'),
 
-    # ============ INCREMENTO 5: ATENCIÓN Y VENTAS ============
+    #  INCREMENTO 5: ATENCIÓN Y VENTAS 
     # 22/08/2026 para atencion
     path('revision-rapida/', seguimiento_vehicular.revision_rapida_placa, name='revision_rapida_placa'),
     path('revision-rapida/guardar/', seguimiento_vehicular.guardar_revision_rapida, name='guardar_revision_rapida'),
@@ -77,7 +81,7 @@ urlpatterns = [
     path('ventas/', gestion_ventas.lista_ventas_rapidas, name='lista_ventas_rapidas'),
     path('ventas/<int:venta_id>/', gestion_ventas.detalle_venta, name='detalle_venta'),
 
-    # ============ AYUDANTE ============
+    #  AYUDANTE 
     # 25/08/2026 ayudante (usa gestion_taller y gestion_ventas)
     path('ayudante-dashboard/', gestion_administrativa.dashboard_ayudante, name='dashboard_ayudante'),
     path('ayudante/taller/', gestion_taller.modo_taller, name='modo_taller_ayudante'),
@@ -85,7 +89,7 @@ urlpatterns = [
     path('ayudante/servicio/<int:detalle_id>/cambiar/', gestion_taller.cambiar_estado_servicio, name='cambiar_estado_servicio_ayudante'),
     path('ayudante/venta-rapida/', gestion_ventas.venta_rapida, name='venta_rapida_ayudante'),
 
-    # ============ MEJORAS ============
+    #  MEJORAS
     # 5/9/2026 mejoras
     path('orden/<int:orden_id>/convertir-visita/', gestion_taller.convertir_visita_en_orden, name='convertir_visita_en_orden'),
 
@@ -103,8 +107,8 @@ urlpatterns = [
     path('taller/orden/<int:orden_id>/observacion/', gestion_taller.actualizar_observacion_orden, name='actualizar_observacion_orden'),
 
     #reseteo
-        # ============ RESETEO DE CONTRASEÑA ============
-     # 🆕 RESETEO DE CONTRASEÑA
+        # RESETEO DE CONTRASEÑA 
+
     path('password-reset/', gestion_basica.CustomPasswordResetView.as_view(), name='password_reset'),
     path('password-reset/done/', auth_views.PasswordResetDoneView.as_view(template_name='auth/password_reset_done.html'), name='password_reset_done'),
     path('password-reset-confirm/<uidb64>/<token>/', gestion_basica.CustomPasswordResetConfirmView.as_view(), name='password_reset_confirm'),

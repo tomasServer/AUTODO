@@ -74,14 +74,14 @@
 </div>
 
 <script>
-    // ============ CLIENTES ============
+    // CLIENTES
     var CLIENTES = [
         {% for c in clientes %}
         { id: {{ c.id }}, nombre: "{{ c.nombre|escapejs }}", apellido: "{{ c.apellido|default:''|escapejs }}", telefono: "{{ c.telefono|default:''|escapejs }}", ci: "{{ c.ci|default:''|escapejs }}" }{% if not forloop.last %},{% endif %}
         {% endfor %}
     ];
 
-    // ============ VALIDACIÓN DE CI ============
+    //  VALIDACIÓN DE CI 
     function validarCI(input) {
         let val = input.value.toUpperCase();
         const partes = val.split('-');
@@ -150,7 +150,7 @@
         if (b && r && !b.contains(e.target) && !r.contains(e.target)) r.style.display = 'none';
     });
 
-    // ============ PRODUCTOS ============
+    //  PRODUCTOS 
     var contadorVentas = 1;
 
     function agregarProductoVenta() {
@@ -193,7 +193,7 @@
         document.getElementById('totalVenta').textContent = 'Bs. ' + total.toFixed(2);
     }
 
-    // ============ MODAL ============
+    //  MODAL 
     function abrirModalCliente() {
         var hayProducto = false;
         document.querySelectorAll('select[name^="producto_"]').forEach(function(select) { if (select.value) hayProducto = true; });

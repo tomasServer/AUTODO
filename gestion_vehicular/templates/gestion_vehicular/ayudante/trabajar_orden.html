@@ -116,9 +116,25 @@
     {% endif %}
 </div>
 
-<!-- BOTONES DE ACCIÓN -->
-<div class="flex flex-wrap" style="margin-top:20px;">
+<!-- ============ BOTONES DE ACCIÓN ============ -->
+<!-- ============ BOTONES DE ACCIÓN ============ -->
+<div class="flex flex-wrap" style="margin-top:20px; justify-content: space-between; align-items: center;">
+    
+    <!-- Botón para volver -->
     <a href="{% url 'modo_taller_ayudante' %}" class="btn btn-gray">Volver a Mis Tareas</a>
+
+    <!-- BOTÓN DE IMPRIMIR RECIBO -->
+    {% if todos_finalizados %}
+        <!-- Si todo está listo, va directo al PDF -->
+        <a href="{% url 'orden_pdf' orden.id %}" target="_blank" class="btn btn-success btn-lg" style="display: flex; align-items: center; gap: 8px;">
+            🖨️ Imprimir Recibo de Taller
+        </a>
+    {% else %}
+        <!-- Si faltan servicios, el botón está activo pero lanza una alerta -->
+        <button type="button" onclick="alert('⚠️ Aún faltan servicios por finalizar en esta orden.\n\nTermina todos los servicios para poder generar el recibo oficial.')" class="btn btn-warning btn-lg" style="display: flex; align-items: center; gap: 8px;">
+            🖨️ Imprimir Recibo de Taller
+        </button>
+    {% endif %}
 </div>
 
 <script>

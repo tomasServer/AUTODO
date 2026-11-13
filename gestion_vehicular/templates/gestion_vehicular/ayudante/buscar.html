@@ -1,0 +1,53 @@
+{% extends 'gestion_vehicular/ayudante/base_ayudante.html' %}
+{% block title %}Buscar Vehículo{% endblock %}
+
+{% block content %}
+<h1 style="color: var(--primary-dark); font-size: 1.5rem; margin-bottom: 20px;">Buscar Vehículo</h1>
+
+<div class="card">
+    <form method="GET" class="form-filtro">
+        <div style="flex: 1;">
+            <label>Placa, VIN o Nombre del Cliente</label>
+            <input type="text" name="placa" value="{{ placa }}" placeholder="Ej: ABC123" style="text-transform:uppercase;">
+        </div>
+        <button type="submit" class="btn btn-primary">🔍 Buscar</button>
+    </form>
+</div>
+
+{% if vehiculo %}
+<div class="card">
+    <h3>Vehículo Encontrado: {{ vehiculo.placa|default:vehiculo.vin }}</h3>
+    <p><strong>Cliente:</strong> {{ vehiculo.id_cliente.nombre|default:"-" }} {{ vehiculo.id_cliente.apellido|default:"" }}</p>
+    
+    <!-- Aquí puedes poner la tabla de órdenes -->
+    <div class="tabla-scroll">
+        <table>
+            <thead>
+                <tr>
+                    <th>Orden</th>
+                    <th>Estado</th>
+                    <th>Total</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for orden in ordenes %}
+                <tr>
+                    <td>#{{ orden.id }}</td>
+                    <td><span class="badge">{{ orden.estado_orden }}</span></td>
+                    <td>Bs. {{ orden.total_orden|floatformat:2 }}</td>
+                    <td>
+                        <!-- BOTÓN DE COBRAR PARA EL AYUDANTE -->
+                        {% if orden.estado_orden == 'POR_COBRAR' %}
+                            <a href="{% url 'registrar_pago' orden.id %}" class="btn btn-success btn-sm">💰 Cobrar</a>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}

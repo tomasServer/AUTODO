@@ -93,6 +93,7 @@ def crear_usuario(request):
             id_rol_id=rol_id,
             nombre=request.POST.get('nombre'),
             apellido=request.POST.get('apellido', ''),
+            ci=request.POST.get('ci', ''),  # 🆕 Capturamos el CI
             usuario_login=usuario_login,
             contrasena_hash=make_password(request.POST.get('password')),
             telefono=request.POST.get('telefono', ''),
@@ -121,6 +122,7 @@ def editar_usuario(request, usuario_id):
     if request.method == 'POST':
         usuario.nombre = request.POST.get('nombre')
         usuario.apellido = request.POST.get('apellido', '')
+        usuario.ci = request.POST.get('ci', '')  # 🆕 Actualizamos el CI
         usuario.id_rol_id = request.POST.get('rol_id')
         usuario.telefono = request.POST.get('telefono', '')
         usuario.activo = request.POST.get('activo') == 'on'
@@ -128,7 +130,8 @@ def editar_usuario(request, usuario_id):
         nueva_password = request.POST.get('password')
         if nueva_password:
             from django.contrib.auth.hashers import make_password
-            usuario.password = make_password(nueva_password)
+            # 🆕 Corregido a 'contrasena_hash' para que coincida con tu modelo
+            usuario.contrasena_hash = make_password(nueva_password) 
         
         usuario.save()
         

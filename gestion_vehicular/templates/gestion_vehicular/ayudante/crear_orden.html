@@ -19,7 +19,7 @@
 
 {% block content %}
 
-<!-- ====== MENSAJES ====== -->
+<!-- MENSAJES  -->
 {% if messages %}
 <div class="messages" style="list-style:none; padding:0; margin-bottom:20px;">
     {% for message in messages %}
@@ -30,7 +30,7 @@
 </div>
 {% endif %}
 
-<!-- ====== REVISIÓN Y VISITA ====== -->
+<!--  REVISIÓN Y VISITA -->
 {% if revision_detalle %}
 <div class="card">
     <h4>Revisión del Vehículo</h4>
@@ -58,7 +58,7 @@
 </div>
 {% endif %}
 
-<!-- ====== MENSAJE DE VISITA ====== -->
+<!--  MENSAJE DE VISITA  -->
 {% if orden_visita %}
     {% if not es_nueva_visita %}
     <div class="card" style="background:#eff6ff; border-left:4px solid var(--accent-color);">
@@ -346,19 +346,19 @@
         var ci = document.getElementById('cliente_ci');
         if (!/^[0-9]{7,11}(-[A-Z0-9]{1,2})?$/.test(ci.value.trim())) { e.preventDefault(); alert('⚠️ El CI no tiene un formato válido.'); ci.focus(); return; }
 
-        // 🆕 VALIDACIÓN ESTRICTA DEL TELÉFONO
+        // VALIDACIÓN ESTRICTA DEL TELÉFONO
         var telefono = document.getElementById('cliente_telefono');
         if (!/^[0-9]{8}$/.test(telefono.value.trim())) {
             e.preventDefault(); alert('⚠️ El teléfono debe tener EXACTAMENTE 8 dígitos.'); telefono.focus(); return;
         }
 
-        // 🆕 VALIDACIÓN DE CALIDAD DE ORDEN (ahora es un select simple)
+        // VALIDACIÓN DE CALIDAD DE ORDEN (ahora es un select simple)
         var calidad = document.getElementById('calidad_orden');
         if (!calidad.value) {
             e.preventDefault(); alert('⚠️ Seleccione una Calidad de Orden.'); calidad.focus(); return;
         }
 
-        // 🆕 VALIDAR MECÁNICOS Y PRECIOS
+        // VALIDAR MECÁNICOS Y PRECIOS
         let serviciosValidos = true;
         document.querySelectorAll('select[name^="mecanico_"]').forEach(function(select) {
             if (!select.value) {

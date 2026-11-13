@@ -9,6 +9,7 @@
     <form method="POST">
         {% csrf_token %}
         
+        <!-- Fila 1: Nombre y Apellido -->
         <div class="grid grid-2">
             <div>
                 <label>Nombre *</label>
@@ -20,10 +21,22 @@
             </div>
         </div>
         
+        <!-- Fila 2: CI y Teléfono -->
+        <div class="grid grid-2" style="margin-top:15px;">
+            <div>
+                <label>Carnet de Identidad (CI)</label>
+                <input type="text" name="ci" placeholder="Ej: 12345678">
+            </div>
+            <div>
+                <label>Teléfono</label>
+                <input type="text" name="telefono" placeholder="Ej: 77712345">
+            </div>
+        </div>
+
+        <!-- Fila 3: Correo (Usuario) y Contraseña -->
         <div class="grid grid-2" style="margin-top:15px;">
             <div>
                 <label>Correo Electrónico (Usuario) *</label>
-                <!-- 🆕 Cambiado a type="email" para asegurar que sea un correo válido -->
                 <input type="email" name="usuario_login" required placeholder="ejemplo@correo.com">
                 <small class="text-muted" style="display:block; margin-top:4px; font-size:0.75rem;">
                     Este será el correo para iniciar sesión y recuperar contraseña.
@@ -35,6 +48,7 @@
             </div>
         </div>
         
+        <!-- Fila 4: Rol -->
         <div class="grid grid-2" style="margin-top:15px;">
             <div>
                 <label>Rol *</label>
@@ -45,10 +59,8 @@
                     {% endfor %}
                 </select>
             </div>
-            <div>
-                <label>Teléfono</label>
-                <input type="text" name="telefono" placeholder="Ej: 77712345">
-            </div>
+            <!-- Dejamos este espacio vacío para mantener el balance del grid, o puedes poner otro campo aquí -->
+            <div></div>
         </div>
         
         <div style="text-align:right; margin-top:20px; padding-top: 15px; border-top: 1px solid #f1f5f9;">

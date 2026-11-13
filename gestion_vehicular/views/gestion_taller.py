@@ -614,25 +614,21 @@ def taller_detalle(request, orden_id):
     productos_disponibles = Producto.objects.filter(activo=True, stock_actual__gt=0)
     mecanicos = Usuario.objects.filter(activo=True, id_rol_id__in=[1, 2, 3]).order_by('nombre')
 
-    # ============ DETERMINAR PERMISOS ============
+    # determinar permisos
     es_admin = request.user.id_rol_id == 1
     es_encargado = orden.id_jefe_tecnico_id == request.user.id if orden.id_jefe_tecnico else False
     
-    # Admin o encargado → ve TODO y puede agregar
-    # Otros → solo sus servicios, solo puede generar hallazgo
+    # admin o encargado ve todo y puede agregar, otros solo ven sus servicios
     if es_admin or es_encargado:
         servicios_detalle = orden.detalles_servicio.all().order_by('id')
         puede_agregar = True
     else:
         servicios_detalle = orden.detalles_servicio.filter(id_mecanico=request.user)
         puede_agregar = False
-    # =============================================
 
-    # 🆕 LÓGICA PARA SABER SI TODOS LOS SERVICIOS ESTÁN FINALIZADOS
-    # Evaluamos los servicios totales de la orden (no solo los que ve el mecánico)
+    # lógica para saber si todos los servicios de la orden están finalizados
     servicios_totales = orden.detalles_servicio.all()
     todos_finalizados = servicios_totales.exists() and all(s.estado == 'FINALIZADO' for s in servicios_totales)
-    # =============================================
 
     if es_admin:
         template = 'gestion_vehicular/admin/gestion_taller/taller_detalle.html'
@@ -649,7 +645,7 @@ def taller_detalle(request, orden_id):
         'mecanicos': mecanicos,
         'es_encargado': es_encargado,
         'puede_agregar': puede_agregar,
-        'todos_finalizados': todos_finalizados, # 🆕 ENVIAMOS LA VARIABLE AL TEMPLATE
+        'todos_finalizados': todos_finalizados, # se envía al template para habilitar el recibo
     })
 
 
@@ -729,9 +725,9 @@ def agregar_hallazgo_orden(request, orden_id):
     
     return redirect('taller_detalle', orden_id=orden.id)
 
-# ============================================================
+#
 # EDITAR PRECIO DE SERVICIO
-# ============================================================
+# 
 
 @login_required
 def editar_precio_servicio(request, detalle_id):
@@ -754,9 +750,9 @@ def editar_precio_servicio(request, detalle_id):
     return redirect('taller_detalle', orden_id=detalle.id_orden.id)
 
 
-# ============================================================
-# ELIMINAR SERVICIO / PRODUCTO
-# ============================================================
+# 
+# ELIMINAR SERVICIO y PRODUCTO
+# 
 
 def eliminar_servicio_orden(request, detalle_id):
     """Elimina un servicio de la orden (solo si está PENDIENTE)."""
@@ -890,9 +886,9 @@ def convertir_visita_en_orden(request, orden_id):
     return redirect(f'/orden/crear/?visita_id={orden.id}')
 
 
-# ============================================================
+# 
 # GENERAR PDF DE LA ORDEN (xhtml2pdf)
-# ============================================================
+
 
 def orden_pdf(request, orden_id):
     """Genera un PDF con los servicios, insumos y totales de la orden."""
@@ -903,7 +899,7 @@ def orden_pdf(request, orden_id):
     total_productos = sum(float(d.subtotal_precio or 0) for d in orden.detalles_producto.all())
     total_general = total_servicios + total_productos
     
-    # ✅ Renderizar el template HTML
+    # Renderizar el template HTML
     html_string = render_to_string(
         'gestion_vehicular/admin/gestion_taller/recibo_pdf.html',
         {
@@ -914,11 +910,11 @@ def orden_pdf(request, orden_id):
         }
     )
     
-    # ✅ Crear respuesta HTTP con tipo PDF
+    # Crear respuesta HTTP con tipo PDF
     response = HttpResponse(content_type='application/pdf')
     response['Content-Disposition'] = f'inline; filename="orden_{orden.id}.pdf"'
     
-    # ✅ Convertir HTML a PDF
+    # Convertir HTML a PDF
     pisa_status = pisa.CreatePDF(html_string, dest=response)
     
     if pisa_status.err:

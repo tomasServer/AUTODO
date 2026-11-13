@@ -53,14 +53,19 @@
             <div class="grid grid-4" style="margin-bottom:10px;">
                 <div><strong>Fecha:</strong> {{ revision.fecha_revision|date:"d/m/Y H:i" }}</div>
                 <div><strong>Tipo:</strong> {{ revision.tipo_revision }}</div>
-                <div><strong>Salud:</strong> {{ revision.isv_porcentaje|default:"0" }}%</div>
                 <div>
-                    <strong>Estado:</strong>
+                    <strong>Salud:</strong>
                     <span class="badge {% if revision.isv_porcentaje >= 80 %}badge-success{% elif revision.isv_porcentaje >= 50 %}badge-warning{% else %}badge-danger{% endif %}">
-                        {% if revision.isv_porcentaje >= 80 %}BUENO
-                        {% elif revision.isv_porcentaje >= 50 %}REGULAR
-                        {% else %}CRÍTICO{% endif %}
+                        {{ revision.isv_porcentaje|default:"0" }}%
                     </span>
+                </div>
+                <div>
+                    <strong>Revisado por:</strong>
+                    {% if revision.id_mecanico %}
+                        {{ revision.id_mecanico.nombre }} {{ revision.id_mecanico.apellido|default:"" }}
+                    {% else %}
+                        <span style="color:#95a5a6;">—</span>
+                    {% endif %}
                 </div>
             </div>
 

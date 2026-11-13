@@ -2,7 +2,6 @@
 {% block title %}Editar Servicio{% endblock %}
 
 
-
 {% block content %}
 <h1 style="color:#1a252f; margin-bottom:20px;">Editar: {{ servicio.nombre }}</h1>
 
@@ -31,15 +30,15 @@
         <div class="grid grid-3" style="margin-top:15px;">
             <div>
                 <label>Costo Mano de Obra (Bs.)</label>
-                <input type="number" name="costo_mano_obra" step="0.01" value="{{ servicio.costo_mano_obra }}" required>
+                <input type="number" name="costo_mano_obra" step="0.01" value="{{ servicio.costo_mano_obra|stringformat:'0.2f' }}" required>
             </div>
             <div>
                 <label>Precio de Venta (Bs.)</label>
-                <input type="number" name="precio_mano_obra" step="0.01" value="{{ servicio.precio_mano_obra }}" required>
+                <input type="number" name="precio_mano_obra" step="0.01" value="{{ servicio.precio_mano_obra|stringformat:'0.2f' }}" required>
             </div>
             <div>
                 <label>Tiempo Estimado (minutos)</label>
-                <input type="number" name="tiempo_estimado_minutos" value="{{ servicio.tiempo_estimado_minutos }}">
+                <input type="number" name="tiempo_estimado_minutos" value="{{ servicio.tiempo_estimado_minutos|default:'' }}">
             </div>
         </div>
         

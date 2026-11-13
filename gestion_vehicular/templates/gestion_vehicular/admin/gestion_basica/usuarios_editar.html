@@ -8,6 +8,7 @@
     <form method="POST">
         {% csrf_token %}
         
+        <!-- Fila 1: Nombre y Apellido -->
         <div class="grid grid-2">
             <div>
                 <label>Nombre</label>
@@ -19,6 +20,19 @@
             </div>
         </div>
         
+        <!-- Fila 2: CI y Teléfono -->
+        <div class="grid grid-2" style="margin-top:15px;">
+            <div>
+                <label>Carnet de Identidad (CI)</label>
+                <input type="text" name="ci" value="{{ usuario.ci|default:'' }}" placeholder="Ej: 12345678">
+            </div>
+            <div>
+                <label>Teléfono</label>
+                <input type="text" name="telefono" value="{{ usuario.telefono|default:'' }}">
+            </div>
+        </div>
+        
+        <!-- Fila 3: Usuario y Rol -->
         <div class="grid grid-2" style="margin-top:15px;">
             <div>
                 <label>Usuario</label>
@@ -35,20 +49,15 @@
             </div>
         </div>
         
-        <div class="grid grid-2" style="margin-top:15px;">
-            <div>
-                <label>Teléfono</label>
-                <input type="text" name="telefono" value="{{ usuario.telefono|default:'' }}">
-            </div>
-            <div style="display: flex; align-items: center; padding-top: 20px;">
-                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; margin: 0;">
-                    <input type="checkbox" name="activo" {% if usuario.activo %}checked{% endif %} style="width: auto; margin: 0;">
-                    Usuario activo
-                </label>
-            </div>
+        <!-- Fila 4: Estado Activo -->
+        <div style="margin-top:15px; display: flex; align-items: center; padding-top: 10px;">
+            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; margin: 0;">
+                <input type="checkbox" name="activo" {% if usuario.activo %}checked{% endif %} style="width: auto; margin: 0;">
+                Usuario activo
+            </label>
         </div>
         
-        <div style="text-align:right; margin-top:20px;">
+        <div style="text-align:right; margin-top:20px; padding-top: 15px; border-top: 1px solid #f1f5f9;">
             <a href="{% url 'lista_usuarios' %}" class="btn btn-gray">Cancelar</a>
             <button type="submit" class="btn btn-success">Actualizar Datos</button>
         </div>

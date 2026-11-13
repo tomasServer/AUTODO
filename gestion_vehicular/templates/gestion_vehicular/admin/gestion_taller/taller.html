@@ -42,7 +42,7 @@
         to { opacity: 1; transform: translateY(0); }
     }
 
-    /* 🆕 SCROLL PARA LAS TABLAS DEL TALLER */
+    /* scroll para las tablas del taller */
     .tabla-scroll { 
         max-height: 400px; 
         overflow-y: auto; 
@@ -189,8 +189,7 @@
                         <th>Placa / VIN</th>
                         <th>Cliente</th>
                         <th>Encargado</th>
-                        <th>Total Estimado</th>
-                        <th>Acciones</th>
+                        <th>Acciones</th> <!-- 👈 QUITAMOS LA COLUMNA DEL TOTAL -->
                     </tr>
                 </thead>
                 <tbody>
@@ -206,10 +205,10 @@
                                 <span style="color:#94a3b8;">Sin asignar</span>
                             {% endif %}
                         </td>
-                        <td><strong>Bs. {{ orden.total_orden|floatformat:2|default:"0.00" }}</strong></td>
                         <td>
                             <a href="{% url 'detalle_orden' orden.id %}" class="btn btn-gray btn-sm">Detalle</a>
-                            <a href="{% url 'taller_detalle' orden.id %}" class="btn btn-success btn-sm">Cobrar</a>
+                            <!-- 👇 BOTÓN DIRECTO AL PAGO -->
+                            <a href="{% url 'registrar_pago' orden.id %}" class="btn btn-success btn-sm">Cobrar</a>
                         </td>
                     </tr>
                     {% endfor %}

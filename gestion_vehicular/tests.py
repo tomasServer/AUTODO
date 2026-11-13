@@ -1,3 +1,7 @@
+# Tomas jonatan lopez Cruz
+# gmail:tldiaxo
+# Universidad Boliviano de Informatico
+
 from django.test import TestCase
 
 # Create your tests here.
