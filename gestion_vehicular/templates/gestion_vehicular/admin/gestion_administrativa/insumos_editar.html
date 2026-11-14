@@ -1,7 +1,6 @@
 {% extends 'gestion_vehicular/admin/base_admin.html' %}
 {% block title %}Editar - {{ producto.nombre }}{% endblock %}
 
-
 {% block content %}
 <h1 style="color:#1a252f; margin-bottom:20px;">Editar: {{ producto.nombre }}</h1>
 
@@ -26,11 +25,13 @@
         <div class="grid grid-3" style="margin-top:15px;">
             <div>
                 <label>Costo Unitario (Bs.)</label>
-                <input type="number" name="costo_unitario" value="{{ producto.costo_unitario }}" required>
+                <!-- 👇 Se agregó stringformat para que no se borre -->
+                <input type="number" name="costo_unitario" step="0.01" value="{{ producto.costo_unitario|stringformat:'0.2f' }}" required>
             </div>
             <div>
                 <label>Precio de Venta (Bs.)</label>
-                <input type="number" name="precio_venta" step="0.01" value="{{ producto.precio_venta }}" required>
+                <!-- 👇 Se agregó stringformat para que no se borre -->
+                <input type="number" name="precio_venta" step="0.01" value="{{ producto.precio_venta|stringformat:'0.2f' }}" required>
             </div>
             <div>
                 <label>Stock Actual</label>

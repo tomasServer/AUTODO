@@ -163,9 +163,9 @@ SESSION_EXPIRE_AT_BROWSER_CLOSE = True
 AUTH_USER_MODEL = 'gestion_vehicular.Usuario'  # Reemplaza 'gestion_vehicular' con el nombre de tu app
 
 
-# ==========================================
-# CONFIGURACIÓN DE CORREO PARA RECUPERACIÓN
-# ==========================================
+
+# CORREO PARA RECUPERACIÓN
+
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587

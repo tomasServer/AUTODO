@@ -11,9 +11,8 @@ from django.contrib import messages
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import authenticate, login as auth_login, logout as auth_logout
-from django.contrib import messages
-from ..models import Usuario, Rol
-from .gestion_administrativa import registrar_auditoria  # 🆕 Importamos la función de auditoría
+from ..models import Usuario, Rol  # 👈 IMPORTANTE: Solo importamos, no definimos los modelos aquí
+from .gestion_administrativa import registrar_auditoria
 
 from django.contrib.auth.forms import PasswordResetForm
 from django.contrib.auth.views import PasswordResetView 
@@ -84,21 +83,24 @@ def lista_usuarios(request):
 @login_required
 def crear_usuario(request):
     if request.method == 'POST':
-        from django.contrib.auth.hashers import make_password
-        
         rol_id = request.POST.get('rol_id')
         usuario_login = request.POST.get('usuario_login')
+        password_texto_plano = request.POST.get('password')
         
+        # 1. Creamos el usuario SIN la contraseña todavía
         usuario = Usuario.objects.create(
             id_rol_id=rol_id,
             nombre=request.POST.get('nombre'),
             apellido=request.POST.get('apellido', ''),
-            ci=request.POST.get('ci', ''),  # 🆕 Capturamos el CI
+            ci=request.POST.get('ci', '') or None,
             usuario_login=usuario_login,
-            contrasena_hash=make_password(request.POST.get('password')),
             telefono=request.POST.get('telefono', ''),
             activo=True,
         )
+        
+        # 2. Usamos el método set_password del modelo
+        usuario.set_password(password_texto_plano)
+        usuario.save()
         
         rol_nombre = usuario.id_rol.nombre if usuario.id_rol else 'Desconocido'
         registrar_auditoria(
@@ -122,16 +124,14 @@ def editar_usuario(request, usuario_id):
     if request.method == 'POST':
         usuario.nombre = request.POST.get('nombre')
         usuario.apellido = request.POST.get('apellido', '')
-        usuario.ci = request.POST.get('ci', '')  # 🆕 Actualizamos el CI
+        usuario.ci = request.POST.get('ci', '') or None
         usuario.id_rol_id = request.POST.get('rol_id')
         usuario.telefono = request.POST.get('telefono', '')
         usuario.activo = request.POST.get('activo') == 'on'
         
         nueva_password = request.POST.get('password')
         if nueva_password:
-            from django.contrib.auth.hashers import make_password
-            # 🆕 Corregido a 'contrasena_hash' para que coincida con tu modelo
-            usuario.contrasena_hash = make_password(nueva_password) 
+            usuario.set_password(nueva_password) # Usamos el método de tu modelo
         
         usuario.save()
         
@@ -197,16 +197,21 @@ def enviar_enlace_usuario(request, usuario_id):
     return redirect('lista_usuarios')
 
 
-
 class CustomPasswordResetForm(PasswordResetForm):
     def get_users(self, email):
         """Sobrescribimos para buscar por 'activo' en lugar de 'is_active'"""
-        # Buscamos directamente usando el campo 'activo' de tu modelo
         active_users = Usuario.objects.filter(
             usuario_login__iexact=email,
             activo=True
         )
         return (u for u in active_users if u.has_usable_password())
+
+    # 👇 AÑADE ESTE MÉTODO PARA FORZAR EL DOMINIO
+    def save(self, domain_override=None, **kwargs):
+        if not domain_override:
+            domain_override = '127.0.0.1:8000'
+        super().save(domain_override=domain_override, **kwargs)
+        
 
 class CustomPasswordResetView(PasswordResetView):
     form_class = CustomPasswordResetForm
@@ -238,7 +243,7 @@ class CustomPasswordResetConfirmView(PasswordResetConfirmView):
             
             if filas_afectadas > 0:
                 messages.success(self.request, '✅ ¡Contraseña cambiada exitosamente! Ya puedes iniciar sesión.')
-                return redirect('login')  # 👈 Redirige al login
+                return redirect('login')
             else:
                 messages.error(self.request, '❌ No se pudo actualizar la contraseña.')
                 return redirect('password_reset')
