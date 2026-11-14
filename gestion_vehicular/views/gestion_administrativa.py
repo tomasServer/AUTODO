@@ -393,7 +393,6 @@ def reportes(request):
             id_orden__fecha_ingreso__date__lte=fecha_fin_p
         )
 
-    # ✅ TOTAL DE PRODUCTOS VENDIDOS
     total_productos_vendidos = productos_detalle.aggregate(
         total=Sum('subtotal_precio')
     )['total'] or 0
@@ -413,7 +412,6 @@ def reportes(request):
             id_orden__fecha_ingreso__date__lte=fecha_fin_s
         )
 
-    # ✅ TOTAL DE SERVICIOS REALIZADOS
     total_servicios_realizados = servicios_detalle.aggregate(
         total=Sum('precio_cobrado')
     )['total'] or 0
@@ -435,13 +433,12 @@ def reportes(request):
             id_orden__fecha_ingreso__date__lte=fecha_fin_m
         )
 
-    # ✅ TOTAL DE SERVICIOS POR MECÁNICO
     total_servicios_mecanico = sum(m['total'] for m in servicios_por_mecanico) if servicios_por_mecanico else 0
 
     # === VENTAS RAPIDAS ===
     fecha_inicio_v = request.GET.get('fecha_inicio_v', '')
     fecha_fin_v = request.GET.get('fecha_fin_v', '')
-    cliente_v_buscar = (request.GET.get('cliente_v') or '').strip()  # 🆕
+    cliente_v_buscar = (request.GET.get('cliente_v') or '').strip()
 
     ventas_detalle = DetalleVentaRapida.objects.all().select_related(
         'id_venta', 'id_producto', 'id_venta__id_cliente'
@@ -453,7 +450,6 @@ def reportes(request):
             id_venta__fecha_venta__date__lte=fecha_fin_v
         )
 
-    # 🆕 Filtro por cliente (nombre, apellido o CI)
     if cliente_v_buscar:
         terminos = cliente_v_buscar.split()
         q = Q()
@@ -465,10 +461,38 @@ def reportes(request):
             )
         ventas_detalle = ventas_detalle.filter(q)
 
-    # ✅ Total de ventas rápidas
     total_ventas_rapidas = ventas_detalle.aggregate(
         total=Sum('precio_venta')
     )['total'] or 0
+
+    # === INGRESOS POR MÉTODO DE PAGO (CAJA) ===
+    fecha_inicio_c = request.GET.get('fecha_inicio_c', '')
+    fecha_fin_c = request.GET.get('fecha_fin_c', '')
+
+    # 1. Filtramos las Órdenes cobradas (Pagos)
+    pagos = Pago.objects.all()
+    if fecha_inicio_c and fecha_fin_c:
+        pagos = pagos.filter(fecha_pago__date__gte=fecha_inicio_c, fecha_pago__date__lte=fecha_fin_c)
+
+    # 2. Filtramos las Ventas Rápidas
+    ventas_caja = VentaRapida.objects.all()
+    if fecha_inicio_c and fecha_fin_c:
+        ventas_caja = ventas_caja.filter(fecha_venta__date__gte=fecha_inicio_c, fecha_venta__date__lte=fecha_fin_c)
+
+    # 3. Sumamos por método de pago (usando __iexact)
+    total_efectivo_ordenes = pagos.filter(metodo_pago__iexact='EFECTIVO').aggregate(total=Sum('monto_total'))['total'] or 0
+    total_qr_ordenes = pagos.filter(metodo_pago__iexact='QR').aggregate(total=Sum('monto_total'))['total'] or 0
+    total_trans_ordenes = pagos.filter(metodo_pago__iexact='TRANSFERENCIA').aggregate(total=Sum('monto_total'))['total'] or 0
+
+    total_efectivo_ventas = ventas_caja.filter(metodo_pago__iexact='EFECTIVO').aggregate(total=Sum('total'))['total'] or 0
+    total_qr_ventas = ventas_caja.filter(metodo_pago__iexact='QR').aggregate(total=Sum('total'))['total'] or 0
+    total_trans_ventas = ventas_caja.filter(metodo_pago__iexact='TRANSFERENCIA').aggregate(total=Sum('total'))['total'] or 0
+
+    # Sumamos el total general por cada método
+    caja_efectivo = total_efectivo_ordenes + total_efectivo_ventas
+    caja_qr = total_qr_ordenes + total_qr_ventas
+    caja_transferencia = total_trans_ordenes + total_trans_ventas
+    caja_total = caja_efectivo + caja_qr + caja_transferencia
 
     contexto = {
         'fecha_inicio_p': fecha_inicio_p,
@@ -481,21 +505,34 @@ def reportes(request):
         'fecha_fin_m': fecha_fin_m,
         'fecha_inicio_v': fecha_inicio_v,
         'fecha_fin_v': fecha_fin_v,
-        'cliente_v_buscar': cliente_v_buscar,  # 🆕
+        'cliente_v_buscar': cliente_v_buscar,
         'productos_detalle': productos_detalle,
         'servicios_detalle': servicios_detalle,
         'servicios_por_mecanico': servicios_por_mecanico,
-
-        # ✅ TOTALES
+        'ventas_detalle': ventas_detalle,
         'total_productos_vendidos': total_productos_vendidos,
         'total_servicios_realizados': total_servicios_realizados,
         'total_servicios_mecanico': total_servicios_mecanico,
-        'ventas_detalle': ventas_detalle,
         'total_ventas_rapidas': total_ventas_rapidas,
+
+        # 🆕 DATOS DE CAJA GENERAL
+        'fecha_inicio_c': fecha_inicio_c,
+        'fecha_fin_c': fecha_fin_c,
+        'caja_efectivo': caja_efectivo,
+        'caja_qr': caja_qr,
+        'caja_transferencia': caja_transferencia,
+        'caja_total': caja_total,
+
+        # 🆕 DATOS EXTRA PARA EL DESGLOSE DE CAJA
+        'total_efectivo_ordenes': total_efectivo_ordenes,
+        'total_qr_ordenes': total_qr_ordenes,
+        'total_trans_ordenes': total_trans_ordenes,
+        'total_efectivo_ventas': total_efectivo_ventas,
+        'total_qr_ventas': total_qr_ventas,
+        'total_trans_ventas': total_trans_ventas,
     }
 
     return render(request, 'gestion_vehicular/admin/gestion_administrativa/reportes.html', contexto)
-
 
 def detalle_producto_vendido(request, producto_id):
     """Muestra las órdenes donde se vendió un producto específico"""

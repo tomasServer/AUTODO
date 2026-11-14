@@ -12,6 +12,7 @@
         gap: 5px;
         margin-bottom: 15px;
         border-bottom: 2px solid #e2e8f0;
+        overflow-x: auto; /* Para que no se rompa en pantallas chicas */
     }
     .tab-btn {
         padding: 10px 20px;
@@ -23,6 +24,7 @@
         color: #64748b;
         font-size: 0.9rem;
         transition: all 0.2s;
+        white-space: nowrap;
     }
     .tab-btn:hover { background: #e2e8f0; color: #1e293b; }
     .tab-btn.active { background: #1e293b; color: white; }
@@ -61,7 +63,7 @@
         bottom: 0; 
         font-weight: 600;
     }
-    .tabla-scroll.cargando { opacity: 0.5; pointer-events: none; }
+    .tabla-scroll.cargando, #tabla-caja.cargando { opacity: 0.5; pointer-events: none; }
     .link-tabla { color: #3b82f6; text-decoration: none; font-weight: 600; }
     .link-tabla:hover { text-decoration: underline; }
 </style>
@@ -74,6 +76,7 @@
     <button class="tab-btn" onclick="abrirTab('servicios', this)">🔧 Servicios Realizados</button>
     <button class="tab-btn" onclick="abrirTab('mecanicos', this)">👨‍🔧 Por Mecánico</button>
     <button class="tab-btn" onclick="abrirTab('ventas', this)">🛒 Ventas Rápidas</button>
+    <button class="tab-btn" onclick="abrirTab('caja', this)">💰 Caja (Ingresos)</button>
 </div>
 
 <!-- SECCIÓN 1: PRODUCTOS VENDIDOS -->
@@ -241,6 +244,60 @@
     </div>
 </div>
 
+<!-- SECCIÓN 5: CAJA / INGRESOS -->
+<div id="tab-caja" class="tab-content">
+    <div class="card">
+        <h3>Resumen de Caja por Método de Pago</h3>
+        <form method="GET" class="form-filtro">
+            <div><label>Desde</label><input type="date" name="fecha_inicio_c" value="{{ fecha_inicio_c }}"></div>
+            <div><label>Hasta</label><input type="date" name="fecha_fin_c" value="{{ fecha_fin_c }}"></div>
+            <button type="submit" class="btn btn-primary">Buscar Ingresos</button>
+        </form>
+
+        <!-- 👇 ESTE ES EL DIV MÁGICO QUE FALTABA -->
+        <div id="tabla-caja">
+            <div class="grid grid-4" style="margin-top: 20px; margin-bottom: 20px;">
+                <div class="stat-card bg-dark" style="padding: 20px;">
+                    <span class="number" style="font-size: 1.4rem;">Bs. {{ caja_efectivo|floatformat:2 }}</span>
+                    <span class="label">💵 Total Efectivo</span>
+                </div>
+                <div class="stat-card bg-dark" style="padding: 20px;">
+                    <span class="number" style="font-size: 1.4rem;">Bs. {{ caja_qr|floatformat:2 }}</span>
+                    <span class="label">📱 Total QR</span>
+                </div>
+                <div class="stat-card bg-dark" style="padding: 20px;">
+                    <span class="number" style="font-size: 1.4rem;">Bs. {{ caja_transferencia|floatformat:2 }}</span>
+                    <span class="label">🏦 Total Transferencia</span>
+                </div>
+                <div class="stat-card" style="padding: 20px; background: var(--success);">
+                    <span class="number" style="font-size: 1.4rem;">Bs. {{ caja_total|floatformat:2 }}</span>
+                    <span class="label">💰 Gran Total en Caja</span>
+                </div>
+            </div>
+
+            <!-- DESGLOSE DE ORIGEN -->
+            <div class="grid grid-2 mt-20">
+                <div style="background:#f8fafc; padding:15px; border-radius:8px; border-left:4px solid #3b82f6;">
+                    <h4 style="margin-top:0; color:var(--primary-dark);">🛠️ Ingresos por Taller (Órdenes)</h4>
+                    <p>Efectivo: <strong>Bs. {{ total_efectivo_ordenes|floatformat:2 }}</strong></p>
+                    <p>QR: <strong>Bs. {{ total_qr_ordenes|floatformat:2 }}</strong></p>
+                    <p>Transferencia: <strong>Bs. {{ total_trans_ordenes|floatformat:2 }}</strong></p>
+                </div>
+                <div style="background:#f8fafc; padding:15px; border-radius:8px; border-left:4px solid #f59e0b;">
+                    <h4 style="margin-top:0; color:var(--primary-dark);">🛒 Ingresos por Ventas Rápidas</h4>
+                    <p>Efectivo: <strong>Bs. {{ total_efectivo_ventas|floatformat:2 }}</strong></p>
+                    <p>QR: <strong>Bs. {{ total_qr_ventas|floatformat:2 }}</strong></p>
+                    <p>Transferencia: <strong>Bs. {{ total_trans_ventas|floatformat:2 }}</strong></p>
+                </div>
+            </div>
+        </div>
+        
+        <p class="text-muted" style="font-size: 0.85rem; margin-top: 15px;">
+            * Este reporte suma todos los cobros de órdenes y ventas rápidas registradas en el rango de fechas.
+        </p>
+    </div>
+</div>
+
 <script>
 // FUNCIÓN PARA CAMBIAR DE PESTAÑA
 function abrirTab(idTab, boton) {
@@ -250,10 +307,10 @@ function abrirTab(idTab, boton) {
     boton.classList.add('active');
 }
 
-// FILTROS AJAX
+// FILTROS AJAX (Búsquedas sin recargar la página)
 (function () {
     'use strict';
-    var SECCIONES = ['productos', 'servicios', 'mecanicos', 'ventas'];
+    var SECCIONES = ['productos', 'servicios', 'mecanicos', 'ventas', 'caja']; // Agregamos 'caja'
     var controllerActual = null;
 
     function setCargando(cargando) {
@@ -277,6 +334,15 @@ function abrirTab(idTab, boton) {
     }
 
     document.addEventListener('DOMContentLoaded', function () {
+        // Guardar en qué pestaña estamos
+        let tabActiva = 'productos'; // Por defecto
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                let match = this.getAttribute('onclick').match(/'([^']+)'/);
+                if (match) tabActiva = match[1];
+            });
+        });
+
         document.querySelectorAll('.form-filtro').forEach(function (form) {
             form.addEventListener('submit', function (e) {
                 e.preventDefault();
@@ -295,6 +361,20 @@ function abrirTab(idTab, boton) {
                 .then(function (html) {
                     actualizarSecciones(html);
                     window.history.pushState({}, '', url);
+                    
+                    // 👇 VOLVEMOS A ACTIVAR LA PESTAÑA EN LA QUE ESTÁBAMOS
+                    let tabContent = document.getElementById('tab-' + tabActiva);
+                    if (tabContent) {
+                        document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+                        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                        tabContent.classList.add('active');
+                        // Buscar el botón correspondiente y activarlo visualmente
+                        document.querySelectorAll('.tab-btn').forEach(btn => {
+                            if (btn.getAttribute('onclick').includes("'" + tabActiva + "'")) {
+                                btn.classList.add('active');
+                            }
+                        });
+                    }
                 })
                 .catch(function (error) {
                     if (error.name !== 'AbortError') console.error('Error al filtrar:', error);

@@ -242,11 +242,15 @@ class CustomPasswordResetConfirmView(PasswordResetConfirmView):
                 filas_afectadas = cursor.rowcount
             
             if filas_afectadas > 0:
-                messages.success(self.request, '✅ ¡Contraseña cambiada exitosamente! Ya puedes iniciar sesión.')
+                messages.success(self.request, ' ¡Contraseña cambiada exitosamente! ')
                 return redirect('login')
             else:
-                messages.error(self.request, '❌ No se pudo actualizar la contraseña.')
+                messages.error(self.request, 'No se pudo actualizar la contraseña.')
                 return redirect('password_reset')
         else:
-            messages.error(self.request, '❌ El enlace es inválido o ha expirado.')
+            messages.error(self.request, 'El enlace es inválido o ha expirado.')
             return redirect('password_reset')
+
+
+
+

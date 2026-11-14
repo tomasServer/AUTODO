@@ -11,7 +11,7 @@
     .select2-container--default .select2-selection--single .select2-selection__rendered { line-height: 36px; }
     .select2-container--default .select2-selection--single .select2-selection__arrow { height: 36px; }
     
-    /* 🆕 Estilos para agrupar servicios */
+    /* estilos para agrupar servicios */
     .grupo-servicio {
         margin: 12px 0 6px 0;
         padding: 6px 10px;
@@ -44,7 +44,7 @@
                 <span style="color: var(--warning); font-style: italic;">Sin placa</span>
             {% endif %}
         </div>
-        <div><strong>Complejidad:</strong> {{ orden.id_complejidad.nombre|default:"No asignado" }}</div>
+        <div><strong>Calidad:</strong> {{ orden.calidad_orden|default:"No asignado" }}</div>
         <div><strong>Cliente:</strong> {{ orden.id_vehiculo.id_cliente.nombre|default:"Sin cliente" }} {{ orden.id_vehiculo.id_cliente.apellido|default:"" }}</div>
         <div>
             <strong>Estado:</strong>
@@ -193,7 +193,6 @@
                 </div>
                 <div style="flex:1; min-width:150px;">
                     <label style="font-size:0.8rem;">Mecánico *</label>
-                    <!-- 🆕 MECÁNICO OBLIGATORIO -->
                     <select name="mecanico_id" id="mecanicoSelect" required>
                         <option value="">-- Seleccionar --</option>
                         {% for mec in mecanicos %}
@@ -312,6 +311,18 @@
             <button type="submit" class="btn btn-warning">+ Agregar</button>
         </form>
     </div>
+</div>
+
+<!-- 🆕 CUADRO DE OBSERVACIONES (AL FINAL) -->
+<div class="card">
+    <h3>📝 Observaciones de la Orden</h3>
+    <form method="POST" action="{% url 'actualizar_observacion_orden' orden.id %}">
+        {% csrf_token %}
+        <textarea name="observacion_general" rows="3" placeholder="Escribe aquí notas importantes sobre el vehículo, el estado del trabajo o indicaciones del cliente..." style="width: 100%; resize: vertical;">{{ orden.observacion_general|default:'' }}</textarea>
+        <div style="text-align: right; margin-top: 10px;">
+            <button type="submit" class="btn btn-primary">💾 Guardar Observaciones</button>
+        </div>
+    </form>
 </div>
 
 <!-- ============ BOTONES DE ACCIÓN ============ -->

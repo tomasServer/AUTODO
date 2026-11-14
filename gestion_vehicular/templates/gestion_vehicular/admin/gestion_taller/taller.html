@@ -189,7 +189,7 @@
                         <th>Placa / VIN</th>
                         <th>Cliente</th>
                         <th>Encargado</th>
-                        <th>Acciones</th> <!-- 👈 QUITAMOS LA COLUMNA DEL TOTAL -->
+                        <th>Acciones</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -207,8 +207,8 @@
                         </td>
                         <td>
                             <a href="{% url 'detalle_orden' orden.id %}" class="btn btn-gray btn-sm">Detalle</a>
-                            <!-- 👇 BOTÓN DIRECTO AL PAGO -->
-                            <a href="{% url 'registrar_pago' orden.id %}" class="btn btn-success btn-sm">Cobrar</a>
+                            <!-- 👇 CAMBIO: Ahora va a taller_detalle para revisar antes de cobrar -->
+                            <a href="{% url 'taller_detalle' orden.id %}" class="btn btn-success btn-sm">Revisar y Cobrar</a>
                         </td>
                     </tr>
                     {% endfor %}

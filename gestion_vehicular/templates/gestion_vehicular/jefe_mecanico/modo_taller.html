@@ -147,7 +147,8 @@
                         <td><span class="badge badge-success">POR COBRAR</span></td>
                         <td style="text-align: right;">
                             <a href="{% url 'detalle_orden' orden.id %}" class="btn btn-gray btn-sm">Detalle</a>
-                            <a href="{% url 'registrar_pago' orden.id %}" class="btn btn-success btn-sm">Cobrar</a>
+                            <!-- 👇 CAMBIO: Ahora va a detalle_orden en lugar de registrar_pago -->
+                            <a href="{% url 'detalle_orden' orden.id %}" class="btn btn-success btn-sm">Revisar y Cobrar</a>
                         </td>
                     </tr>
                     {% endfor %}
