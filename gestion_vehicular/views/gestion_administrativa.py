@@ -10,6 +10,142 @@ from django.contrib.auth.decorators import login_required
 from ..models import *
 from django.core.paginator import Paginator
 
+#cod v2
+from datetime import timedelta
+from django.db.models.functions import TruncDate
+
+# ============================================================
+# FUNCIONES AUXILIARES PARA LOS GRÁFICOS
+# ============================================================
+
+def datos_ventas_por_dia(dias=7):
+    """Suma por dia lo cobrado en taller (Pago) y en mostrador (VentaRapida)."""
+    # Usamos timezone.now().date() porque USE_TZ = False
+    hoy = timezone.now().date()
+    inicio = hoy - timedelta(days=dias - 1)
+    
+    pagos = (Pago.objects.filter(fecha_pago__date__gte=inicio)
+             .annotate(dia=TruncDate('fecha_pago')).values('dia').annotate(suma=Sum('monto_total')))
+    ventas = (VentaRapida.objects.filter(fecha_venta__date__gte=inicio)
+              .annotate(dia=TruncDate('fecha_venta')).values('dia').annotate(suma=Sum('total')))
+    
+    pagos_x_dia = {p['dia']: float(p['suma'] or 0) for p in pagos}
+    ventas_x_dia = {v['dia']: float(v['suma'] or 0) for v in ventas}
+    
+    etiquetas, taller, mostrador = [], [], []
+    for i in range(dias):
+        dia = inicio + timedelta(days=i)
+        etiquetas.append(dia.strftime('%d/%m'))
+        taller.append(pagos_x_dia.get(dia, 0))
+        mostrador.append(ventas_x_dia.get(dia, 0))
+    
+    return {'etiquetas': etiquetas, 'taller': taller, 'mostrador': mostrador}
+
+def datos_servicios_del_mes():
+    # Usamos timezone.now().date() porque USE_TZ = False
+    mes_actual = timezone.now().date().replace(day=1)
+    filas = (DetalleServicio.objects.filter(id_orden__fecha_ingreso__date__gte=mes_actual)
+             .values('id_servicio__nombre').annotate(cantidad=Count('id')).order_by('-cantidad')[:5])
+    return {'etiquetas': [f['id_servicio__nombre'] for f in filas], 'datos': [f['cantidad'] for f in filas]}
+
+def datos_servicios_por_mecanico():
+    filas = (DetalleServicio.objects.filter(estado='FINALIZADO')
+             .values('id_mecanico__nombre', 'id_mecanico__apellido').annotate(cantidad=Count('id')).order_by('-cantidad')[:8])
+    etiquetas = []
+    for f in filas:
+        nombre = f['id_mecanico__nombre'] or 'Sin asignar'
+        apellido = f['id_mecanico__apellido'] or ''
+        etiquetas.append(f'{nombre} {apellido}'.strip())
+    return {'etiquetas': etiquetas, 'datos': [f['cantidad'] for f in filas]}
+
+def datos_ordenes_por_estado():
+    filas = (OrdenTrabajo.objects.values('estado_orden').annotate(cantidad=Count('id')).order_by('-cantidad'))
+    return {'etiquetas': [f['estado_orden'] or 'SIN ESTADO' for f in filas], 'datos': [f['cantidad'] for f in filas]}
+#fin cod v2
+
+
+
+def datos_ventas_por_dia(dias=7):
+    """Suma por dia lo cobrado en taller (Pago) y en mostrador (VentaRapida)."""
+    hoy = timezone.now().date()
+    inicio = hoy - timedelta(days=dias - 1)
+    
+    pagos = (Pago.objects.filter(fecha_pago__date__gte=inicio)
+             .annotate(dia=TruncDate('fecha_pago')).values('dia').annotate(suma=Sum('monto_total')))
+    ventas = (VentaRapida.objects.filter(fecha_venta__date__gte=inicio)
+              .annotate(dia=TruncDate('fecha_venta')).values('dia').annotate(suma=Sum('total')))
+    
+    pagos_x_dia = {p['dia']: float(p['suma'] or 0) for p in pagos}
+    ventas_x_dia = {v['dia']: float(v['suma'] or 0) for v in ventas}
+    
+    etiquetas, taller, mostrador = [], [], []
+    for i in range(dias):
+        dia = inicio + timedelta(days=i)
+        etiquetas.append(dia.strftime('%d/%m'))
+        taller.append(pagos_x_dia.get(dia, 0))
+        mostrador.append(ventas_x_dia.get(dia, 0))
+    
+    return {'etiquetas': etiquetas, 'taller': taller, 'mostrador': mostrador}
+
+def datos_servicios_del_mes():
+    mes_actual = timezone.now().date().replace(day=1)
+    filas = (DetalleServicio.objects.filter(id_orden__fecha_ingreso__date__gte=mes_actual)
+             .values('id_servicio__nombre').annotate(cantidad=Count('id')).order_by('-cantidad')[:5])
+    return {'etiquetas': [f['id_servicio__nombre'] for f in filas], 'datos': [f['cantidad'] for f in filas]}
+
+def datos_servicios_por_mecanico():
+    filas = (DetalleServicio.objects.filter(estado='FINALIZADO')
+             .values('id_mecanico__nombre', 'id_mecanico__apellido').annotate(cantidad=Count('id')).order_by('-cantidad')[:8])
+    etiquetas = []
+    for f in filas:
+        nombre = f['id_mecanico__nombre'] or 'Sin asignar'
+        apellido = f['id_mecanico__apellido'] or ''
+        etiquetas.append(f'{nombre} {apellido}'.strip())
+    return {'etiquetas': etiquetas, 'datos': [f['cantidad'] for f in filas]}
+
+def datos_ordenes_por_estado():
+    filas = (OrdenTrabajo.objects.values('estado_orden').annotate(cantidad=Count('id')).order_by('-cantidad'))
+    return {'etiquetas': [f['estado_orden'] or 'SIN ESTADO' for f in filas], 'datos': [f['cantidad'] for f in filas]}
+
+
+
+
+def datos_productos_mas_vendidos():
+    """Suma las cantidades de productos vendidos en los últimos 7 días (Taller + Mostrador)."""
+    hoy = timezone.now().date()
+    inicio = hoy - timedelta(days=6) # 7 días contando hoy
+    
+    # 1. Filtramos Ventas Rápidas en ese rango
+    ventas_rapidas = DetalleVentaRapida.objects.filter(
+        id_venta__fecha_venta__date__gte=inicio
+    ).values('id_producto__nombre').annotate(cantidad=Sum('cantidad'))
+    
+    # 2. Filtramos Órdenes de Taller en ese rango
+    ventas_taller = DetalleProducto.objects.filter(
+        id_orden__fecha_ingreso__date__gte=inicio
+    ).values('id_producto__nombre').annotate(cantidad=Sum('cantidad'))
+    
+    # 3. Juntamos ambas listas sumando sus cantidades
+    totales = {}
+    for item in ventas_rapidas:
+        nombre = item['id_producto__nombre'] or 'Sin nombre'
+        totales[nombre] = totales.get(nombre, 0) + item['cantidad']
+        
+    for item in ventas_taller:
+        nombre = item['id_producto__nombre'] or 'Sin nombre'
+        totales[nombre] = totales.get(nombre, 0) + item['cantidad']
+        
+    # 4. Ordenamos de mayor a menor y tomamos el Top 5
+    top_productos = sorted(totales.items(), key=lambda x: x[1], reverse=True)[:5]
+    
+    return {
+        'etiquetas': [p[0] for p in top_productos],
+        'datos': [p[1] for p in top_productos]
+    }
+
+# ============================================================
+# VISTAS
+# ============================================================
 
 def dashboard_admin(request):
     hoy = timezone.now().date()
@@ -20,61 +156,26 @@ def dashboard_admin(request):
     vehiculos_ingresados = ordenes_hoy.count()
     vehiculos_pagados = ordenes_hoy.filter(estado_orden='COBRADA').count()
     
-    # === PENDIENTES ===
-    pendientes_count = OrdenTrabajo.objects.filter(
-        estado_orden__in=['PENDIENTE', 'EN_PROCESO']
-    ).count()
+    pendientes_count = OrdenTrabajo.objects.filter(estado_orden__in=['PENDIENTE', 'EN_PROCESO']).count()
+    por_cobrar_count = OrdenTrabajo.objects.filter(estado_orden='POR_COBRAR').count()
     
-    # === POR COBRAR ===
-    por_cobrar_count = OrdenTrabajo.objects.filter(
-        estado_orden='POR_COBRAR'
-    ).count()
-    
-    # ✅ CORREGIDO: 'fecha' → 'fecha_pago'
     pagos_hoy = Pago.objects.filter(fecha_pago__date=hoy)
     total_facturado = pagos_hoy.aggregate(Sum('monto_total'))['monto_total__sum'] or 0
     
-    # ✅ CORREGIDO: se eliminó estado_pago='COBRADO'
     pagos_mes = Pago.objects.filter(fecha_pago__date__gte=mes_actual)
     total_mes = pagos_mes.aggregate(Sum('monto_total'))['monto_total__sum'] or 0
     
-    # === VENTAS RAPIDAS HOY ===
-    ventas_rapidas_hoy = VentaRapida.objects.filter(
-        fecha_venta__date=hoy
-    ).aggregate(Sum('total'))['total__sum'] or 0
+    ventas_rapidas_hoy = VentaRapida.objects.filter(fecha_venta__date=hoy).aggregate(Sum('total'))['total__sum'] or 0
+    ventas_rapidas_lista = VentaRapida.objects.filter(fecha_venta__date=hoy).order_by('-fecha_venta')
     
-    # === VENTAS RAPIDAS LISTA ===
-    ventas_rapidas_lista = VentaRapida.objects.filter(
-        fecha_venta__date=hoy
-    ).order_by('-fecha_venta')
+    servicios_por_mecanico = DetalleServicio.objects.filter(estado='FINALIZADO').values('id_mecanico__nombre', 'id_mecanico__apellido').annotate(total=Count('id')).order_by('-total')
+    servicios_mes = DetalleServicio.objects.filter(id_orden__fecha_ingreso__date__gte=mes_actual).values('id_servicio__nombre').annotate(total=Count('id')).order_by('-total')[:5]
     
-    # === SERVICIOS POR MECÁNICO ===
-    servicios_por_mecanico = DetalleServicio.objects.filter(
-        estado='FINALIZADO'
-    ).values('id_mecanico__nombre', 'id_mecanico__apellido').annotate(
-        total=Count('id')
-    ).order_by('-total')
-    
-    # === SERVICIOS MÁS REALIZADOS DEL MES ===
-    servicios_mes = DetalleServicio.objects.filter(
-        id_orden__fecha_ingreso__date__gte=mes_actual
-    ).values('id_servicio__nombre').annotate(
-        total=Count('id')
-    ).order_by('-total')[:5]
-    
-    # === ÚLTIMOS VEHÍCULOS ===
     ultimos_vehiculos = OrdenTrabajo.objects.all().order_by('-fecha_ingreso')[:5]
-    
-    # === ÚLTIMAS ÓRDENES ===
     ultimas_ordenes = OrdenTrabajo.objects.all().order_by('-fecha_ingreso')[:20]
     
-    # === STOCK BAJO ===
     stock_bajo = Producto.objects.filter(activo=True, stock_actual__lte=5)
-    
-    # === HALLAZGOS PENDIENTES ===
-    hallazgos_pendientes = HallazgoAdicional.objects.filter(
-        estado_autorizacion='PENDIENTE'
-    ).order_by('-fecha_deteccion')
+    hallazgos_pendientes = HallazgoAdicional.objects.filter(estado_autorizacion='PENDIENTE').order_by('-fecha_deteccion')
     
     contexto = {
         'vehiculos_ingresados': vehiculos_ingresados,
@@ -92,6 +193,10 @@ def dashboard_admin(request):
         'stock_bajo': stock_bajo,
         'hallazgos_pendientes': hallazgos_pendientes,
         'hoy': hoy,
+
+        # Gráficos
+        'grafico_ventas': datos_ventas_por_dia(7),
+        'grafico_productos': datos_productos_mas_vendidos(),
     }
     return render(request, 'gestion_vehicular/admin/gestion_administrativa/dashboard.html', contexto)
 
@@ -99,39 +204,18 @@ def dashboard_admin(request):
 def dashboard_jefe(request):
     hoy = timezone.now().date()
     
-    ordenes_activas = OrdenTrabajo.objects.filter(
-        estado_orden__in=['PENDIENTE', 'EN_PROCESO', 'FINALIZADA']
-    ).order_by('-fecha_ingreso')
-    
+    ordenes_activas = OrdenTrabajo.objects.filter(estado_orden__in=['PENDIENTE', 'EN_PROCESO', 'FINALIZADA']).order_by('-fecha_ingreso')
     ordenes_hoy = ordenes_activas.filter(fecha_ingreso__date=hoy).count()
     ordenes_sin_revision = ordenes_activas.filter(revisiones__isnull=True).count()
     
-    pendientes_count = OrdenTrabajo.objects.filter(
-        estado_orden__in=['PENDIENTE', 'EN_PROCESO']
-    ).count()
+    pendientes_count = OrdenTrabajo.objects.filter(estado_orden__in=['PENDIENTE', 'EN_PROCESO']).count()
+    por_cobrar_count = OrdenTrabajo.objects.filter(estado_orden='POR_COBRAR').count()
     
-    por_cobrar_count = OrdenTrabajo.objects.filter(
-        estado_orden='POR_COBRAR'
-    ).count()
+    cobrado_hoy = Pago.objects.filter(fecha_pago__date=hoy).aggregate(Sum('monto_total'))['monto_total__sum'] or 0
+    ventas_rapidas_hoy = VentaRapida.objects.filter(fecha_venta__date=hoy).aggregate(Sum('total'))['total__sum'] or 0
+    ventas_rapidas_lista = VentaRapida.objects.filter(fecha_venta__date=hoy).order_by('-fecha_venta')
     
-    # ✅ CORREGIDO: se eliminó estado_pago='COBRADO'
-    cobrado_hoy = Pago.objects.filter(
-        fecha_pago__date=hoy
-    ).aggregate(Sum('monto_total'))['monto_total__sum'] or 0
-    
-    ventas_rapidas_hoy = VentaRapida.objects.filter(
-        fecha_venta__date=hoy
-    ).aggregate(Sum('total'))['total__sum'] or 0
-    
-    # NUEVO: lista de ventas rápidas de hoy
-    ventas_rapidas_lista = VentaRapida.objects.filter(
-        fecha_venta__date=hoy
-    ).order_by('-fecha_venta')
-    
-    hallazgos_pendientes = HallazgoAdicional.objects.filter(
-        estado_autorizacion='PENDIENTE'
-    ).order_by('-fecha_deteccion')
-    
+    hallazgos_pendientes = HallazgoAdicional.objects.filter(estado_autorizacion='PENDIENTE').order_by('-fecha_deteccion')
     ultimas_ordenes = OrdenTrabajo.objects.all().order_by('-fecha_ingreso')[:10]
     
     contexto = {
@@ -142,13 +226,15 @@ def dashboard_jefe(request):
         'por_cobrar_count': por_cobrar_count,
         'cobrado_hoy': cobrado_hoy,
         'ventas_rapidas_hoy': ventas_rapidas_hoy,
-        'ventas_rapidas_lista': ventas_rapidas_lista,  # ← NUEVO
+        'ventas_rapidas_lista': ventas_rapidas_lista,
         'hallazgos_pendientes': hallazgos_pendientes,
         'ultimas_ordenes': ultimas_ordenes,
         'hoy': hoy,
+
+        'grafico_ventas': datos_ventas_por_dia(7),
+        'grafico_estados': datos_ordenes_por_estado(),
     }
     return render(request, 'gestion_vehicular/jefe_mecanico/dashboard.html', contexto)
-
 
 def dashboard_ayudante(request):
     hoy = timezone.now().date()

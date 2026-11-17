@@ -1,0 +1,101 @@
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    Chart.defaults.font.family = 'inherit';
+    Chart.defaults.font.size = 13;
+    Chart.defaults.color = '#475569';
+
+    var PALETA = ['#2563eb', '#16a34a', '#f59e0b', '#dc2626', '#7c3aed', '#0891b2', '#64748b'];
+
+    function leer(id) {
+        var el = document.getElementById(id);
+        return el ? JSON.parse(el.textContent) : null;
+    }
+    function bs(v) { return 'Bs. ' + Number(v).toFixed(2); }
+
+    // 1. Gráfico de Ventas (Barras Apiladas)
+    var ventas = leer('data-ventas');
+    var elVentas = document.getElementById('chartVentas');
+    if (ventas && elVentas) {
+        new Chart(elVentas, {
+            type: 'bar',
+            data: {
+                labels: ventas.etiquetas,
+                datasets: [
+                    { label: 'Taller (órdenes)', data: ventas.taller, backgroundColor: '#2563eb', borderRadius: 6 },
+                    { label: 'Mostrador (ventas)', data: ventas.mostrador, backgroundColor: '#16a34a', borderRadius: 6 }
+                ]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                scales: { x: { stacked: true, grid: { display: false } }, y: { stacked: true, beginAtZero: true } },
+                plugins: { legend: { position: 'bottom' }, tooltip: { callbacks: { label: function (c) { return c.dataset.label + ': ' + bs(c.parsed.y); } } } }
+            }
+        });
+    }
+
+    // 2. Función Mejorada para Gráficos de Dona (Leyenda abajo y cantidades)
+    function dona(idCanvas, datos) {
+        var el = document.getElementById(idCanvas);
+        if (!el || !datos) return;
+        
+        new Chart(el, {
+            type: 'doughnut',
+            data: { 
+                labels: datos.etiquetas, 
+                datasets: [{ 
+                    data: datos.datos, 
+                    backgroundColor: PALETA, 
+                    borderWidth: 2 
+                }] 
+            },
+            options: { 
+                responsive: true, 
+                maintainAspectRatio: false, 
+                cutout: '60%', 
+                plugins: { 
+                    legend: { 
+                        position: 'bottom',  // 👈 Cambiamos a abajo para que quepan los nombres largos
+                        labels: {
+                            boxWidth: 12,
+                            padding: 15,
+                            generateLabels: function(chart) {
+                                const original = Chart.overrides.doughnut.plugins.legend.labels.generateLabels;
+                                const labels = original.call(this, chart);
+                                labels.forEach((label, i) => {
+                                    // Aquí aseguramos que el número SIEMPRE se vea
+                                    label.text = `${label.text} (${chart.data.datasets[0].data[i]})`;
+                                });
+                                return labels;
+                            }
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return ` ${context.label}: ${context.parsed} unidades`;
+                            }
+                        }
+                    }
+                } 
+            }
+        });
+    }
+    
+    // Dibujamos los gráficos de dona (si existen en la página)
+    dona('chartServicios', leer('data-servicios'));
+    dona('chartEstados', leer('data-estados'));
+    dona('chartProductos', leer('data-productos'));
+
+    // 3. Gráfico de Mecánicos (Barras Horizontales)
+    var mec = leer('data-mecanicos');
+    var elMec = document.getElementById('chartMecanicos');
+    if (mec && elMec) {
+        new Chart(elMec, {
+            type: 'bar',
+            data: { labels: mec.etiquetas, datasets: [{ label: 'Servicios', data: mec.datos, backgroundColor: '#2563eb', borderRadius: 6 }] },
+            options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, scales: { x: { beginAtZero: true, ticks: { precision: 0 } } }, plugins: { legend: { display: false } } }
+        });
+    }
+});
+</script>

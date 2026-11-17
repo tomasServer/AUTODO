@@ -16,16 +16,31 @@
     .select2-container--default .select2-selection--single .select2-selection__arrow {
         height: 36px;
     }
-    /* Grid de 5 columnas */
-    .grid-5 { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; }
-    @media (max-width: 1100px) { .grid-5 { grid-template-columns: repeat(3, 1fr); } }
-    @media (max-width: 700px) { .grid-5 { grid-template-columns: 1fr; } }
+    
+    /* 🔸 Aumentamos un poco el tamaño del texto del formulario */
+    .card form input, .card form select, .card form textarea {
+        font-size: 1rem; /* Un poco más grande */
+        padding: 10px 12px; /* Un poco más de espacio interno */
+    }
+    .card form label {
+        font-size: 0.95rem; 
+        font-weight: 600;
+    }
+
+    /* 🔸 Línea divisoria de color naranja */
+    .divisor { 
+        border-top: 2px solid #f8b359; /* Naranja vibrante de tu marca */
+        margin: 20px 0; 
+        opacity: 0.6; /* Un poco suave para que no sea tan agresiva */
+    }
+    
     /* Caja info vehículo */
     #info-vehiculo { animation: fadeInOrden 0.3s ease-in; }
     @keyframes fadeInOrden {
         from { opacity: 0; transform: translateY(-4px); }
         to   { opacity: 1; transform: translateY(0); }
     }
+    
     /* Estilos para inputs con error */
     .input-error { border: 2px solid var(--danger) !important; background-color: #fee2e2 !important; }
 </style>
@@ -96,9 +111,11 @@
     <form method="POST" id="ordenForm" autocomplete="off">
         {% csrf_token %}
 
-        <!-- FILA 1: Placa + Cliente + Apellido + CI + Teléfono -->
-        <div class="grid grid-5">
-            <div>
+        <!-- ========================================== -->
+        <!-- SECCIÓN 1: DATOS DEL VEHÍCULO              -->
+        <!-- ========================================== -->
+        <div class="grid grid-4" style="align-items: end; gap: 15px;">
+            <div style="grid-column: span 2;">
                 <label>Placa <small style="color:var(--text-muted); font-weight:normal;">(o llena el VIN)</small></label>
                 <input type="text" name="placa" id="placa" maxlength="8"
                     style="text-transform:uppercase;" oninput="validarPlaca(this)"
@@ -111,6 +128,49 @@
                 <small style="color:var(--text-muted); font-size:0.72rem;">3-8 letras. ej: abc123 sin "-"guion</small>
                 {% endif %}
             </div>
+            <div>
+                <label>Kilometraje *</label>
+                <input type="number" name="kilometraje" id="kilometraje" required
+                       value="{{ vehiculo.kilometraje_actual|default:'0' }}" min="0">
+            </div>
+            <div>
+                <button type="button" onclick="toggleExtra()" class="btn btn-warning" style="width: 100%; height: 38px;" id="btnExtra">+ Más datos</button>
+            </div>
+        </div>
+
+        <!-- CAMPOS EXTRA DEL VEHÍCULO -->
+        <div id="extra" class="hidden mt-10" style="padding: 15px; background: var(--bg-main); border-radius: 8px; border: 1px solid #e2e8f0;">
+            <div class="grid grid-3">
+                <div>
+                    <label>Año del Vehículo</label>
+                    <input type="number" name="anio" min="1950" max="2026" value="{{ vehiculo.anio|default:'' }}">
+                </div>
+                <div>
+                    <label>Color</label>
+                    <input type="text" name="color" maxlength="30" value="{{ vehiculo.color|default:'' }}">
+                </div>
+                <div>
+                    <label>VIN (Chasis) <small id="vin-contador" style="color:var(--text-muted); font-weight:normal;">0/17</small></label>
+                    <input type="text" name="vin" id="vin" maxlength="17"
+                        style="text-transform:uppercase; font-family: monospace;"
+                        oninput="validarVIN(this)"
+                        placeholder="Ej: 1ASDF21ASDF123456"
+                        value="{{ vin|default:'' }}"
+                        {% if bloqueado %}readonly style="text-transform:uppercase; font-family: monospace; background:#f8f9fa; cursor:not-allowed;"{% endif %}>
+                </div>
+            </div>
+            <div style="margin-top: 10px;">
+                <label>Observaciones</label>
+                <textarea name="observacion" rows="2" maxlength="500">{{ orden_visita.observacion_general|default:'' }}</textarea>
+            </div>
+        </div>
+
+        <div class="divisor"></div>
+
+        <!-- ========================================== -->
+        <!-- SECCIÓN 2: DATOS DEL CLIENTE               -->
+        <!-- ========================================== -->
+        <div class="grid grid-4">
             <div>
                 <label>Cliente *</label>
                 <input type="text" name="cliente_nombre" id="cliente_nombre" maxlength="30" required
@@ -135,11 +195,15 @@
                        pattern="[0-9]{8}" title="El teléfono debe tener exactamente 8 dígitos"
                        oninput="validarTelefono(this)" placeholder="Ej: 77712345"
                        value="{{ cliente.telefono|default:'' }}">
-                <small style="color:var(--text-muted); font-size:0.72rem;">8 dígitos exactos.</small>
             </div>
         </div>
 
-        <div class="grid grid-4 mt-10">
+        <div class="divisor"></div>
+
+        <!-- ========================================== -->
+        <!-- SECCIÓN 3: DATOS DE LA ORDEN               -->
+        <!-- ========================================== -->
+        <div class="grid grid-2">
             <div>
                 <label>Encargado de Revisión *</label>
                 <select name="supervisor_id" id="supervisor_id" required>
@@ -157,52 +221,15 @@
                     <option value="Premium">Premium</option>
                 </select>
             </div>
-            <div>
-                <label>Kilometraje *</label>
-                <input type="number" name="kilometraje" id="kilometraje" required
-                       value="{{ vehiculo.kilometraje_actual|default:'0' }}" min="0">
-            </div>
-            <div style="display:flex; align-items:flex-end;">
-                <button type="button" onclick="toggleExtra()" class="btn btn-warning btn-sm">+ Más datos</button>
-            </div>
         </div>
 
-        <!-- CAMPOS EXTRA -->
-        <div id="extra" class="hidden mt-10">
-            <div class="grid grid-2">
-                <div>
-                    <label>Año del Vehículo</label>
-                    <input type="number" name="anio" min="1950" max="2026" value="{{ vehiculo.anio|default:'' }}">
-                </div>
-                <div>
-                    <label>Color</label>
-                    <input type="text" name="color" maxlength="30" value="{{ vehiculo.color|default:'' }}">
-                </div>
-                <div>
-                    <label>VIN (Chasis) <small id="vin-contador" style="color:var(--text-muted); font-weight:normal;">0/17</small></label>
-                    <input type="text" name="vin" id="vin" maxlength="17"
-                        style="text-transform:uppercase; font-family: monospace;"
-                        oninput="validarVIN(this)"
-                        placeholder="Ej: 1ASDF21ASDF123456"
-                        value="{{ vin|default:'' }}"
-                        {% if bloqueado %}readonly style="text-transform:uppercase; font-family: monospace; background:#f8f9fa; cursor:not-allowed;"{% endif %}>
-                    <small style="color:var(--text-muted); font-size:0.72rem;">
-                        {% if bloqueado %}
-                        🔒 El VIN no se puede modificar
-                        {% else %}
-                        Máximo 17 caracteres. Solo letras y números.
-                        {% endif %}
-                    </small>
-                </div>
-                <div>
-                    <label>Observaciones</label>
-                    <textarea name="observacion" rows="2" maxlength="500">{{ orden_visita.observacion_general|default:'' }}</textarea>
-                </div>
-            </div>
-        </div>
+        <div class="divisor"></div>
 
+        <!-- ========================================== -->
+        <!-- SECCIÓN 4: SERVICIOS E INSUMOS             -->
+        <!-- ========================================== -->
         <!-- SERVICIOS -->
-        <div class="mt-20">
+        <div class="mt-10">
             <label>Servicios</label>
             <div id="serviciosAdicionales"></div>
             <button type="button" onclick="agregarServicio()" class="btn btn-primary btn-sm mt-10">+ Agregar Servicio</button>
@@ -218,8 +245,8 @@
         <!-- TOTAL -->
         <div class="mt-20">
             <div class="flex-between" style="padding:15px; background: var(--bg-main); border-radius:6px; border: 1px solid var(--border-color);">
-                <strong style="color: var(--primary-dark);">Total:</strong>
-                <strong id="totalCotizacion" style="font-size:1.3rem; color: var(--primary-dark);">Bs. 0.00</strong>
+                <strong style="color: var(--primary-dark); font-size: 1.1rem;">Total:</strong>
+                <strong id="totalCotizacion" style="font-size:1.4rem; color: var(--primary-dark);">Bs. 0.00</strong>
             </div>
         </div>
 
@@ -299,7 +326,7 @@
     // ============ MOSTRAR/OCULTAR EXTRA ============
     function toggleExtra() {
         var extra = document.getElementById('extra');
-        var btn = event.target;
+        var btn = document.getElementById('btnExtra');
         if (extra.classList.contains('hidden')) {
             extra.classList.remove('hidden');
             btn.textContent = '- Menos datos';
@@ -429,7 +456,6 @@
 
     // ============ VALIDAR ANTES DE ENVIAR ============
     document.getElementById('ordenForm').addEventListener('submit', function(e) {
-        // 1. Validaciones básicas
         var placa = document.getElementById('placa');
         var vin = document.getElementById('vin');
         var placaVal = placa.value.trim();
@@ -455,14 +481,9 @@
             e.preventDefault(); alert('⚠️ El CI no tiene un formato válido (7-11 dígitos).'); ci.focus(); return;
         }
 
-        // VALIDACIÓN ESTRICTA DEL TELÉFONO (8 dígitos obligatorios)
         var telefono = document.getElementById('cliente_telefono');
-        var telVal = telefono.value.trim();
-        if (!/^[0-9]{8}$/.test(telVal)) {
-            e.preventDefault();
-            alert('⚠️ El teléfono debe tener EXACTAMENTE 8 dígitos.\nEjemplo: 77712345');
-            telefono.focus();
-            return;
+        if (!/^[0-9]{8}$/.test(telefono.value.trim())) {
+            e.preventDefault(); alert('⚠️ El teléfono debe tener EXACTAMENTE 8 dígitos.\nEjemplo: 77712345'); telefono.focus(); return;
         }
 
         var supervisor = document.getElementById('supervisor_id');
@@ -470,7 +491,6 @@
             e.preventDefault(); alert('⚠️ Seleccione un Encargado de Revisión.'); supervisor.focus(); return;
         }
 
-        // VALIDACIÓN DE CALIDAD DE ORDEN (ahora es un select simple)
         var calidad = document.getElementById('calidad_orden');
         if (!calidad.value) {
             e.preventDefault(); alert('⚠️ Seleccione una Calidad de Orden.'); calidad.focus(); return;
@@ -481,7 +501,6 @@
             e.preventDefault(); alert('⚠️ El kilometraje es obligatorio.'); kilometraje.focus(); return;
         }
 
-        // 2. Validar precios no negativos ni vacíos
         let preciosValidos = true;
         document.querySelectorAll('input[name^="precio_servicio_"], input[name^="precio_producto_"]').forEach(function(input) {
             const valor = parseFloat(input.value);
@@ -502,9 +521,7 @@
         }
     });
 
-    // ============================================================
-    //  AUTOCOMPLETADO POR PLACA O VIN + CONTADOR DE VIN
-    // ============================================================
+    // ============ AUTOCOMPLETADO ============
     document.addEventListener('DOMContentLoaded', function () {
         const vinInputInit = document.getElementById('vin');
         if (vinInputInit && vinInputInit.value) validarVIN(vinInputInit);
@@ -512,7 +529,7 @@
         const vinPrecargado = document.getElementById('vin');
         if (vinPrecargado && vinPrecargado.value.trim()) {
             const extra = document.getElementById('extra');
-            const btnExtra = document.querySelector('button[onclick="toggleExtra()"]');
+            const btnExtra = document.getElementById('btnExtra');
             if (extra && extra.classList.contains('hidden')) {
                 extra.classList.remove('hidden');
                 if (btnExtra) btnExtra.textContent = '- Menos datos';

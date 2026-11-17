@@ -331,6 +331,7 @@ class Usuario(AbstractBaseUser, PermissionsMixin):
         self.password = make_password(raw_password)
 
     def check_password(self, raw_password):
+        
         from django.contrib.auth.hashers import check_password
         return check_password(raw_password, self.password)
 

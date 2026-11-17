@@ -1,112 +1,150 @@
-{% extends 'gestion_vehicular/jefe_mecanico/base_jefe.html' %}
-{% block title %}Panel Jefe{% endblock %}
-
-{% block extra_css %}
-<style>
-    /* Estilo para los enlaces de número de orden */
-    .link-orden {
-        color: var(--primary-dark);
-        font-weight: bold;
-        text-decoration: none;
-        transition: color 0.2s ease, text-decoration 0.2s ease;
-    }
-    .link-orden:hover {
-        color: var(--accent-color); /* Cambia a azul al pasar el mouse */
-        text-decoration: underline; /* Se subraya al pasar el mouse */
-    }
-</style>
-{% endblock %}
+{% extends 'gestion_vehicular/admin/base_admin.html' %}
+{% block title %}Administracion{% endblock %}
 
 {% block content %}
 
-<h1 style="color: var(--primary-dark); font-size: 1.5rem; margin-bottom: 5px;">Panel de Jefe Mecánico</h1>
+<h1 style="color: var(--primary-dark); font-size: 1.5rem; margin-bottom: 5px;">Panel de Administración</h1>
 <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 20px;">{{ hoy|date:"l d \d\e F \d\e Y" }}</p>
 
-<!-- ============ GRID PRINCIPAL ============ -->
-<div class="grid grid-2">
-
-    <!-- Hallazgos Pendientes -->
-    <div class="card">
-        <h3>Hallazgos Pendientes</h3>
-        {% if hallazgos_pendientes %}
-        <div class="tabla-scroll" style="max-height: 250px;">
-            {% for h in hallazgos_pendientes %}
-            <div class="flex-between" style="padding:10px 15px; border-bottom:1px solid #f1f5f9;">
-                <div style="flex: 1;">
-                    <a href="{% url 'detalle_orden' h.id_orden.id %}" class="link-orden">
-                        N° {{ h.id_orden.id }}
-                    </a> 
-                    {{ h.id_orden.id_vehiculo.placa|default:h.id_orden.id_vehiculo.vin|default:"Sin placa" }}
-                    <span class="text-muted" style="display:block; font-size:0.8rem;">{{ h.descripcion|truncatechars:40 }}</span>
-                </div>
-                <strong style="color: var(--warning);">Bs. {{ h.costo_estimado|floatformat:2|default:"0.00" }}</strong>
+<!-- ========================================== -->
+<!-- BLOQUE SUPERIOR: DOS COLUMNAS              -->
+<!-- ========================================== -->
+<div class="flex" style="align-items: flex-start; gap: 20px; flex-wrap: wrap; margin-bottom: 20px;">
+    
+    <!-- COLUMNA IZQUIERDA: HALLAZGOS Y STOCK -->
+    <div style="flex: 1 1 55%; min-width: 350px; display: flex; flex-direction: column; gap: 15px;">
+        
+        <!-- HALLAZGOS PENDIENTES -->
+        <div class="card" style="margin-bottom: 0;">
+            <div class="flex-between mb-10">
+                <h3 style="margin: 0;">⚠️ Hallazgos Pendientes</h3>
+                <span class="badge badge-warning">{{ hallazgos_pendientes|length }}</span>
             </div>
-            {% endfor %}
+            {% if hallazgos_pendientes %}
+            <div class="tabla-scroll" style="max-height: 250px;">
+                {% for h in hallazgos_pendientes %}
+                <div class="flex-between" style="padding:12px 15px; border-bottom:1px solid #f1f5f9; gap: 10px;">
+                    <div style="flex: 1; min-width: 0;">
+                        <a href="{% url 'detalle_orden' h.id_orden.id %}" style="color: var(--accent-color); font-weight: bold; text-decoration: underline;">
+                            N° {{ h.id_orden.id }} ↗
+                        </a> 
+                        - {{ h.id_orden.id_vehiculo.placa|default:h.id_orden.id_vehiculo.vin }}
+                        <span class="text-muted" style="font-size: 0.8rem; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                            {{ h.descripcion|truncatechars:40 }}
+                        </span>
+                    </div>
+                    <div class="flex" style="gap: 5px; flex-shrink: 0;">
+                        <strong style="color: var(--warning); margin-right: 10px; white-space: nowrap;">Bs. {{ h.costo_estimado|floatformat:2|default:"0.00" }}</strong>
+                        <a href="{% url 'autorizar_hallazgo' h.id %}" class="btn btn-primary btn-sm">Aceptar</a>
+                        <a href="{% url 'rechazar_hallazgo' h.id %}" class="btn btn-danger btn-sm">Rechazar</a>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="text-muted" style="font-size:0.85rem;">No hay hallazgos pendientes.</p>
+            {% endif %}
         </div>
-        {% else %}
-        <p class="text-muted" style="font-size:0.85rem;">No hay hallazgos pendientes.</p>
-        {% endif %}
+
+        <!-- STOCK BAJO -->
+        <div class="card" style="margin-bottom: 0;">
+            <div class="flex-between mb-10">
+                <h3 style="margin: 0;">📦 Stock Bajo</h3>
+                <span class="badge badge-danger">{{ stock_bajo|length }}</span>
+            </div>
+            {% if stock_bajo %}
+            <div class="tabla-scroll" style="max-height: 250px;">
+                {% for p in stock_bajo %}
+                <div class="flex-between" style="padding:10px 15px; border-bottom:1px solid #f1f5f9; {% if p.stock_actual <= 2 %}background: #fee2e2;{% endif %}">
+                    <span style="font-size: 0.9rem;">{{ p.nombre }}</span>
+                    <strong style="{% if p.stock_actual <= 2 %}color: var(--danger);{% else %}color: var(--warning);{% endif %}">
+                        {{ p.stock_actual }} und.
+                    </strong>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="text-muted" style="font-size:0.85rem;">Stock suficiente.</p>
+            {% endif %}
+        </div>
     </div>
 
-    <!-- 4 Tarjetas de Resumen -->
-    <div class="grid grid-2">
-        <div class="stat-card bg-dark">
-            <span class="number">{{ pendientes_count }}</span>
-            <span class="label">Pendientes</span>
+    <!-- COLUMNA DERECHA: TARJETAS Y GRÁFICOS -->
+    <div style="flex: 1 1 40%; min-width: 300px; display: flex; flex-direction: column; gap: 15px;">
+        
+        <!-- TARJETAS RÁPIDAS -->
+        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px;">
+            <div class="stat-card bg-dark" style="padding: 20px 15px;">
+                <span class="number" style="font-size: 1.8rem;">{{ pendientes_count }}</span>
+                <span class="label">Órdenes Pendientes</span>
+            </div>
+            <div class="stat-card bg-dark" style="padding: 20px 15px;">
+                <span class="number" style="font-size: 1.8rem;">{{ por_cobrar_count }}</span>
+                <span class="label">Órdenes Por Cobrar</span>
+            </div>
+            <div class="stat-card bg-dark" style="padding: 20px 15px;">
+                <span class="number" style="font-size: 1.5rem;">Bs. {{ total_facturado|floatformat:2 }}</span>
+                <span class="label">Cobradas Hoy</span>
+            </div>
+            <div class="stat-card bg-dark" style="padding: 20px 15px;">
+                <span class="number" style="font-size: 1.5rem;">Bs. {{ ventas_rapidas_hoy|floatformat:2 }}</span>
+                <span class="label">Ventas Rápidas</span>
+            </div>
         </div>
-        <div class="stat-card bg-dark">
-            <span class="number">{{ por_cobrar_count }}</span>
-            <span class="label">Por Cobrar</span>
+
+        <!-- GRÁFICO DE VENTAS (BARRAS) -->
+        <div class="card" style="margin-bottom: 0;">
+            <div class="flex-between mb-10">
+                <h3 style="margin:0; font-size: 1rem;">📈 Ventas de los últimos 7 días</h3>
+                <span class="text-muted" style="font-size:0.75rem;">Taller vs Mostrador</span>
+            </div>
+            <div class="chart-box" style="height: 200px;"><canvas id="chartVentas"></canvas></div>
         </div>
-        <div class="stat-card bg-dark">
-            <span class="number">Bs. {{ cobrado_hoy|floatformat:2 }}</span>
-            <span class="label">Cobrado Hoy</span>
+
+        <!-- GRÁFICO DE PRODUCTOS MÁS VENDIDOS (DONA) -->
+        <div class="card" style="margin-bottom: 0;">
+            <div class="flex-between mb-10">
+                <h3 style="margin:0; font-size: 1rem;">🔥 Top 5 Productos más vendidos</h3>
+            </div>
+            <div class="chart-box" style="height: 200px;"><canvas id="chartProductos"></canvas></div>
         </div>
-        <div class="stat-card bg-dark">
-            <span class="number">Bs. {{ ventas_rapidas_hoy|floatformat:2 }}</span>
-            <span class="label">Ventas Rápidas</span>
-        </div>
+
     </div>
 </div>
 
-<!-- ============ ÓRDENES RECIENTES ============ -->
-<div class="card">
-    <h3>Órdenes Recientes</h3>
+<!-- PASAMOS LOS DATOS A JAVASCRIPT -->
+{{ grafico_ventas|json_script:"data-ventas" }}
+{{ grafico_productos|json_script:"data-productos" }}
+
+<!-- ========================================== -->
+<!-- BLOQUES INFERIORES: TABLAS ANCHO COMPLETO  -->
+<!-- ========================================== -->
+
+<!-- ÓRDENES RECIENTES -->
+<div class="card" style="margin-bottom: 20px;">
+    <h3>📋 Órdenes Recientes</h3>
     {% if ultimas_ordenes %}
     <div class="tabla-scroll" style="max-height: 300px;">
         <table>
             <thead>
-                <tr>
-                    <th>Orden</th>
-                    <th>Placa / VIN</th>
-                    <th>Vehículo</th>
-                    <th>Estado</th>
-                    <th>Total</th>
-                </tr>
+                <tr><th>N° Orden</th><th>Placa / VIN</th><th>Estado</th><th>Total</th></tr>
             </thead>
             <tbody>
-                {% for o in ultimas_ordenes %}
+                {% for o in ultimas_ordenes|slice:":10" %}
                 <tr>
                     <td>
-                        <a href="{% url 'detalle_orden' o.id %}" class="link-orden">
-                            N° {{ o.id }}
-                        </a>
+                        <a href="{% url 'detalle_orden' o.id %}" style="color: var(--accent-color); font-weight: bold;">N° {{ o.id }} ↗</a>
                     </td>
                     <td>
-                        {% if o.id_vehiculo.placa %}
-                            {{ o.id_vehiculo.placa }}
-                        {% elif o.id_vehiculo.vin %}
-                            <span style="font-family:monospace; font-size:0.8rem;">{{ o.id_vehiculo.vin }}</span>
-                        {% else %}
-                            <span style="color: var(--warning); font-style: italic;">Sin placa</span>
-                        {% endif %}
+                        {% if o.id_vehiculo.placa %}{{ o.id_vehiculo.placa }}
+                        {% elif o.id_vehiculo.vin %}<span style="font-family:monospace; font-size:0.8rem;">{{ o.id_vehiculo.vin }}</span>
+                        {% else %}-{% endif %}
                     </td>
-                    <td>{{ o.id_vehiculo.marca|default:"" }} {{ o.id_vehiculo.modelo|default:"" }}</td>
                     <td>
                         <span class="badge 
                             {% if o.estado_orden == 'COBRADA' %}badge-success
-                            {% elif o.estado_orden == 'EN_PROCESO' %}badge-info
                             {% elif o.estado_orden == 'POR_COBRAR' %}badge-warning
+                            {% elif o.estado_orden == 'EN_PROCESO' %}badge-info
                             {% else %}badge-danger{% endif %}">
                             {{ o.estado_orden }}
                         </span>
@@ -122,22 +160,17 @@
     {% endif %}
 </div>
 
-<!-- ============ VENTAS RÁPIDAS DE HOY ============ -->
-<div class="card">
-    <h3>Ventas Rápidas de Hoy</h3>
+<!-- VENTAS RÁPIDAS -->
+<div class="card" style="margin-bottom: 20px;">
+    <h3>🛒 Ventas Rápidas (Hoy)</h3>
     {% if ventas_rapidas_lista %}
-    <div class="tabla-scroll" style="max-height: 250px;">
+    <div class="tabla-scroll" style="max-height: 300px;">
         <table>
             <thead>
-                <tr>
-                    <th>Venta</th>
-                    <th>Hora</th>
-                    <th>Registrado</th>
-                    <th>Total</th>
-                </tr>
+                <tr><th>Venta</th><th>Hora</th><th>Registrado por</th><th>Total</th></tr>
             </thead>
             <tbody>
-                {% for v in ventas_rapidas_lista %}
+                {% for v in ventas_rapidas_lista|slice:":10" %}
                 <tr>
                     <td><strong style="color: var(--primary-dark);">N° {{ v.id }}</strong></td>
                     <td>{{ v.fecha_venta|date:"H:i" }}</td>
@@ -152,5 +185,8 @@
     <p class="text-muted" style="font-size:0.85rem;">No hay ventas rápidas hoy.</p>
     {% endif %}
 </div>
+
+<!-- COMPONENTE JS DE CHART.JS -->
+{% include 'gestion_vehicular/componentes/graficos_js.html' %}
 
 {% endblock %}
